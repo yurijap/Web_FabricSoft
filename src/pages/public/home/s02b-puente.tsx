@@ -2070,8 +2070,8 @@ export default function S02bPuente() {
           maxWidth: 1180,
           marginInline: 'auto',
           paddingInline: 'clamp(22px, 5vw, 56px)',
-          opacity: isInView ? 1 : 0,
-          transform: isInView ? 'translateY(0)' : 'translateY(36px)',
+          opacity: 1,
+          transform: 'translateY(0)',
           transition: 'opacity 1000ms ease, transform 1000ms ease',
         }}
       >
