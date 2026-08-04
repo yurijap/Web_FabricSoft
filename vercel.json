@@ -18,10 +18,10 @@
       }
     },
     {
-      "source": "/((?!assets/|public/|.*\\..*).*)",
+      "source": "/:path*",
       "destination": {
         "service": "frontend",
-        "path": "/index.html"
+        "path": "/:path*"
       }
     }
   ]
