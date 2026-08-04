@@ -25,20 +25,18 @@ const app = (
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {PUBLISHABLE_KEY ? (
-      <ClerkProvider
-        publishableKey={PUBLISHABLE_KEY}
-        localization={esES}
-        appearance={{
-          baseTheme: dark,
-          variables: {
-            colorPrimary: '#ffffff',
-            colorBackground: '#111111'
-          }
-        }}
-      >
-        {app}
-      </ClerkProvider>
-    ) : app}
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY || 'pk_test_dummy_key_for_clerk_provider'}
+      localization={esES}
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: '#ffffff',
+          colorBackground: '#111111'
+        }
+      }}
+    >
+      {app}
+    </ClerkProvider>
   </React.StrictMode>,
 )
