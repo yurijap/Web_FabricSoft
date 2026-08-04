@@ -1,8 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../config/api";
+import { applyOfficeHoursFomoToMonth, applyOfficeHoursFomoToSlots, type MonthAvailability } from "../utils/officeHoursFomo";
 import { getInteractionTracking } from "../utils/tracking";
 
 type InteractionType = "proof" | "office-hours" | "reference" | "paper" | "waitlist" | "fabric-os" | "benchmark" | "nda-pdf" | null;
+export type InteractionRequest = {
+  type: Exclude<InteractionType, null>;
+  date?: string | null;
+  paperIndex?: number | null;
+  nonce: number;
+};
 
 const powDocs = [
   { icon: "SOW",   title: "SOW Fixed-Price firmado",           meta: "28 pp · ES · Cláusulas doctrinales explícitas · dic 2025", size: "2.4 MB", access: "locked" },
@@ -29,7 +36,7 @@ interface PaperCatalogItem {
   meta: string;
 }
 
-interface DaySlot { time: string; taken: boolean; }
+interface DaySlot { time: string; taken: boolean; fomoBlocked?: boolean; }
 
 // Genera los próximos N días laborables a partir de mañana
 function cursorToLocalISO(d: Date): string {
@@ -67,7 +74,11 @@ function formatDayLabel(iso: string): string {
   return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit' }).toUpperCase();
 }
 
-export default function InteractionManager() {
+export default function InteractionManager({
+  initialRequest,
+}: {
+  initialRequest?: InteractionRequest | null;
+}) {
   const [active, setActive] = useState<InteractionType>(null);
   const [selectedDay, setSelectedDay] = useState<string>(() => getWorkDaysUntilEndOfNextMonth()[0]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -76,6 +87,7 @@ export default function InteractionManager() {
   const [paperDownloadUrl, setPaperDownloadUrl] = useState("");
 
   useEffect(() => {
+    if (active !== 'paper') return;
     api.get('/papers/catalog')
       .then(res => {
         if (res.data?.ok && Array.isArray(res.data.data)) {
@@ -95,7 +107,7 @@ export default function InteractionManager() {
       .catch(err => {
         console.error('Error loading papers in InteractionManager:', err);
       });
-  }, []);
+  }, [active]);
   const [formData, setFormData] = useState({ nombre: "", cargo: "", empresa: "", email: "", revenue: "", iniciativa: "", plazo: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,9 +118,31 @@ export default function InteractionManager() {
   const [slots, setSlots] = useState<DaySlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [monthBooked, setMonthBooked] = useState<Record<string, number>>({}); // "YYYY-MM" → booked count
+  const [visibleMonthDays, setVisibleMonthDays] = useState<Record<string, MonthAvailability>>({});
   const tracking = (sourceSection: string, interactionType: string) => getInteractionTracking(sourceSection, interactionType);
 
   const MONTHLY_LIMIT = 4;
+
+  const openInteraction = useCallback((request: InteractionRequest) => {
+    let type: InteractionType = request.type;
+    if (!type) return;
+    if (type === "nda-pdf") type = "proof";
+
+    if (type === "office-hours") {
+      setSelectedDay(request.date || days[0]);
+    }
+
+    if (type === "paper" && request.paperIndex !== null && request.paperIndex !== undefined) {
+      setSelectedPaper(request.paperIndex);
+    }
+
+    setActive(type);
+    setSubmitted(false);
+    setSelectedSlot(null);
+    setApiError("");
+    setLoading(false);
+    setPaperDownloadUrl("");
+  }, [days]);
 
   const getMonthKey = (dateISO: string) => dateISO.slice(0, 7);
 
@@ -118,12 +152,15 @@ export default function InteractionManager() {
     setSlotsLoading(true);
     const monthKey = getMonthKey(dateISO);
     try {
+      let visibleDays = visibleMonthDays[monthKey];
       // Consultar disponibilidad mensual si no la tenemos aún
-      if (monthBooked[monthKey] === undefined) {
+      if (monthBooked[monthKey] === undefined || visibleDays === undefined) {
         const [year, month] = monthKey.split('-');
         const mesRes = await api.get(`/office-hours/disponibilidad/mes?year=${year}&month=${month}`);
         const booked = mesRes.data.booked ?? 0;
+        visibleDays = applyOfficeHoursFomoToMonth(Number(year), Number(month), mesRes.data.data ?? {});
         setMonthBooked(prev => ({ ...prev, [monthKey]: booked }));
+        setVisibleMonthDays(prev => ({ ...prev, [monthKey]: visibleDays ?? {} }));
         if (booked >= MONTHLY_LIMIT) {
           setSlots([]);
           setSlotsLoading(false);
@@ -134,15 +171,24 @@ export default function InteractionManager() {
         setSlotsLoading(false);
         return;
       }
+      if (!visibleDays?.[dateISO]) {
+        const nextVisibleDay = Object.keys(visibleDays ?? {}).find((date) => date >= TODAY_ISO);
+        if (nextVisibleDay && nextVisibleDay !== dateISO) {
+          setSelectedDay(nextVisibleDay);
+        }
+        setSlots([]);
+        setSlotsLoading(false);
+        return;
+      }
       const res = await api.get(`/office-hours/disponibilidad/dia?date=${dateISO}`);
-      setSlots(res.data.data ?? []);
+      setSlots(applyOfficeHoursFomoToSlots(dateISO, res.data.data ?? []));
     } catch {
-      setSlots(['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','16:00']
-        .map(time => ({ time, taken: false })));
+      setSlots(applyOfficeHoursFomoToSlots(dateISO, ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','16:00']
+        .map(time => ({ time, taken: false }))));
     } finally {
       setSlotsLoading(false);
     }
-  }, [monthBooked]);
+  }, [monthBooked, visibleMonthDays]);
 
   useEffect(() => {
     if (active === 'office-hours' && selectedDay) {
@@ -162,32 +208,27 @@ export default function InteractionManager() {
     const handler = (e: MouseEvent) => {
       const target = (e.target as HTMLElement).closest("[data-interaction]") as HTMLElement | null;
       if (!target) return;
-      let type = target.getAttribute("data-interaction") as InteractionType;
+      const type = target.getAttribute("data-interaction") as InteractionType;
       if (!type) return;
-      // nda-pdf redirige al modal de proof (mismo flujo de acceso NDA)
-      if (type === "nda-pdf") type = "proof";
       e.preventDefault();
-      if (type === "office-hours") {
-        const clickedDate = target.getAttribute("data-date");
-        setSelectedDay(clickedDate || days[0]);
-      }
-      if (type === "paper") {
-        const paperIdx = target.getAttribute("data-paper-index");
-        if (paperIdx !== null) {
-          const parsedIdx = parseInt(paperIdx, 10);
-          if (!isNaN(parsedIdx)) setSelectedPaper(parsedIdx);
-        }
-      }
-      setActive(type);
-      setSubmitted(false);
-      setSelectedSlot(null);
-      setApiError("");
-      setLoading(false);
-      setPaperDownloadUrl("");
+      const paperIdx = target.getAttribute("data-paper-index");
+      const parsedPaperIndex = paperIdx === null ? null : parseInt(paperIdx, 10);
+      openInteraction({
+        type: type as Exclude<InteractionType, null>,
+        date: target.getAttribute("data-date"),
+        paperIndex: Number.isNaN(parsedPaperIndex) ? null : parsedPaperIndex,
+        nonce: Date.now(),
+      });
     };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
-  }, [days]);
+  }, [openInteraction]);
+
+  useEffect(() => {
+    if (!initialRequest) return;
+    const timer = window.setTimeout(() => openInteraction(initialRequest), 0);
+    return () => window.clearTimeout(timer);
+  }, [initialRequest, openInteraction]);
 
   useEffect(() => {
     if (active) {
@@ -223,6 +264,24 @@ export default function InteractionManager() {
         .im-day-btn.active { color: var(--accent) !important; border-color: var(--accent) !important; }
         .im-ref-row:hover { border-color: var(--accent) !important; background: rgba(201,169,110,0.04) !important; }
         .im-paper-tab.active { border-bottom: 2px solid var(--accent) !important; color: var(--accent) !important; }
+        /* Office Hours modal — responsive */
+        .im-oh-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+        .im-oh-left { width: 240px; border-right: 1px solid var(--border); padding: 24px 20px; overflow-y: auto; flex-shrink: 0; }
+        .im-oh-left-inner { display: flex; flex-direction: column; gap: 0; }
+        .im-oh-left-avatar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .im-oh-right { flex: 1; padding: 24px 20px; overflow-y: auto; min-width: 0; min-height: 0; }
+        @media (max-width: 600px) {
+          .im-oh-body { flex-direction: column; overflow-y: auto; overflow-x: hidden; min-height: 0; }
+          .im-oh-left { width: 100% !important; border-right: none !important; border-bottom: 1px solid var(--border); padding: 18px; overflow-y: visible; flex-shrink: 0; }
+          .im-oh-left-inner { flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+          .im-oh-left-avatar { width: 100%; margin-bottom: 0; }
+          .im-oh-left-criteria { width: 100%; margin-bottom: 0; }
+          .im-oh-right { padding: 18px; flex: none; overflow-y: visible; min-height: 0; }
+          .im-oh-day-row { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+          .im-slot-btn { padding: 14px 8px !important; font-size: 13px !important; }
+          .im-oh-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .im-oh-selects { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       {/* ── PROOF OF WORK (I02) ── */}
@@ -332,32 +391,38 @@ export default function InteractionManager() {
             <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 18, cursor: "pointer" }}>×</button>
           </div>
 
-          <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
+          <div className="im-oh-body">
             {/* Left panel */}
-            <div style={{ width: 240, borderRight: "1px solid var(--border)", padding: "24px 20px", overflowY: "auto", flexShrink: 0 }}>
-              <div style={{ width: 48, height: 48, border: "1px solid var(--accent)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--serif)", fontSize: 24, color: "var(--accent)", fontStyle: "italic", marginBottom: 16 }}>J</div>
-              <div style={{ fontFamily: "var(--serif)", fontSize: 18, marginBottom: 4 }}>Julio Álvarez</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", letterSpacing: "0.1em", marginBottom: 20 }}>Founder · FABRIC</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 10 }}>30 min · Video call</div>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 10 }}>Criterios de acceso</div>
-                {["USD 50M+ revenue anual", "CFO / CIO / CTO / Dir. Transformación", "Iniciativa Oracle activa o planeada", "Decisión en menos de 12 meses"].map(c => (
-                  <div key={c} style={{ display: "flex", gap: 8, marginBottom: 8, fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    <span style={{ color: "var(--accent)", flexShrink: 0 }}>·</span>{c}
+            <div className="im-oh-left">
+              <div className="im-oh-left-inner">
+                <div className="im-oh-left-avatar">
+                  <div style={{ width: 48, height: 48, border: "1px solid var(--accent)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--serif)", fontSize: 24, color: "var(--accent)", fontStyle: "italic", flexShrink: 0 }}>J</div>
+                  <div>
+                    <div style={{ fontFamily: "var(--serif)", fontSize: 18, marginBottom: 2 }}>Julio Álvarez</div>
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", letterSpacing: "0.1em" }}>Founder · FABRIC</div>
                   </div>
-                ))}
-              </div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", padding: "8px 12px", border: "1px solid var(--border)", letterSpacing: "0.05em", lineHeight: 1.5 }}>
-                Confidencial · NDA mutuo al confirmar
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.15em", textTransform: "uppercase", width: "100%", marginTop: 4 }}>30 min · Video call</div>
+                <div className="im-oh-left-criteria" style={{ marginBottom: 4 }}>
+                  <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 10 }}>Criterios de acceso</div>
+                  {["USD 50M+ revenue anual", "CFO / CIO / CTO / Dir. Transformación", "Iniciativa Oracle activa o planeada", "Decisión en menos de 12 meses"].map(c => (
+                    <div key={c} style={{ display: "flex", gap: 8, marginBottom: 8, fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                      <span style={{ color: "var(--accent)", flexShrink: 0 }}>·</span>{c}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", padding: "8px 12px", border: "1px solid var(--border)", letterSpacing: "0.05em", lineHeight: 1.5, width: "100%", boxSizing: "border-box" }}>
+                  Confidencial · NDA mutuo al confirmar
+                </div>
               </div>
             </div>
 
             {/* Right: slot picker */}
-            <div className="im-scroll-panel" style={{ flex: 1, padding: "24px 20px", overflowY: "auto", minWidth: 0, minHeight: 0 }}>
+            <div className="im-oh-right">
               {!selectedSlot ? (
                 <>
                   {/* Navegación semanal */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                  <div className="im-oh-day-row" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
                     <button
                       onClick={() => setWeekOffset(w => Math.max(0, w - 1))}
                       disabled={weekOffset === 0}
@@ -367,13 +432,16 @@ export default function InteractionManager() {
                     <div style={{ display: "flex", gap: 6, flex: 1 }}>
                       {days.slice(weekOffset * 5, weekOffset * 5 + 5).map((iso) => {
                         const isPast = iso < TODAY_ISO;
+                        const visibleDays = visibleMonthDays[getMonthKey(iso)];
+                        const isFomoHidden = visibleDays !== undefined && !visibleDays[iso];
+                        const disabled = isPast || isFomoHidden || isMonthFull(iso);
                         return (
                           <button
                             key={iso}
-                            disabled={isPast}
+                            disabled={disabled}
                             className={`im-day-btn${selectedDay === iso ? " active" : ""}`}
-                            onClick={() => !isPast && setSelectedDay(iso)}
-                            style={{ flex: 1, padding: "8px 4px", border: "1px solid var(--border)", background: "transparent", fontFamily: "var(--mono)", fontSize: 10, color: isPast ? "var(--text-tertiary)" : selectedDay === iso ? "var(--accent)" : "var(--text-secondary)", cursor: isPast ? "not-allowed" : "pointer", transition: "all 200ms", letterSpacing: "0.08em", textDecoration: isPast ? "line-through" : "none", opacity: isPast ? 0.4 : 1, textAlign: "center" }}>
+                            onClick={() => !disabled && setSelectedDay(iso)}
+                            style={{ flex: 1, padding: "8px 4px", border: "1px solid var(--border)", background: "transparent", fontFamily: "var(--mono)", fontSize: 10, color: disabled ? "var(--text-tertiary)" : selectedDay === iso ? "var(--accent)" : "var(--text-secondary)", cursor: disabled ? "not-allowed" : "pointer", transition: "all 200ms", letterSpacing: "0.08em", textDecoration: disabled ? "line-through" : "none", opacity: disabled ? 0.4 : 1, textAlign: "center" }}>
                             {formatDayLabel(iso)}
                           </button>
                         );
@@ -404,14 +472,14 @@ export default function InteractionManager() {
                       </p>
                     </div>
                   ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                    <div className="im-oh-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
                       {slots.map((slot) => {
                         const isPastSlot = selectedDay === TODAY_ISO && slot.time <= NOW_HH_MM;
                         const disabled = slot.taken || isPastSlot;
                         return (
                           <button key={slot.time} disabled={disabled} onClick={() => setSelectedSlot(slot.time)}
                             className={`im-slot-btn${selectedSlot === slot.time ? " selected" : ""}`}
-                            style={{ padding: "12px 8px", border: "1px solid var(--border)", background: "transparent", fontFamily: "var(--mono)", fontSize: 12, color: disabled ? "var(--text-tertiary)" : "var(--text-secondary)", cursor: disabled ? "not-allowed" : "pointer", textDecoration: disabled ? "line-through" : "none", transition: "all 200ms", letterSpacing: "0.05em", opacity: isPastSlot ? 0.35 : 1 }}>
+                            style={{ padding: "12px 8px", border: disabled ? "1px solid rgba(255,255,255,0.06)" : "1px solid var(--border)", background: disabled ? "rgba(255,255,255,0.015)" : "transparent", fontFamily: "var(--mono)", fontSize: 12, color: disabled ? "var(--text-quaternary)" : "var(--text-secondary)", cursor: disabled ? "not-allowed" : "pointer", textDecoration: disabled ? "line-through" : "none", transition: "all 200ms", letterSpacing: "0.05em", opacity: disabled ? 0.35 : 1 }}>
                             {slot.time}
                           </button>
                         );
@@ -434,7 +502,7 @@ export default function InteractionManager() {
                               style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                           </div>
                         ))}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                           <div>
                             <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Revenue</div>
                             <select value={formData.revenue} onChange={e => setFormData(p => ({ ...p, revenue: e.target.value }))}

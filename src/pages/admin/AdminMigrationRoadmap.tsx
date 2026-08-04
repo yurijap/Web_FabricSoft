@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthApi } from '../../config/api';
+import { Sparkles } from 'lucide-react';
 
 type RiskLevel = 'BAJO' | 'MEDIO' | 'ALTO';
 type LeadStatus = 'Nuevo' | 'Aprobado' | 'WaitList' | 'Revisión' | 'Rechazado';
@@ -70,6 +71,96 @@ function fmt(iso: string) {
   });
 }
 
+const DEMO_ROADMAPS: MigrationRoadmapLead[] = [
+  {
+    _id: 'demo-rm-1',
+    nombre: 'Carlos Slim III',
+    cargo: 'Director de Sistemas',
+    empresa: 'Carso Telecom',
+    email: 'cslim3@telecom.carso.com',
+    score: 89,
+    status: 'Nuevo',
+    notas: 'Proyecto de migración de ERP heredado AS400 a Oracle Cloud Infrastructure. Presupuesto aprobado.',
+    createdAt: '2026-05-28T12:00:00Z',
+    historial: [{ fecha: '28 May 12:00', estado: 'Nuevo', autor: 'Sistema' }],
+    migrationRoadmap: {
+      sistema: 'IBM AS400 / DB2',
+      modulos: ['Financials', 'Supply Chain', 'Purchasing'],
+      industria: 'Telecomunicaciones',
+      geografia: 'México y Centroamérica',
+      plazo: 'Q3 2026',
+      compliance: 'Auditoría CNBV / Reportes regulados',
+      patrocinio: 'Fuerte patrocinio del CFO y CEO',
+      presupuesto: 'USD 1.2M asignados',
+      integraciones: 'Requiere integración con sistemas de facturación propios',
+      datos: 'Baja calidad en datos históricos de inventario',
+      equipo: 'Equipo interno de 8 personas de TI dedicadas',
+      experiencia: 'Equipo familiarizado con bases de datos relacionales tradicionales',
+      riskLevel: 'ALTO',
+      estimatedTimeline: '180 días (Fase de migración paralela)',
+    },
+  },
+  {
+    _id: 'demo-rm-2',
+    nombre: 'Gabriela Mistral',
+    cargo: 'VP de Operaciones',
+    empresa: 'Distribuidora del Sur',
+    email: 'gmistral@distsur.cl',
+    score: 91,
+    status: 'Aprobado',
+    notas: 'Migración crítica de SAP R/3 a Oracle Fusion para mejorar tiempos de despacho de logística.',
+    createdAt: '2026-05-26T14:30:00Z',
+    historial: [
+      { fecha: '26 May 14:30', estado: 'Nuevo', autor: 'Sistema' },
+      { fecha: '27 May 10:00', estado: 'Aprobado', autor: 'Admin' }
+    ],
+    migrationRoadmap: {
+      sistema: 'SAP R/3 (ECC 6.0)',
+      modulos: ['Logistics (SD/MM)', 'Financials (FI/CO)'],
+      industria: 'Logística / Distribución',
+      geografia: 'Chile y Perú',
+      plazo: 'Q4 2026',
+      compliance: 'Cumplimiento aduanero regional',
+      patrocinio: 'Medio (Respaldado por COO)',
+      presupuesto: 'USD 850K aprobado preliminar',
+      integraciones: 'Alta integración con WMS externo (RedPrairie)',
+      datos: 'Buena calidad, migración de datos limpia',
+      equipo: 'Equipo interno de 4 personas, requiere consultora de apoyo',
+      experiencia: 'Sin experiencia previa en implementaciones de Oracle Cloud',
+      riskLevel: 'MEDIO',
+      estimatedTimeline: '90 días (Transición escalonada)',
+    },
+  },
+  {
+    _id: 'demo-rm-3',
+    nombre: 'Juan Rulfo',
+    cargo: 'CFO',
+    empresa: 'Inmobiliaria de Occidente',
+    email: 'jrulfo@inmoccidente.com.mx',
+    score: 75,
+    status: 'WaitList',
+    notas: 'Evaluación de preparación para migración. Cliente en lista de espera para asignación de arquitecto Senior.',
+    createdAt: '2026-05-24T10:15:00Z',
+    historial: [{ fecha: '24 May 10:15', estado: 'Nuevo', autor: 'Sistema' }],
+    migrationRoadmap: {
+      sistema: 'Excel / Contpaqi',
+      modulos: ['Financials', 'Billing', 'Fixed Assets'],
+      industria: 'Inmobiliaria / Construcción',
+      geografia: 'Occidente de México',
+      plazo: 'Q1 2027',
+      compliance: 'Estándares de reporte SAT (México)',
+      patrocinio: 'Bajo patrocinio (Iniciativa de TI)',
+      presupuesto: 'USD 350K en proceso de autorización',
+      integraciones: 'Pocas integraciones complejas',
+      datos: 'Datos fragmentados en múltiples hojas de cálculo',
+      equipo: 'Equipo interno escaso (2 personas a tiempo parcial)',
+      experiencia: 'Bajo conocimiento técnico de arquitecturas ERP modernas',
+      riskLevel: 'BAJO',
+      estimatedTimeline: '30 días (Diagnóstico rápido de procesos)',
+    },
+  }
+];
+
 export default function AdminMigrationRoadmap() {
   const adminApi = useAuthApi();
   const [leads, setLeads]         = useState<MigrationRoadmapLead[]>([]);
@@ -78,15 +169,17 @@ export default function AdminMigrationRoadmap() {
   const [notasEdit, setNotasEdit] = useState('');
   const [updating, setUpdating]   = useState<string | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | 'Todos'>('Todos');
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { fetchLeads(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchLeads(); }, [isDemoMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selected && panelRef.current) panelRef.current.scrollTop = 0;
   }, [selected?._id]);
 
   async function fetchLeads() {
+    if (isDemoMode) return;
     setLoading(true);
     try {
       const res = await adminApi.get('/leads/admin?source=migration-roadmap&limit=200');
@@ -99,6 +192,30 @@ export default function AdminMigrationRoadmap() {
   }
 
   async function handleStatusChange(id: string, status: LeadStatus) {
+    if (isDemoMode) {
+      setLeads(prev => prev.map(l => {
+        if (l._id === id) {
+          const updated = {
+            ...l,
+            status,
+            historial: [...l.historial, { fecha: fmt(new Date().toISOString()), estado: status, autor: 'Admin (Demo)' }]
+          };
+          return updated;
+        }
+        return l;
+      }));
+      setSelected(prev => {
+        if (prev?._id === id) {
+          return {
+            ...prev,
+            status,
+            historial: [...prev.historial, { fecha: fmt(new Date().toISOString()), estado: status, autor: 'Admin (Demo)' }]
+          };
+        }
+        return prev;
+      });
+      return;
+    }
     setUpdating(id);
     try {
       const res = await adminApi.patch(`/leads/admin/${id}/status`, { status });
@@ -114,6 +231,11 @@ export default function AdminMigrationRoadmap() {
 
   async function handleSaveNotas() {
     if (!selected) return;
+    if (isDemoMode) {
+      setLeads(prev => prev.map(l => l._id === selected._id ? { ...l, notas: notasEdit } : l));
+      setSelected(prev => prev ? { ...prev, notas: notasEdit } : prev);
+      return;
+    }
     setUpdating(selected._id);
     try {
       const res = await adminApi.patch(`/leads/admin/${selected._id}/notas`, { notas: notasEdit });
@@ -140,6 +262,22 @@ export default function AdminMigrationRoadmap() {
 
   return (
     <div className="fabric-admin-page">
+
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <div className="mb-4 flex items-center justify-between border border-accent/30 bg-[var(--accent-soft)] px-4 py-3 text-xs text-accent rounded-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="animate-pulse" />
+            <span><strong>Modo de Simulación Activo</strong>: Estás visualizando y operando con datos de demostración realistas para pruebas. Las modificaciones se guardarán en memoria temporal.</span>
+          </div>
+          <button 
+            onClick={() => { setIsDemoMode(false); setLeads([]); setSelected(null); }}
+            className="underline font-bold uppercase tracking-wider text-[10px] hover:text-text-primary bg-transparent border-none cursor-pointer"
+          >
+            Salir de simulación
+          </button>
+        </div>
+      )}
       <div className="fabric-admin-hero">
         <div className="fabric-admin-hero-inner">
           <div>
@@ -191,7 +329,43 @@ export default function AdminMigrationRoadmap() {
         {loading ? (
           <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Cargando...</div>
         ) : visible.length === 0 ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Sin evaluaciones con este filtro.</div>
+          <div className="max-w-2xl border border-border/60 bg-bg-panel/40 p-8 rounded-sm text-center mx-auto my-12 shadow-lg">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-accent/25 bg-[var(--accent-soft)] text-accent">
+              <Sparkles size={20} />
+            </div>
+            <h3 className="font-serif text-xl text-text-primary mb-2">Evaluación de Migration Roadmap</h3>
+            <p className="text-xs text-text-secondary leading-relaxed mb-6">
+              Este submódulo gestiona las evaluaciones completadas por clientes para trazar su Roadmap de migración tecnológica a Oracle Fusion (30-60-90-180 días).
+              Permite revisar riesgos, plazos estimados, módulos críticos y patrocinio ejecutivo.
+            </p>
+            <div className="border border-border/40 bg-bg-base/30 rounded p-4 text-left text-xs text-text-tertiary mb-6 space-y-2.5">
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Análisis de sistemas heredados de origen (SAP, AS400, Dynamics) y su transición.</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Identificación de riesgos de integración, calidad de datos y capacitación de equipos.</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Priorización de leads y planes de mitigación de riesgos del roadmap.</span>
+              </div>
+            </div>
+            <p className="text-xs text-text-secondary mb-4 italic">
+              No se encontraron evaluaciones registradas en la base de datos viva.
+            </p>
+            <button
+              onClick={() => {
+                setLeads(DEMO_ROADMAPS);
+                setIsDemoMode(true);
+              }}
+              style={{ fontFamily: 'var(--sans), sans-serif' }}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-accent/50 bg-[var(--accent-soft)] px-6 text-[10px] font-semibold uppercase tracking-[0.15em] text-accent transition hover:bg-accent hover:text-black cursor-pointer"
+            >
+              Cargar datos de simulación (Modo Demo)
+            </button>
+          </div>
         ) : (
           <>
           <div className="amr-table-wrap">

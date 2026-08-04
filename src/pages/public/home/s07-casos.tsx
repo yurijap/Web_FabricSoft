@@ -1,6 +1,7 @@
 
 import { Link } from 'react-router-dom';
 import { useInViewOnce } from '../../../hooks/useInViewOnce';
+import './s07-casos.css';
 
 interface MetricRow {
   label: string;
@@ -77,7 +78,7 @@ const cases: CaseData[] = [
 export default function S07Casos() {
   const [ref, isInView] = useInViewOnce<HTMLElement>();
   return (
-    <section ref={ref} id="s07" className={`demo-section s07 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+    <section ref={ref} className={`demo-section s07 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
       <div className="container">
         <div className="s07-intro">
           <div className="label">Casos Seleccionados · 2026</div>

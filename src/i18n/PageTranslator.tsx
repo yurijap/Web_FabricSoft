@@ -14,6 +14,14 @@ const textCache = new Map<string, string>();
 const TRANSLATOR_IGNORE_SELECTOR =
   '[data-no-translate], .notranslate, .admin-main, .fabric-typewriter, script, style, noscript, textarea, input, select, option';
 
+const PROTECTED_TEXTS = new Set([
+  'Julio',
+  'Álvarez',
+  'Alvarez',
+  'Julio Álvarez',
+  'Julio Alvarez',
+]);
+
 function normalize(text: string) {
   return text.replace(/\s+/g, ' ').trim();
 }
@@ -32,6 +40,7 @@ function shouldTranslate(text: string) {
 
   if (value.length < 2) return false;
   if (value.length > 500) return false;
+  if (PROTECTED_TEXTS.has(value)) return false;
 
   // Evita traducir números, símbolos, códigos cortos, etc.
   if (/^[\d\s.,:;|/\\()[\]{}+\-%$#@!?'"]+$/.test(value)) return false;

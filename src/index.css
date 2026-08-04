@@ -1,45 +1,45 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
-
 @import "tailwindcss";
+@import "./fonts.css";
 @import "./maquetado-dossier.css";
 @import "./maquetado-interacciones.css";
 
 @theme {
   /* ── Tokens con prefijo fabric- ── */
-  --color-fabric-base: #050203;
-  --color-fabric-panel: #080706;
-  --color-fabric-elevated: #060606;
+  --color-fabric-base: var(--bg-base);
+  --color-bg-base: var(--bg-base);
 
-  --color-fabric-text: #F5F5F5;
-  --color-fabric-text-muted: #8A8A8A;
+  --color-fabric-elevated: var(--bg-elevated);
 
-  --color-fabric-gold: #C9A96E;
-  --color-fabric-gold-hover: #A07845;
+  --color-fabric-text: var(--text-primary);
+  --color-fabric-text-muted: var(--text-secondary);
 
-  --color-fabric-border: #2A2A2A;
-  --color-fabric-border-strong: #353535;
+  --color-fabric-gold: var(--accent);
+  --color-fabric-gold-hover: var(--accent-2);
 
-  --color-fabric-danger: #B85450;
+  --color-fabric-border: var(--border);
+  --color-fabric-border-strong: var(--border-strong);
+
+  --color-fabric-danger: var(--danger);
 
   /* ── Tokens alternativos bg-*, text-*, accent-* ── */
-  --color-bg-base: #050203;
-  --color-bg-panel: #080706;
-  --color-bg-elevated: #060606;
-  --color-bg-vampiro: #0F0404;
-  --color-bg-arana: #040200;
-  --color-bg-obsidiana: #020403;
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-vampiro: var(--bg-vampiro);
+  --color-bg-arana: var(--bg-arana);
+  --color-bg-obsidiana: var(--bg-obsidiana);
 
-  --color-text-primary: #F5F5F5;
-  --color-text-secondary: #8A8A8A;
-  --color-text-tertiary: #5A5A5A;
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
 
-  --color-accent: #C9A96E;
-  --color-accent-2: #A07845;
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
 
-  --color-border: #2A2A2A;
-  --color-border-strong: #353535;
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
 
-  --color-danger: #B85450;
+  --color-danger: var(--danger);
 
   --font-serif: "Cormorant Garamond", "Times New Roman", serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -51,13 +51,15 @@
 
 /* Variables CSS globales */
 :root {
-  --bg-base: #050203;
-  --bg-panel: #080706;
-  --bg-elevated: #060606;
+  color-scheme: dark;
+  --bg-base: #0B1F3A;
+  --bg-panel: #0E2747;
+  --bg-elevated: #123254;
+  --bg-deep: #07192F;
   
-  --bg-vampiro: #0F0404;
-  --bg-arana: #040200;
-  --bg-obsidiana: #020403;
+  --bg-vampiro: #0E2747;
+  --bg-arana: #07192F;
+  --bg-obsidiana: #123254;
 
   --text-primary: #F5F5F5;
   --text-secondary: #8A8A8A;
@@ -66,15 +68,50 @@
   --accent: #C9A96E;
   --accent-2: #A07845;
   --accent-soft: rgba(201, 169, 110, 0.08);
+  --accent-deep: rgba(201, 169, 110, 0.28);
+  --accent-rgb: 201 169 110;
 
   --border: #2A2A2A;
   --border-strong: #353535;
+  --border-rgb: 42 42 42;
 
   --danger: #B85450;
+  --shadow-soft: 0 26px 80px rgba(3, 12, 26, 0.34);
+  --shadow-float: 0 18px 48px rgba(3, 12, 26, 0.24);
 
   --serif: "Cormorant Garamond", "Times New Roman", serif;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", monospace;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg-base: #F7F5F0;
+  --bg-panel: #FCFAF7;
+  --bg-elevated: #EDEAE1;
+  --bg-deep: #EBE8DF;
+
+  --bg-vampiro: #EAE5DB;
+  --bg-arana: #F3ECE2;
+  --bg-obsidiana: #E7EAE3;
+
+  --text-primary: #161B17;
+  --text-secondary: #4F5A52;
+  --text-tertiary: #777D74;
+
+  --accent: #966923;
+  --accent-2: #6B4818;
+  --accent-soft: rgba(150, 105, 35, 0.08);
+  --accent-deep: rgba(150, 105, 35, 0.22);
+  --accent-rgb: 150 105 35;
+
+  --border: #CDC6B8;
+  --border-strong: #B7AE9E;
+  --border-rgb: 205 198 184;
+
+  --danger: #A4473F;
+  --shadow-soft: 0 28px 90px rgba(150, 105, 35, 0.11), 0 4px 16px rgba(150, 105, 35, 0.07);
+  --shadow-float: 0 12px 40px rgba(150, 105, 35, 0.10), 0 2px 8px rgba(150, 105, 35, 0.06);
 }
 
 @keyframes fadeIn {
@@ -183,6 +220,10 @@
   ::selection {
     background: rgba(201, 169, 110, 0.28);
     color: var(--text-primary);
+  }
+
+  html[data-theme="light"] ::selection {
+    background: rgba(155, 111, 45, 0.22);
   }
 }
 
@@ -340,6 +381,789 @@
 
   .font-technical {
     font-family: var(--mono);
+  }
+}
+
+@layer utilities {
+  html.fabric-theme-changing :where(body, header, main, section, footer, aside, input, textarea, select, button, a, .fabric-panel, .fabric-elevated) {
+    transition:
+      background-color 110ms ease,
+      border-color 110ms ease,
+      color 110ms ease,
+      box-shadow 110ms ease;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none;
+      mix-blend-mode: normal;
+    }
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      pointer-events: none;
+    }
+  }
+
+  html[data-theme="light"] .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, rgba(150, 105, 35, 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(42, 65, 52, 0.04) 1px, transparent 1px);
+  }
+
+  /* Global dark theme background overrides */
+  html[data-theme="dark"] {
+    background: var(--bg-base);
+
+    body,
+    #root,
+    main,
+    section,
+    footer,
+    aside,
+    .pre-dossier-section {
+      background-color: var(--bg-base) !important;
+    }
+
+    .fabric-panel {
+      background-color: var(--bg-panel) !important;
+    }
+
+    .fabric-elevated {
+      background-color: var(--bg-elevated) !important;
+    }
+
+    [class*="bg-[#050203]"],
+    [class*="bg-[#050203]/"],
+    [class*="bg-[#050505]"],
+    [class*="bg-[#050505]/"],
+    [class*="bg-[#0A0A0A]"],
+    [class*="bg-[#0A0A0A]/"],
+    [class*="bg-[#0a0a0a]"],
+    [class*="bg-[#0a0a0a]/"],
+    [class*="bg-[#080706]"],
+    [class*="bg-[#080706]/"],
+    [class*="bg-[#060606]"],
+    [class*="bg-[#060606]/"],
+    [class*="bg-[#0f0404]"],
+    [class*="bg-[#040200]"],
+    [class*="bg-[#020403]"],
+    [class*="bg-[#111]"],
+    [class*="bg-[#111]/"],
+    [class*="bg-[#111111]"],
+    [class*="bg-[#111111]/"],
+    [class*="bg-black"],
+    [class*="bg-zinc-950"] {
+      background-color: var(--bg-base) !important;
+    }
+
+    [class*="bg-[#080706]"],
+    [class*="bg-[#080706]/"],
+    [class*="bg-[#111]"],
+    [class*="bg-[#111]/"],
+    [class*="bg-[#111111]"],
+    [class*="bg-[#111111]/"],
+    [class*="bg-zinc-900"],
+    [class*="bg-zinc-800"] {
+      background-color: var(--bg-panel) !important;
+    }
+
+    [class*="bg-[#060606]"],
+    [class*="bg-[#060606]/"],
+    [class*="bg-[#0A0A0A]"],
+    [class*="bg-[#0A0A0A]/"],
+    [class*="bg-[#0a0a0a]"],
+    [class*="bg-[#0a0a0a]/"] {
+      background-color: var(--bg-elevated) !important;
+    }
+
+    [style*="#050203"],
+    [style*="#050505"],
+    [style*="#000000"],
+    [style*="#080706"],
+    [style*="#090909"],
+    [style*="#0A0A0A"],
+    [style*="#0a0a0a"],
+    [style*="#111111"] {
+      background-color: var(--bg-panel) !important;
+    }
+
+    [class*="from-[#050203]"] {
+      --tw-gradient-from: var(--bg-base) !important;
+      --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+    }
+
+    [class*="to-[#050203]"] {
+      --tw-gradient-to: var(--bg-base) !important;
+    }
+
+    [class*="from-[#111]"] {
+      --tw-gradient-from: var(--bg-panel) !important;
+    }
+
+    [class*="to-[#111]"],
+    [class*="to-[#080706]"],
+    [class*="to-[#050505]"] {
+      --tw-gradient-to: var(--bg-elevated) !important;
+    }
+
+    [class*="bg-[radial-gradient(circle_at_center,transparent_0%,#050203_72%)]"] {
+      background: radial-gradient(circle at center, transparent 0%, var(--bg-base) 72%) !important;
+    }
+
+    [class*="shadow-[0_25px_60px_rgba(0,0,0"],
+    [class*="shadow-[0_24px_70px_rgba(0,0,0"],
+    [class*="shadow-[0_24px_80px_rgba(0,0,0"],
+    [class*="shadow-[0_30px_80px_rgba(0,0,0"],
+    [class*="shadow-[0_40px_120px_rgba(0,0,0"],
+    [class*="shadow-[0_40px_140px_rgba(0,0,0"],
+    [class*="shadow-[0_0_40px_rgba(0,0,0"],
+    [class*="shadow-[0_0_50px_rgba(0,0,0"],
+    [class*="shadow-[0_0_80px_rgba(0,0,0"] {
+      box-shadow: var(--shadow-soft) !important;
+    }
+  }
+
+  /* Global light theme overrides for all sections and components */
+  html[data-theme="light"] {
+    /* Apply clean radial gradient to all public sections */
+    section:not(#inicio),
+    .pre-dossier-section {
+      background:
+        radial-gradient(circle at 18% 22%, rgba(150, 105, 35, 0.06), transparent 30%),
+        radial-gradient(circle at 78% 55%, rgba(93, 112, 95, 0.045), transparent 34%),
+        var(--bg-base) !important;
+      color: var(--text-primary) !important;
+    }
+
+    /* Target specific custom section backgrounds */
+    #puente {
+      background:
+        radial-gradient(circle at 18% 14%, rgba(150, 105, 35, 0.06), transparent 32%),
+        radial-gradient(circle at 84% 72%, rgba(150, 105, 35, 0.045), transparent 34%),
+        var(--bg-base) !important;
+      border-top-color: var(--border) !important;
+      border-bottom-color: var(--border) !important;
+    }
+
+    #doctrina {
+      background:
+        radial-gradient(circle at 18% 22%, rgba(150, 105, 35, 0.06), transparent 30%),
+        radial-gradient(circle at 78% 55%, rgba(93, 112, 95, 0.045), transparent 34%),
+        var(--bg-base) !important;
+      border-top-color: var(--border) !important;
+    }
+
+    #fixed-price {
+      background: var(--bg-base) !important;
+    }
+
+    /* Map hardcoded background colors to theme variables */
+    [class*="bg-[#050203]"],
+    [class*="bg-[#050505]"],
+    [class*="bg-[#0A0A0A]"],
+    [class*="bg-[#0f0404]"],
+    [class*="bg-[#040200]"],
+    [class*="bg-[#020403]"],
+    [class*="bg-black"],
+    [class*="bg-zinc-950"],
+    [class*="bg-zinc-900"] {
+      background-color: var(--bg-base) !important;
+    }
+
+    [class*="bg-[#080706]"],
+    [class*="bg-[#111]"],
+    [class*="bg-[#111111]"],
+    [class*="bg-[#080706]/55"],
+    [class*="bg-[#080706]/72"],
+    [class*="bg-zinc-800"] {
+      background-color: var(--bg-panel) !important;
+    }
+
+    [class*="bg-[#060606]"] {
+      background-color: var(--bg-elevated) !important;
+    }
+
+    /* Map hardcoded text colors to theme variables */
+    [class*="text-[#F5F5F5]"],
+    [class*="text-[#E0E0E0]"],
+    [class*="text-[#A0A0A0]"],
+    [class*="text-[#888]"],
+    [class*="text-[#8a8a8a]"],
+    [class*="text-[#a0a0a0]"],
+    [class*="text-white"],
+    [class*="text-zinc-100"] {
+      color: var(--text-primary) !important;
+    }
+
+    [class*="text-[#8A8A8A]"],
+    [class*="text-zinc-400"],
+    [class*="text-[#F5F5F5]/70"],
+    [class*="text-[#F5F5F5]/66"],
+    [class*="text-[#F5F5F5]/60"],
+    [class*="text-[#F5F5F5]/55"],
+    [class*="text-[#F5F5F5]/50"] {
+      color: var(--text-secondary) !important;
+    }
+
+    [class*="text-[#5A5A5A]"],
+    [class*="text-[#555]"],
+    [class*="text-[#333]"],
+    [class*="text-zinc-500"],
+    [class*="text-[#F5F5F5]/45"],
+    [class*="text-[#F5F5F5]/40"],
+    [class*="text-[#F5F5F5]/38"],
+    [class*="text-[#F5F5F5]/25"] {
+      color: var(--text-tertiary) !important;
+    }
+
+    /* Map hardcoded border colors to theme variables */
+    [class*="border-[#2A2A2A]"],
+    [class*="border-[#1A1A1A]"],
+    [class*="border-[#111]"],
+    [class*="border-[#111111]"],
+    [class*="border-[#252525]"],
+    [class*="border-[#222]"],
+    [class*="border-[#333]"],
+    [class*="border-white/10"],
+    [class*="border-white/5"] {
+      border-color: var(--border) !important;
+    }
+
+    [class*="border-[#353535]"] {
+      border-color: var(--border-strong) !important;
+    }
+
+    /* Map hardcoded gold/accent colors to theme variables */
+    [class*="text-[#C9A96E]"],
+    [class*="text-[#D4AF37]"] {
+      color: var(--accent) !important;
+    }
+
+    [class*="bg-[#C9A96E]/10"],
+    [class*="bg-[#C9A96E]/5"],
+    [class*="bg-[#C9A96E]/[0.02]"],
+    [class*="bg-[#C9A96E]/[0.04]"],
+    [class*="bg-[#C9A96E]/[0.07]"] {
+      background-color: var(--accent-soft) !important;
+    }
+
+    [class*="border-[#C9A96E]/"] {
+      border-color: var(--accent-deep) !important;
+    }
+
+    /* Hover states for gold/accent elements */
+    .btn-primary:hover {
+      color: var(--accent) !important;
+      border-color: var(--accent) !important;
+      background-color: transparent !important;
+    }
+
+    /* Ensure specific custom containers look right */
+    .fabric-orb-caption,
+    .fabric-orb-label {
+      background: color-mix(in srgb, var(--bg-panel) 92%, transparent) !important;
+      border-color: var(--accent-deep) !important;
+      box-shadow: var(--shadow-soft) !important;
+    }
+
+    .fabric-orb-caption :is(h3, p),
+    .fabric-orb-label p {
+      color: var(--text-primary) !important;
+    }
+
+    /* =========================================================================
+       CREAM / WARM SHADOW OVERRIDES
+       Replace all harsh black rgba(0,0,0) box-shadows with warm cream/amber ones.
+       Covers: TCO card, Doctrina cards, rescue panels, waitlist panels, etc.
+       ========================================================================= */
+    [class*="shadow-[0_25px_60px_rgba(0,0,0"],
+    [class*="shadow-[0_24px_80px_rgba(0,0,0"],
+    [class*="shadow-[0_40px_120px_rgba(0,0,0"],
+    [class*="shadow-[0_30px_80px_rgba(0,0,0"],
+    [class*="shadow-[0_0_80px_rgba(0,0,0"],
+    [class*="shadow-[0_0_50px_rgba(0,0,0"],
+    [class*="shadow-[0_0_40px_rgba(0,0,0"],
+    [class*="shadow-[0_20px_50px_rgba(0,0,0"],
+    [class*="shadow-[0_40px_140px_rgba(0,0,0"],
+    [class*="shadow-[0_14px_38px_rgba(0,0,0"] {
+      box-shadow: 0 8px 32px rgba(150, 105, 35, 0.10),
+                  0 2px 8px  rgba(150, 105, 35, 0.06) !important;
+    }
+
+    /* Hover shadow variant — slightly more visible */
+    [class*="hover:shadow-[0_25px_60px_rgba(201,169,110"]:hover {
+      box-shadow: 0 12px 40px rgba(150, 105, 35, 0.18),
+                  0 4px 12px rgba(150, 105, 35, 0.10) !important;
+    }
+
+    /* Form controls styling in light mode */
+    input,
+    textarea,
+    select {
+      background: var(--bg-panel) !important;
+      border-color: var(--border) !important;
+      color: var(--text-primary) !important;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent) !important;
+      background-color: var(--bg-base) !important;
+    }
+
+    /* =========================================================================
+       SPECIFIC LIGHT MODE GRADIENT OVERRIDES
+       ========================================================================= */
+
+    /* Hero bottom fade-out gradient */
+    [class*="from-[#050203]"] {
+      --tw-gradient-from: var(--bg-base) !important;
+      --tw-gradient-stops: var(--tw-gradient-from), transparent !important;
+    }
+
+    /* Fixed Price center-out radial gradient overlay */
+    [class*="bg-[radial-gradient(circle_at_center,transparent_0%,#050203_72%)]"] {
+      background: radial-gradient(circle at center, transparent 0%, var(--bg-base) 72%) !important;
+    }
+
+    /* Fixed Price vertical linear gradient overlay */
+    [class*="bg-gradient-to-b"][class*="from-[#050203]"][class*="to-[#050203]"] {
+      background-image: linear-gradient(to bottom, var(--bg-base), transparent, var(--bg-base)) !important;
+    }
+
+    /* Rescue Diagnostic report card gradient block (replaces dark with a soft gold/hueso gradient) */
+    [class*="from-[#111]"][class*="to-[#C9A96E]/5"] {
+      background-image: linear-gradient(to bottom right, var(--bg-panel), var(--accent-soft)) !important;
+    }
+
+    [class*="from-[#111]"] {
+      --tw-gradient-from: var(--bg-panel) !important;
+    }
+
+    /* Rescue Diagnostic grid hover state */
+    [class*="hover:bg-[#161616]"]:hover {
+      background-color: var(--bg-elevated) !important;
+    }
+
+    /* Rescue Diagnostic terminal options buttons (unselected & hover) */
+    [class*="bg-[#111]/50"] {
+      background-color: rgba(205, 198, 184, 0.18) !important;
+      color: var(--text-primary) !important;
+    }
+    [class*="hover:bg-[#1A1A1A]"]:hover {
+      background-color: var(--accent-soft) !important;
+      color: var(--accent) !important;
+    }
+
+    /* Doctrina Modal Sidebar background override */
+    [class*="bg-[#060606]/72"] {
+      background-color: var(--bg-panel) !important;
+    }
+
+    /* =========================================================================
+       SPECIFIC PUENTE COMPONENT OVERRIDES (.fabric-puente-*)
+       ========================================================================= */
+    .fabric-puente-title {
+      color: var(--text-primary) !important;
+    }
+    .fabric-puente-title em {
+      color: var(--accent) !important;
+      text-shadow: 0 0 26px var(--accent-soft) !important;
+    }
+    .fabric-puente-copy {
+      color: var(--text-secondary) !important;
+    }
+    .fabric-puente-kicker {
+      color: var(--accent) !important;
+    }
+    .fabric-puente-kicker span {
+      background: var(--accent) !important;
+      box-shadow: 0 0 16px var(--accent-deep) !important;
+    }
+    .fabric-puente-proof {
+      background: var(--bg-panel) !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: var(--shadow-soft) !important;
+    }
+    .fabric-puente-proof div {
+      border-right: 1px solid var(--border) !important;
+    }
+    .fabric-puente-proof strong {
+      color: var(--accent) !important;
+    }
+    .fabric-puente-proof span {
+      color: var(--text-tertiary) !important;
+    }
+    .fabric-puente-panel {
+      border: 1px solid var(--border-strong) !important;
+      background: linear-gradient(145deg, var(--accent-soft), var(--bg-panel) 32%, var(--bg-elevated)) !important;
+      box-shadow: var(--shadow-soft) !important;
+    }
+    .fabric-puente-panel::before {
+      background: radial-gradient(circle at 78% 18%, var(--accent-soft), transparent 30%),
+                  linear-gradient(90deg, transparent, var(--accent-soft), transparent) !important;
+    }
+    .fabric-puente-panel-glow {
+      background: var(--accent-soft) !important;
+    }
+    .fabric-puente-tabs {
+      border-bottom: 1px solid var(--border) !important;
+      background: rgba(0, 0, 0, 0.02) !important;
+    }
+    .fabric-puente-tabs button {
+      border-right: 1px solid var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    .fabric-puente-tabs button:hover {
+      color: var(--text-primary) !important;
+      background: rgba(0, 0, 0, 0.015) !important;
+    }
+    .fabric-puente-tabs button.is-active {
+      color: var(--accent) !important;
+      background: linear-gradient(180deg, var(--accent-soft), transparent) !important;
+    }
+    .fabric-puente-tabs button span {
+      color: var(--accent) !important;
+    }
+    .fabric-puente-eyebrow {
+      color: var(--accent) !important;
+    }
+    .fabric-puente-reveal h3 {
+      color: var(--text-primary) !important;
+    }
+    .fabric-puente-short {
+      color: var(--accent) !important;
+    }
+    .fabric-puente-detail {
+      color: var(--text-secondary) !important;
+    }
+    .fabric-puente-footer {
+      border-top: 1px solid var(--border) !important;
+    }
+    .fabric-puente-footer span {
+      color: var(--text-tertiary) !important;
+    }
+
+    /* =========================================================================
+       SPECIFIC DOCTRINA MODAL OVERRIDES (.doctrine-scroll & .btn-boutique)
+       ========================================================================= */
+    .doctrine-scroll {
+      scrollbar-color: var(--accent) var(--bg-panel) !important;
+    }
+    .doctrine-scroll::-webkit-scrollbar-track {
+      background: var(--bg-panel) !important;
+      border-left: 1px solid var(--border) !important;
+    }
+    .doctrine-scroll::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--accent), var(--accent-deep)) !important;
+      border: 2px solid var(--bg-panel) !important;
+    }
+    .doctrine-scroll::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-2) !important;
+    }
+    .btn-boutique {
+      background-color: var(--bg-elevated) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text-primary) !important;
+    }
+    .btn-boutique:hover:not(:disabled) {
+      border-color: var(--accent) !important;
+      box-shadow: var(--shadow-float) !important;
+      background-color: var(--bg-panel) !important;
+    }
+
+    /* =========================================================================
+       S09 FABRIC OS SECTION & FSO CARDS OVERRIDES
+       ========================================================================= */
+    .s09 {
+      background: var(--bg-base) !important;
+    }
+    .os-stack {
+      border-color: var(--border) !important;
+      box-shadow: var(--shadow-soft) !important;
+    }
+    .os-stack-layer {
+      background: var(--bg-panel) !important;
+      border-bottom-color: var(--border) !important;
+    }
+    .os-stack-layer:hover,
+    .os-stack-layer--open {
+      background: var(--bg-elevated) !important;
+      border-bottom-color: var(--accent) !important;
+    }
+    .os-stack-num-col {
+      border-right-color: var(--border) !important;
+    }
+    .os-stack-layer:hover .os-stack-num-col,
+    .os-stack-layer--open .os-stack-num-col {
+      border-right-color: var(--accent) !important;
+      background: var(--accent-soft) !important;
+    }
+    .os-stack-toggle {
+      border-left-color: var(--border) !important;
+    }
+    .os-stack-layer:hover .os-stack-toggle {
+      border-left-color: var(--accent) !important;
+      background: var(--accent-soft) !important;
+    }
+    .os-stack-close-bar {
+      border-top-color: var(--accent-deep) !important;
+      background: var(--accent-soft) !important;
+    }
+    .os-stack-close-bar:hover {
+      background: var(--accent-deep) !important;
+      color: var(--text-primary) !important;
+    }
+    .os-stack-depth-1,
+    .os-stack-depth-2 {
+      border-color: var(--border) !important;
+      background: var(--bg-base) !important;
+    }
+    .fso-card {
+      background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-elevated) 100%) !important;
+      border-color: var(--border) !important;
+      box-shadow: var(--shadow-soft) !important;
+    }
+    .fso-card:hover {
+      background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-panel) 100%) !important;
+      border-color: var(--accent) !important;
+      box-shadow: var(--shadow-float) !important;
+    }
+    .fso-desc {
+      color: var(--text-secondary) !important;
+    }
+    .fso-card-meta {
+      border-top-color: var(--border) !important;
+      border-bottom-color: var(--border) !important;
+    }
+    .fso-meta-divider {
+      background-color: var(--border) !important;
+    }
+    .fso-meta-val-clean {
+      color: var(--text-primary) !important;
+    }
+    .fso-card-foot {
+      border-top-color: var(--border) !important;
+      color: var(--text-tertiary) !important;
+    }
+    .fso-card:hover .fso-card-foot {
+      color: var(--text-secondary) !important;
+    }
+    .fso-card .status-badge:not(.available):not(.building) {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    .fso-filter-tab {
+      background: var(--bg-panel) !important;
+      border-color: var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    .fso-filter-tab:hover {
+      background: var(--bg-elevated) !important;
+      color: var(--text-primary) !important;
+      border-color: var(--border-strong) !important;
+    }
+    .fso-filter-tab.active {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border-strong) !important;
+      color: var(--text-primary) !important;
+    }
+    .fso-filter-tab.available.active {
+      background: var(--accent-soft) !important;
+      border-color: var(--accent) !important;
+      color: var(--accent) !important;
+    }
+    .fso-filter-tab.building.active {
+      background: rgba(216, 168, 91, 0.08) !important;
+      border-color: rgba(216, 168, 91, 0.35) !important;
+      color: #d8a85b !important;
+    }
+    .fso-filter-tab.concept.active {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border-strong) !important;
+      color: var(--text-primary) !important;
+    }
+
+    /* =========================================================================
+       S08 INDUSTRIAS FOCALES HOVER OVERRIDES
+       ========================================================================= */
+    .industry-card:hover .industry-name {
+      color: var(--text-primary) !important;
+    }
+    .industry-card:hover .industry-footer .stat-val {
+      color: var(--accent) !important;
+    }
+
+    /* =========================================================================
+       S15 FOUNDER PORTRAIT OVERRIDES
+       ========================================================================= */
+    .julio-portrait {
+      background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-panel) 100%) !important;
+    }
+
+    /* =========================================================================
+       S07 CASOS & NDA REQUEST PANEL OVERRIDES
+       ========================================================================= */
+    .nda-request-panel {
+      background: var(--bg-panel) !important;
+    }
+    .nda-role-option {
+      background: var(--bg-panel) !important;
+      border-color: var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    .nda-role-option:has(input:checked) {
+      border-color: var(--accent) !important;
+      background: var(--accent-soft) !important;
+      color: var(--accent) !important;
+    }
+    .nda-request-form input {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border) !important;
+      color: var(--text-primary) !important;
+    }
+    .nda-request-form input:focus {
+      border-color: var(--accent) !important;
+      background: var(--bg-base) !important;
+    }
+    .nda-request-note {
+      border-top-color: var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    .caso-metric {
+      border-bottom-color: var(--border) !important;
+    }
+    .case-result-card {
+      border-bottom-color: var(--border) !important;
+    }
+
+    /* =========================================================================
+       OFFICE HOURS CALENDAR OVERRIDES
+       ========================================================================= */
+    .cal-day.slot {
+      background: var(--bg-panel) !important;
+      border-color: var(--border) !important;
+      color: var(--text-primary) !important;
+    }
+    .cal-day.slot:hover {
+      background: var(--accent-soft) !important;
+      border-color: var(--accent) !important;
+    }
+    .cal-day.selected-day {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border-strong) !important;
+    }
+    .legend-swatch.available {
+      background: var(--bg-panel) !important;
+      border-color: var(--border) !important;
+    }
+
+    /* =========================================================================
+       FABRIC AI DIAGNOSTIC CONSOLE OVERRIDES
+       ========================================================================= */
+    /* Section background override (the section itself has bg-[#050203] class, covered by global rule above) */
+    #fabric-ai {
+      color: var(--text-primary) !important;
+    }
+    /* Main heading and paragraph text in AI section */
+    #fabric-ai h2 {
+      color: var(--text-primary) !important;
+    }
+    #fabric-ai p {
+      color: var(--text-secondary) !important;
+    }
+    /* Chat console animated border container */
+    #fabric-ai .chat-console > div:first-child {
+      background: var(--bg-elevated) !important;
+    }
+    /* Inner panel masking the border — make it light */
+    #fabric-ai .chat-console > div:nth-child(2),
+    #fabric-ai [class*="absolute inset-[1px]"],
+    #fabric-ai [class*="bg-[#080706]"] {
+      background: var(--bg-panel) !important;
+    }
+    /* Chat header bar */
+    #fabric-ai [class*="bg-[#050203]"] {
+      background: var(--bg-elevated) !important;
+    }
+    /* Chat border colors */
+    #fabric-ai [class*="border-[#1A1A1A]"] {
+      border-color: var(--border) !important;
+    }
+    /* Chat history scrollable area */
+    #fabric-ai [id="chat-scroll-container"] {
+      background: var(--bg-panel) !important;
+    }
+    /* User message bubbles */
+    #fabric-ai [class*="bg-[#C9A96E]/5"] {
+      background: var(--accent-soft) !important;
+    }
+    /* Agent message bubbles */
+    #fabric-ai [class*="bg-[#050203]"][class*="border-[#1A1A1A]"] {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border) !important;
+    }
+    /* Text colors in chat */
+    #fabric-ai [class*="text-[#F5F5F5]"] {
+      color: var(--text-primary) !important;
+    }
+    #fabric-ai [class*="text-[#A0A0A0]"] {
+      color: var(--text-secondary) !important;
+    }
+    #fabric-ai [class*="text-[#888]"],
+    #fabric-ai [class*="text-[#666]"],
+    #fabric-ai [class*="text-[#555]"] {
+      color: var(--text-tertiary) !important;
+    }
+    /* Input field */
+    #fabric-ai input[type="text"] {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border) !important;
+      color: var(--text-primary) !important;
+    }
+    #fabric-ai input::placeholder {
+      color: var(--text-tertiary) !important;
+    }
+    /* Scenario buttons — target by data attribute for robustness */
+    #fabric-ai button:not([type="submit"]):not([aria-label]):not([class*="group"]) {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    /* Badge labels in AI section */
+    #fabric-ai [class*="border-[#2A2A2A]"] {
+      border-color: var(--border) !important;
+    }
+    /* Typing indicator dots */
+    #fabric-ai [class*="text-[#666]"] {
+      color: var(--text-tertiary) !important;
+    }
+
+    /* =========================================================================
+       SECTION NAVIGATOR TOOLTIP OVERRIDES
+       ========================================================================= */
+    aside [class*="bg-[#0A0A0A]"] {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border) !important;
+    }
+    aside [class*="text-[#F5F5F5]"] {
+      color: var(--text-primary) !important;
+    }
+    aside [class*="bg-[#2A2A2A]"] {
+      background: var(--border) !important;
+    }
+    /* Inactive dot */
+    aside [class*="bg-[#444]"] {
+      background: var(--text-tertiary) !important;
+    }
+    /* Vertical guide line */
+    aside [class*="via-[#2A2A2A]"] {
+      --tw-gradient-stops: transparent, var(--border), transparent !important;
+    }
   }
 }
 
@@ -631,6 +1455,189 @@
 
 .fabric-admin-sidebar-user {
   box-shadow: 0 -18px 36px rgba(0, 0, 0, 0.26);
+}
+
+.fabric-mobile-menu-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 169, 110, 0.34) transparent;
+}
+
+.fabric-mobile-menu-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.fabric-mobile-menu-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fabric-mobile-menu-nav::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(201, 169, 110, 0.16),
+    rgba(201, 169, 110, 0.42),
+    rgba(201, 169, 110, 0.16)
+  );
+  border-radius: 999px;
+}
+
+.fabric-mobile-menu-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 169, 110, 0.5);
+}
+
+.transparency-page {
+  background: var(--bg-base);
+  padding-top: 88px;
+}
+
+.transparency-container {
+  width: min(1180px, calc(100% - 96px));
+  margin: 0 auto;
+}
+
+.transparency-back {
+  padding-top: 20px;
+}
+
+.transparency-hero {
+  border-bottom: 1px solid var(--border);
+  padding: 28px 0 56px;
+}
+
+.transparency-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+  gap: 64px;
+  align-items: start;
+}
+
+.transparency-title-main {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(44px, 4.4vw, 68px);
+  font-weight: 300;
+  line-height: 1.02;
+  color: var(--text-primary);
+}
+
+.transparency-section {
+  border-bottom: 1px solid var(--border);
+  padding: 64px 0;
+}
+
+.transparency-section-final {
+  border-bottom: 0;
+  padding-bottom: 112px;
+}
+
+.transparency-metric-row {
+  display: grid;
+  grid-template-columns: 48px minmax(220px, 300px) minmax(96px, 128px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  border-bottom: 1px solid rgba(42, 42, 42, 0.82);
+  padding: 28px 0;
+}
+
+.transparency-metric-label {
+  max-width: 280px;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.42;
+  color: var(--text-primary);
+}
+
+.transparency-metric-value {
+  font-family: var(--serif);
+  font-size: 34px;
+  color: var(--accent);
+  line-height: 0.9;
+  font-weight: 400;
+}
+
+.transparency-methodology {
+  max-width: 620px;
+  margin-bottom: 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+.transparency-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.transparency-detail-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.012);
+  padding: 12px 14px;
+}
+
+@media (max-width: 1180px) {
+  .transparency-metric-row {
+    grid-template-columns: 44px minmax(190px, 260px) minmax(88px, 112px) minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .transparency-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 968px) {
+  .transparency-page {
+    padding-top: 84px;
+  }
+
+  .transparency-container {
+    width: min(100% - 40px, 680px);
+  }
+
+  .transparency-back {
+    padding-top: 16px;
+  }
+
+  .transparency-hero {
+    padding: 28px 0 44px;
+  }
+
+  .transparency-hero-grid,
+  .transparency-metric-row,
+  .transparency-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transparency-hero-grid,
+  .transparency-metric-row {
+    gap: 18px;
+  }
+
+  .transparency-section {
+    padding: 56px 0;
+  }
+
+  .transparency-metric-row {
+    padding: 28px 0 32px;
+  }
+
+  .transparency-metric-label,
+  .transparency-methodology {
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .transparency-container {
+    width: min(100% - 32px, 520px);
+  }
+
+  .transparency-title-main {
+    font-size: clamp(38px, 12vw, 52px);
+  }
 }
 
 .fabric-admin-page {
@@ -1351,13 +2358,26 @@
 
 /* Apply page */
 .apply-back-row {
-  padding-top: 24px !important;
+  padding-top: 104px !important;
   margin-bottom: 28px !important;
+}
+
+.fabric-home-page {
+  background: var(--bg-base);
+}
+
+.fabric-home-page > section,
+.fabric-home-page > .w-full > section {
+  background: var(--bg-base) !important;
+}
+
+.fabric-back-button {
+  max-width: 100%;
 }
 
 @media (max-width: 639px) {
   .apply-back-row {
-    padding: 78px 18px 0 !important;
+    padding: 94px 18px 0 !important;
     margin-bottom: 24px !important;
   }
 

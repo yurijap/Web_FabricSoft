@@ -12,6 +12,24 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        // Vendor de React en su propio chunk cacheable. Clerk se separa solo
+        // porque ahora solo se importa de forma lazy (ClerkBoundary).
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-router')) return 'react-router';
+            if (
+              id.includes('react-dom') ||
+              id.includes('/react/') ||
+              id.includes('scheduler')
+            ) {
+              return 'react';
+            }
+          }
+        },
+      },
+    },
   },
   css: {
     devSourcemap: false,

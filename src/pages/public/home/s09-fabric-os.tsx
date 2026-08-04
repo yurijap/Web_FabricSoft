@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useInViewOnce } from '../../../hooks/useInViewOnce';
+import './s09-fabric-os.css';
 
 const layers: {
   num: string;
@@ -117,14 +118,31 @@ const fsos: FSOItem[] = [
 export default function S09FabricOS() {
   const [ref, isInView] = useInViewOnce<HTMLElement>();
   const [openLayer, setOpenLayer] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  const filteredFsos = activeFilter
+    ? fsos.filter((fso) => fso.status === activeFilter)
+    : fsos;
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+  };
 
   return (
-    <section ref={ref} id="s09" className={`demo-section s09 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+    <section
+      ref={ref}
+      className={`demo-section s09 ${isInView ? 'is-in-view' : ''}`}
+    >
       <div className="container">
 
         <div className="s09-intro">
           <div className="label">FABRIC OS</div>
-          <h2>El sistema operativo de <span className="text-[#C9A96E]">cada proyecto.</span></h2>
+          <h2>El sistema operativo de <em>cada proyecto.</em></h2>
           <p>Cuatro capas integradas. IP institucionalizada. Cada proyecto opera sobre la misma arquitectura — la entrega no depende del consultor.</p>
         </div>
 
@@ -133,15 +151,18 @@ export default function S09FabricOS() {
           <div className="os-stack">
             {layers.map((layer, index) => {
               const isOpen = openLayer === layer.num;
-              const isBelow = openLayer !== null && layers.findIndex(l => l.num === openLayer) < index;
               return (
                 <div
                   key={layer.num}
-                  className={`os-stack-layer ${isOpen ? 'os-stack-layer--open' : ''} ${isBelow ? 'os-stack-layer--below' : ''}`}
+                  className={`os-stack-layer ${isOpen ? 'os-stack-layer--open' : ''}`}
                   onClick={() => setOpenLayer(isOpen ? null : layer.num)}
+                  onMouseMove={handleMouseMove}
                   style={{ '--layer-index': index } as React.CSSProperties}
                 >
-                  {/* Left: number + accent bar */}
+                  {/* Spotlight */}
+                  <div className="os-spotlight" />
+
+                  {/* Left: number + dot */}
                   <div className="os-stack-num-col">
                     <span className="os-stack-num">{layer.num}</span>
                     <div className="os-stack-spine-dot" />
@@ -153,6 +174,7 @@ export default function S09FabricOS() {
                       <div className="os-stack-name">{layer.name}</div>
                       <div className="os-stack-tag">{layer.tag}</div>
                     </div>
+
                     {isOpen && (
                       <div className="os-stack-detail">
                         {layer.desc}
@@ -160,19 +182,28 @@ export default function S09FabricOS() {
                     )}
                   </div>
 
-                  {/* Right: toggle */}
-                  <div className="os-stack-toggle">
-                    <span>{isOpen ? '▲ Cerrar' : '▼ Ver más'}</span>
-                  </div>
+                  {/* Right: toggle — collapsed state */}
+                  {!isOpen && (
+                    <div className="os-stack-toggle">
+                      <span className="os-toggle-arrow">▼</span>
+                      <span className="os-toggle-label">Ver más</span>
+                    </div>
+                  )}
 
-                  {/* Depth shadow layers (decorative) */}
+                  {/* Full-width close bar — open state */}
+                  {isOpen && (
+                    <div className="os-stack-close-bar">
+                      <span>▲ Cerrar</span>
+                    </div>
+                  )}
+
+                  {/* Depth decorators (top layer only) */}
                   <div className="os-stack-depth-1" />
                   <div className="os-stack-depth-2" />
                 </div>
               );
             })}
           </div>
-
         </div>
 
         {/* FSO Engine */}
@@ -180,33 +211,60 @@ export default function S09FabricOS() {
           <div className="fso-section-header">
             <div>
               <div className="label" style={{ marginBottom: 12 }}>FSO Engine · Soluciones paquetizadas</div>
-              <h3>IP nombrada y reutilizable. <span className="text-[#C9A96E]">Cada FSO, validable.</span></h3>
+              <h3>IP nombrada y reutilizable. <em>Cada FSO, validable.</em></h3>
             </div>
             <div className="fso-legend">
-              <span className="status-badge available">Available</span>
-              <span className="status-badge building">Building</span>
-              <span className="status-badge concept">Concept</span>
+              <button
+                className={`fso-filter-tab all ${activeFilter === null ? 'active' : ''}`}
+                onClick={() => setActiveFilter(null)}
+              >
+                Todos
+              </button>
+              <button
+                className={`fso-filter-tab available ${activeFilter === 'Available' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('Available')}
+              >
+                Available
+              </button>
+              <button
+                className={`fso-filter-tab building ${activeFilter === 'Building' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('Building')}
+              >
+                Building
+              </button>
+              <button
+                className={`fso-filter-tab concept ${activeFilter === 'Concept' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('Concept')}
+              >
+                Concept
+              </button>
             </div>
           </div>
 
           <div className="fso-grid">
-            {fsos.map((fso) => (
-              <div className="fso-card" key={fso.id}>
+            {filteredFsos.map((fso, index) => (
+              <div
+                className="fso-card"
+                key={fso.id}
+                onMouseMove={handleMouseMove}
+                style={{ '--index': index } as React.CSSProperties}
+              >
                 <div className="fso-card-head">
                   <span className="fso-num">{fso.id}</span>
                   <span className={`status-badge ${fso.statusClass}`}>{fso.status}</span>
                 </div>
                 <div className="fso-name">{fso.name}</div>
                 <div className="fso-desc">{fso.desc}</div>
-                
-                {/* Plazo e Inversión Estimados */}
-                <div style={{ display: 'flex', gap: 12, marginTop: 12, marginBottom: 12, fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text-tertiary)', borderTop: '1px dashed var(--border)', borderBottom: '1px dashed var(--border)', padding: '6px 0' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>Plazo:</span> {fso.tiempo}
+
+                <div className="fso-card-meta">
+                  <div className="fso-meta-item-clean">
+                    <span className="fso-meta-label-clean">PLAZO:</span>
+                    <span className="fso-meta-val-clean">{fso.tiempo}</span>
                   </div>
-                  <div style={{ width: 1, background: 'var(--border)' }} />
-                  <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>Costo:</span> {fso.costo}
+                  <div className="fso-meta-divider" />
+                  <div className="fso-meta-item-clean">
+                    <span className="fso-meta-label-clean">COSTO:</span>
+                    <span className="fso-meta-val-clean fso-meta-val-accent">{fso.costo}</span>
                   </div>
                 </div>
 

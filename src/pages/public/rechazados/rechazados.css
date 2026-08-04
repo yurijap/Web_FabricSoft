@@ -1,0 +1,87 @@
+/* ---------- Rechazados – Card Layout ---------- */
+.rechazados-projects {
+  display: grid;
+  gap: 24px;
+}
+
+.rechazados-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  transition: transform .2s, box-shadow .2s;
+}
+.rechazados-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.12);
+}
+
+/* Mobile header within card */
+.rechazados-mobile-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.rechazados-id {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent);
+}
+.rechazados-trimestre {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+
+.rechazados-industria {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.rechazados-modulos {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+.rechazados-razon {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Desktop row layout – keep grid spacing */
+.rechazados-row-desktop {
+  gap: 16px;
+  align-items: start;
+}
+
+/* Ensure grid collapses on tablet */
+@media (max-width: 968px) {
+  .rechazados-projects { grid-template-columns: 1fr !important; }
+}
+
+/* ── Rechazados: stats 3-col → responsive ── */
+.rechazados-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+@media (max-width: 968px) {
+  .rechazados-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .rechazados-stats-grid {
+    gap: 12px !important;
+  }
+}

@@ -1,11 +1,13 @@
 import { useInViewOnce } from '../../../hooks/useInViewOnce';
 import OfficeHoursCalendar from '../../../components/OfficeHoursCalendar';
+import './s11-office-hours.css';
+
 
 export default function S11OfficeHours() {
   const [ref, isInView] = useInViewOnce<HTMLElement>();
 
   return (
-    <section ref={ref} id="s11" className={`demo-section s11 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+    <section ref={ref} className={`demo-section s11 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
       <div className="container">
         <div className="office-hours">
           <div className="office-hours-text">

@@ -3,6 +3,8 @@ import { useInViewOnce } from '../../../hooks/useInViewOnce';
 import { useCapacidad, useMetrica } from '../../../store/FabricContext';
 import { countSlots, type AdmissionQuarter, type QuarterStatus, type SlotStatus } from '../../../store/fabricStore';
 import { api } from '../../../config/api';
+import './s15-founder.css';
+
 
 interface ApiSlot {
   id: number;
@@ -131,7 +133,7 @@ export default function S15Founder() {
   const proximaVentana = quarters.find(q => q.status === 'open')?.quarter ?? 'Q3 2026';
 
   return (
-    <section ref={ref} id="s15" className={`demo-section s15 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+    <section ref={ref} className={`demo-section s15 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
       <div className="container">
         <div className="founder-manifesto">
           <div className="label" style={{ marginBottom: 24 }}>Manifiesto del Fundador</div>
@@ -167,7 +169,7 @@ export default function S15Founder() {
               opacity: 0.4,
             }} />
             <img
-              src="/julio_alvarez.jpeg"
+              src="/julio_alvarez.webp"
               alt="Julio Álvarez — Founder FABRIC"
               style={{
                 width: "100%",
@@ -341,7 +343,7 @@ export default function S15Founder() {
               <div className="admission-row" key={q.quarter}>
                 <span className="admission-q">{q.quarter}</span>
                 <span className={`admission-status ${q.status}`}>{q.label}</span>
-                <span style={{ color: q.status === 'open' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                <span className="admission-desc" style={{ color: q.status === 'open' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                   {q.description}
                 </span>
                 <span className={`admission-deadline${q.status === 'open' ? ' active' : ''}`}>

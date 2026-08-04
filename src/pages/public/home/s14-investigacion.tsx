@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../config/api';
 import { useInViewOnce } from '../../../hooks/useInViewOnce';
+import './s14-investigacion.css';
+
 
 interface HomePaper {
   num: string;
@@ -60,6 +62,7 @@ export default function S14Investigacion() {
   const [papers, setPapers] = useState<HomePaper[]>(FALLBACK_PAPERS);
 
   useEffect(() => {
+    if (!isInView) return;
     api.get('/papers/catalog')
       .then(res => {
         if (res.data?.ok && Array.isArray(res.data.data)) {
@@ -85,10 +88,10 @@ export default function S14Investigacion() {
       .catch(err => {
         console.error('Error loading papers dynamic catalog:', err);
       });
-  }, []);
+  }, [isInView]);
 
   return (
-    <section ref={ref} id="s14" className={`demo-section s14 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+    <section ref={ref} className={`demo-section s14 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
       <div className="container">
         <div className="s14-intro">
           <div className="label">Investigación</div>

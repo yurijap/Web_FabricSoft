@@ -9,7 +9,8 @@ import {
   type OfficeHoursSlot,
 } from './fabricStore';
 
-// ─── TIPOS DEL CONTEXTO ───────────────────────────────────────────────────────
+
+
 
 interface FabricContextValue {
   store: FabricStore;

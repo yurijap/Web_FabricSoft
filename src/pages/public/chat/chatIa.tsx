@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import { api } from "../../../config/api";
+import './chatIa.css';
 
 // --- HOOK PARA ANIMACIÓN AL HACER SCROLL ---
 function useInView(threshold = 0.2) {
@@ -238,7 +239,7 @@ export default function ChatIa() {
   };
 
   return (
-    <section id="fabric-ai" className="relative w-full overflow-hidden bg-[#050203] py-24 text-[#F5F5F5] border-t border-[#111] md:py-32">
+    <section id="fabric-ai" className="chat-section-bg relative w-full overflow-hidden py-24 border-t border-[rgba(240,207,122,0.16)] md:py-32">
       
       {/* Background Gradients */}
       <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-10" />
@@ -261,22 +262,22 @@ export default function ChatIa() {
               </span>
             </div>
 
-            <h2 className="font-serif text-[42px] md:text-[56px] lg:text-[64px] leading-[1.02] text-[#F5F5F5] mb-7">
+            <h2 className="chat-heading font-serif text-[42px] md:text-[56px] lg:text-[64px] leading-[1.02] mb-7">
               Asistente de diagnóstico <span className="text-[#C9A96E] italic">Oracle</span>.
             </h2>
 
-            <p className="font-sans text-base md:text-lg leading-[1.75] text-[#888] mb-10 max-w-[560px]">
+            <p className="chat-body-text font-sans text-base md:text-lg leading-[1.75] mb-10 max-w-[560px]">
               Evalúa tu infraestructura en segundos. Identifica riesgos ocultos en tu implementación Fusion o planifica migraciones sin sobrecostos usando nuestro motor técnico.
             </p>
 
             {/* Badges de estado */}
-            <div className="flex flex-wrap gap-8 border-l border-[#2A2A2A] pl-5">
+            <div className="chat-stat-border flex flex-wrap gap-8 border-l pl-5">
               <div>
-                <p className="font-mono text-[8px] uppercase tracking-widest text-[#555] mb-1">Versión</p>
-                <p className="font-mono text-[10.5px] font-bold text-[#F5F5F5]">FABRIC AI v2.4</p>
+                <p className="chat-label-text font-mono text-[8px] uppercase tracking-widest mb-1">Versión</p>
+                <p className="chat-value-text font-mono text-[10.5px] font-bold">FABRIC AI v2.4</p>
               </div>
               <div>
-                <p className="font-mono text-[8px] uppercase tracking-widest text-[#555] mb-1">Estado</p>
+                <p className="chat-label-text font-mono text-[8px] uppercase tracking-widest mb-1">Estado</p>
                 <p className="font-mono text-[10.5px] font-bold text-[#C9A96E]">Operational</p>
               </div>
             </div>
@@ -284,7 +285,7 @@ export default function ChatIa() {
             <div className="mt-12">
               <button
                 onClick={handleFocusChat}
-                className="group inline-flex items-center gap-3 border border-[#2A2A2A] bg-transparent px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-[#888] transition-all duration-300 hover:border-[#C9A96E] hover:text-[#C9A96E] hover:bg-[#C9A96E]/[0.04]"
+                className="chat-cta-btn group inline-flex items-center gap-3 border bg-transparent px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition-all duration-300 hover:border-[#C9A96E] hover:text-[#C9A96E] hover:bg-[#C9A96E]/[0.04]"
               >
                 Activar Consola <ArrowIcon />
               </button>
@@ -296,32 +297,29 @@ export default function ChatIa() {
               ========================================= */}
           <div className={`relative w-full max-w-[760px] justify-self-center lg:justify-self-end transition-all duration-1000 delay-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             
-            {/* Contenedor principal de la Consola con la animación del borde */}
-            <div className="chat-console relative flex flex-col rounded-sm shadow-[0_24px_80px_rgba(0,0,0,0.66)] group">
+            {/* Contenedor principal de la Consola */}
+            <div className="chat-console relative flex flex-col rounded-sm group">
               
-              {/* === LA LÍNEA ANIMADA DORADA QUE RECORRE EL BORDE === */}
-              <div className="absolute inset-0 z-0 overflow-hidden rounded-sm bg-[#080706]">
-                <div className="absolute top-1/2 left-1/2 h-[200%] w-[200%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(transparent_270deg,#C9A96E_360deg)] animate-[spin_3s_linear_infinite]" />
-              </div>
+              <div className="chat-console-border absolute inset-0 z-0 rounded-sm" />
 
               {/* El interior que enmascara el centro, dejando solo un borde de 1px visible */}
-              <div className="absolute inset-[1px] z-10 flex flex-col bg-[#080706] rounded-sm transition-shadow duration-500 focus-within:shadow-[inset_0_0_40px_rgba(201,169,110,0.05)]">
+              <div className="chat-console-inner absolute inset-[1px] z-10 flex flex-col rounded-sm transition-shadow duration-500 focus-within:shadow-[inset_0_0_40px_rgba(201,169,110,0.05)]">
                 
                 {/* Cabecera del chat */}
-                <div className="flex items-center justify-between border-b border-[#1A1A1A] bg-[#050203] px-5 py-4 shrink-0">
+                <div className="chat-bar chat-console-header flex items-center justify-between border-b px-5 py-4 shrink-0">
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-7 w-7 items-center justify-center border border-[#C9A96E]/20 bg-[#C9A96E]/5 text-[#C9A96E] rounded-sm">
                       <SparkIcon />
                     </div>
                     <div>
-                      <p className="font-mono text-[10.5px] font-bold uppercase tracking-[0.15em] text-[#F5F5F5]">Diagnostic Engine</p>
-                      <p className="font-mono text-[8px] uppercase tracking-wider text-[#555]">Oracle ecosystem ready</p>
+                      <p className="chat-heading font-mono text-[10.5px] font-bold uppercase tracking-[0.15em]">Diagnostic Engine</p>
+                      <p className="chat-label-text font-mono text-[8px] uppercase tracking-wider">Oracle ecosystem ready</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Historial del Chat */}
-                <div id="chat-scroll-container" className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-[#1A1A1A] scrollbar-track-transparent">
+                <div id="chat-scroll-container" className="chat-messages-area flex-1 overflow-y-auto p-5 space-y-6">
                   {chatHistory.map((msg, idx) => {
                     const isAgent = msg.role === 'agent';
                     const animateText = isAgent && idx === chatHistory.length - 1 && isTyping;
@@ -332,7 +330,7 @@ export default function ChatIa() {
                           
                           <div className="flex items-center gap-1.5 opacity-50">
                             {isAgent ? <SparkIcon /> : <UserIcon />}
-                            <span className="font-mono text-[8px] uppercase tracking-widest text-[#F5F5F5]">
+                            <span className="chat-heading font-mono text-[8px] uppercase tracking-widest">
                               {isAgent ? 'FABRIC AI' : 'Usuario'}
                             </span>
                           </div>
@@ -340,19 +338,19 @@ export default function ChatIa() {
                           {/* Burbuja mejorada: Textos a 12px y padding ajustado */}
                           <div className={`px-5 py-4 rounded-sm ${
                             isAgent 
-                              ? 'bg-[#050203] border border-[#1A1A1A]' 
-                              : 'bg-[#C9A96E]/5 border border-[#C9A96E]/20 text-[#E0E0E0] font-sans text-[12px]'
+                              ? 'chat-agent-bubble border' 
+                              : 'chat-user-bubble border font-sans text-[12px]'
                           }`}>
                             {animateText ? (
                               <TypingEffect text={msg.text} isTyping={true} />
                             ) : (
-                              <p className={`whitespace-pre-wrap leading-[1.7] ${isAgent ? 'font-sans text-[12px] text-[#A0A0A0]' : 'font-sans text-[12px]'}`}>
+                              <p className={`whitespace-pre-wrap leading-[1.7] ${isAgent ? 'chat-agent-text font-sans text-[12px]' : 'font-sans text-[12px]'}`}>
                                 {msg.text}
                               </p>
                             )}
                             {isAgent && msg.cta && (
                               <div className="mt-4 border border-[#C9A96E]/35 bg-[#C9A96E]/[0.07] p-3 shadow-[0_0_28px_rgba(201,169,110,0.08)]">
-                                <p className="mb-3 font-sans text-[12px] leading-5 text-[#A0A0A0]">
+                                <p className="chat-agent-text mb-3 font-sans text-[12px] leading-5">
                                   Podemos revisar tu caso con más detalle y definir el siguiente paso.
                                 </p>
                                 <button
@@ -376,13 +374,13 @@ export default function ChatIa() {
                       <div className="max-w-[85%] flex flex-col gap-1.5 items-start">
                         <div className="flex items-center gap-1.5 opacity-50">
                           <SparkIcon />
-                          <span className="font-mono text-[8px] uppercase tracking-widest text-[#F5F5F5]">
+                          <span className="chat-heading font-mono text-[8px] uppercase tracking-widest">
                             FABRIC AI
                           </span>
                         </div>
-                        <div className="bg-[#050203] border border-[#1A1A1A] px-5 py-4 rounded-sm">
+                        <div className="chat-agent-bubble border px-5 py-4 rounded-sm">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#666]">
+                            <span className="chat-label-text font-mono text-[9px] uppercase tracking-[0.16em]">
                               Analizando
                             </span>
                             <span className="h-1.5 w-1.5 rounded-full bg-[#C9A96E] animate-bounce" />
@@ -396,7 +394,7 @@ export default function ChatIa() {
                 </div>
 
                 {/* Controles Inferiores */}
-                <div className="border-t border-[#1A1A1A] bg-[#050203] p-4 shrink-0">
+                <div className="chat-bar chat-console-composer border-t p-4 shrink-0">
                   
                   {/* Escenarios predeterminados */}
                   <div className="mb-3" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -405,24 +403,7 @@ export default function ChatIa() {
                         key={scen.key}
                         onClick={() => handleScenarioClick(scen.key)}
                         disabled={isTyping}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          border: '1px solid #2A2A2A',
-                          background: '#050203',
-                          padding: '8px 14px',
-                          fontFamily: 'var(--mono)',
-                          fontSize: 10,
-                          textTransform: 'uppercase' as const,
-                          letterSpacing: '0.1em',
-                          color: '#666',
-                          transition: 'all 0.3s',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap' as const,
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(201, 169, 110, 0.5)'; e.currentTarget.style.color = '#C9A96E'; e.currentTarget.style.background = 'rgba(201, 169, 110, 0.04)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#2A2A2A'; e.currentTarget.style.color = '#666'; e.currentTarget.style.background = '#050203'; }}
+                        className="chat-scenario-btn"
                       >
                         <span style={{ color: 'rgba(201,169,110,0.4)', fontSize: 11 }}>›</span>
                         {scen.shortLabel}
@@ -439,12 +420,13 @@ export default function ChatIa() {
                       onChange={(e) => setInputValue(e.target.value)}
                       disabled={isTyping}
                       placeholder={isTyping ? "Diagnosticando..." : "Describe tu escenario técnico..."}
-                      className="w-full bg-[#050203] border border-[#1A1A1A] rounded-sm py-3.5 pl-9 pr-12 font-mono text-xs text-[#F5F5F5] outline-none transition-colors focus:border-[#C9A96E]/40 disabled:opacity-50 placeholder:text-[#333]"
+                      className="chat-input w-full border rounded-sm py-3.5 pl-9 pr-12 font-mono text-xs outline-none transition-colors focus:border-[#C9A96E]/40 disabled:opacity-50"
                     />
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
+                      aria-label="Enviar mensaje"
                       disabled={!inputValue.trim() || isTyping}
-                      className="absolute right-4 text-[#C9A96E] disabled:text-[#333] transition-colors"
+                      className="absolute right-4 text-[#C9A96E] disabled:text-[var(--text-tertiary)] transition-colors"
                     >
                       <ArrowIcon />
                     </button>

@@ -26,9 +26,9 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 function getInitialLang(): Lang {
   if (typeof window === 'undefined') return 'es';
 
-  const savedLang = window.localStorage.getItem(STORAGE_KEY);
-
-  return savedLang === 'en' ? 'en' : 'es';
+  // El selector/traductor esta desactivado temporalmente por rendimiento.
+  // Forzamos ES para evitar que un valor previo en localStorage deje el sitio en ingles.
+  return 'es';
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {

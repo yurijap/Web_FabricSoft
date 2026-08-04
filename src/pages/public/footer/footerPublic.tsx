@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import LanguageToggle from '../../../components/LanguageToggle';
+// Traductor desactivado temporalmente por rendimiento.
+// import LanguageToggle from '../../../components/LanguageToggle';
 
 type FooterLink = {
   label: string;
@@ -15,20 +16,20 @@ const footerLinks: Record<string, FooterLink[]> = {
   sitio: [
     { label: 'Inicio',            path: '/#inicio' },
     { label: 'Doctrina',          path: '/#doctrina' },
-    { label: 'Industrias',        path: '/#s08' },
-    { label: 'FABRIC OS',         path: '/#s09' },
+    { label: 'Industrias',        path: '/#industrias' },
+    { label: 'FABRIC OS',         path: '/#fabric-os' },
     { label: 'Transparencia',     path: '/transparencia' },
-    { label: 'Investigación',     path: '/#s14' },
-    { label: 'Modelos *',         path: '/modelos' },
+    { label: 'Investigación',     path: '/#investigacion' },
+    { label: 'Modelos',         path: '/modelos' },
     { label: 'Aplicar',           path: '/aplicar' },
   ],
   casos: [
-    { label: 'Casos',                    path: '/#s07' },
+    { label: 'Historial de casos',        path: '/#casos' },
     { label: 'APE Plazas',               path: '/casos/ape-plazas' },
     { label: 'Aplazo',                   path: '/casos/aplazo' },
-    { label: 'Referencias',              path: '/#s12' },
+    { label: 'Referencias',              path: '/#referencias' },
     { label: 'Criterios de admisión',    path: '/#criterios' },
-    { label: 'Rescue Assessment',        path: '/#fabric-ai' },
+    { label: 'Rescue Assessment',        path: '/#rescue-assessment' },
     { label: 'Apply Reverse',             path: '/rechazados' },
   ],
   herramientas: [
@@ -36,33 +37,33 @@ const footerLinks: Record<string, FooterLink[]> = {
     { label: 'Optimizador OCI',          path: '/optimizador-oci' },
     { label: 'ERP TCO Comparator',       path: '/#tco' },
     { label: 'Cloud Cost Comparator',    path: '/#cloud-tco' },
-    { label: 'Doctrine Generator *',     path: '/doctrina/generator' },
-    { label: 'Migration Roadmap *',      path: '/roadmap' },
-    { label: 'Readiness Score *',        path: '/readiness' },
-    { label: 'RFP Template *',           path: '/rfp-template' },
-    { label: 'Benchmark Index *',        path: '/benchmark' },
+    { label: 'Doctrine Generator',     path: '/#doctrina' },
+    { label: 'Migration Roadmap',      path: '/roadmap' },
+    { label: 'Readiness Score',        path: '/readiness' },
+    { label: 'RFP Template',           path: '/rfp-template' },
+    { label: 'Benchmark Index',        path: '/benchmark' },
   ],
   engagement: [
     { label: 'Aplicar',                  path: '/aplicar' },
-    { label: 'Founder · Wait List',      path: '/#s15' },
+    { label: 'Founder · Wait List',      path: '/#founder-wait-list' },
     { label: 'Office Hours',             path: '/office-hours' },
-    { label: 'Post-Mortem Privado *',    path: '/post-mortem' },
-    { label: 'Confidential Roundtable *', path: '/roundtable' },
-    { label: 'Research Letters *',        path: '/research-letters' },
+    { label: 'Post-Mortem Privado',    path: '/post-mortem' },
+    { label: 'Confidential Roundtable', path: '/roundtable' },
+    { label: 'Research Letters',        path: '/research-letters' },
   ],
   recursos: [
-    { label: 'Paper 01 — Go-live failures *',         path: '/investigacion/paper/01' },
-    { label: 'Paper 02 — IA en Fusion *',             path: '/investigacion/paper/02' },
-    { label: 'Paper 03 — Primer ciclo crítico *',     path: '/investigacion/paper/03' },
+    { label: 'Paper 01 — Go-live failures',         path: '/investigacion/paper/01' },
+    { label: 'Paper 02 — IA en Fusion',             path: '/investigacion/paper/02' },
+    { label: 'Paper 03 — Primer ciclo crítico',     path: '/investigacion/paper/03' },
   ],
 };
 
 function FooterNavItem({ link }: { link: FooterLink }) {
   const className =
-    'text-[#F5F5F5]/60 hover:text-[#C9A96E] transition-all duration-300 text-sm flex items-center gap-2 group text-left bg-transparent border-0 p-0 m-0 cursor-pointer font-sans leading-normal outline-none';
+    'min-w-0 text-[#F5F5F5]/60 hover:text-[#C9A96E] transition-all duration-300 text-sm flex items-start gap-2 group text-left bg-transparent border-0 p-0 m-0 cursor-pointer font-sans leading-normal focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#C9A96E]/60 focus-visible:rounded-sm';
   const content = (
     <>
-      <span className="transform group-hover:translate-x-1 transition-transform duration-300">
+      <span className="min-w-0 break-words transform group-hover:translate-x-1 transition-transform duration-300">
         {link.label}
       </span>
       {link.isFuture && (
@@ -104,22 +105,30 @@ const SocialIcons = {
   ),
 };
 
+const titleTranslations: Record<string, string> = {
+  sitio: 'Sitio',
+  casos: 'Portafolio',
+  herramientas: 'Herramientas',
+  engagement: 'Admisión',
+  recursos: 'Recursos',
+};
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="fabric-footer bg-[#050203] text-[#F5F5F5]/90 border-t border-[#2A2A2A] pt-24 pb-12 font-sans">
+    <footer className="fabric-footer bg-[#050203] text-[#F5F5F5]/90 border-t border-[#2A2A2A] pt-16 pb-10 font-sans md:pt-24 md:pb-12">
       <div className="max-w-[1440px] mx-auto px-6 md:px-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.5fr_repeat(5,minmax(0,1fr))] gap-12 lg:gap-8 mb-24">
-          <div className="sm:col-span-2 lg:col-span-1 flex flex-col">
-            <h2 className="text-[#F5F5F5] font-serif text-5xl tracking-wide mb-4 transition-colors duration-300 hover:text-[#C9A96E]">
+        <div className="footer-grid">
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1 flex flex-col">
+            <h2 className="text-[#F5F5F5] font-serif text-4xl tracking-wide mb-4 transition-colors duration-300 hover:text-[#C9A96E] md:text-5xl">
               FABRIC
             </h2>
             <p className="text-[#C9A96E] text-xs font-bold tracking-[0.2em] uppercase mb-10">
               Oracle Critical Engineering
             </p>
 
-            <div className="space-y-3 font-mono text-sm mb-8 text-[#F5F5F5]/80">
+            <div className="space-y-3 font-mono text-sm mb-8 text-[#F5F5F5]/80 break-words">
               <p>Ciudad de México · México</p>
               <a href="mailto:contacto@fabricsoft.com.mx" className="block text-[#C9A96E] hover:text-[#C9A96E]/80 transition-colors duration-300">
                 contacto@fabricsoft.com.mx
@@ -145,32 +154,50 @@ export default function Footer() {
             </div>
 
             <div className="pt-6 border-t border-[#2A2A2A]">
-              <p className="text-xs text-[#F5F5F5]/40 flex items-center gap-2">
+              <p className="text-xs text-[#F5F5F5]/70 flex items-start gap-2">
                 <span className="text-[#C9A96E]/60 animate-pulse">◆</span> Acceso selectivo · cupos limitados
               </p>
             </div>
           </div>
 
-          {Object.entries(footerLinks).map(([title, links]) => (
-            <div className="flex flex-col" key={title}>
-              <h3 className="text-[#C9A96E] text-[10px] font-bold tracking-[0.2em] uppercase mb-8">
-                {title}
-              </h3>
-              <ul className="space-y-4">
-                {links.map((link) => (
-                  <li key={link.label}>
-                    <FooterNavItem link={link} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {Object.entries(footerLinks).map(([key, links]) => {
+            const displayTitle = titleTranslations[key] || key;
+            return (
+              <div className="min-w-0 flex flex-col mt-12 md:mt-0" key={key}>
+                <h3 className="text-fabric-gold font-mono text-sm md:text-base font-bold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--accent)' }}>
+                  {displayTitle}
+                </h3>
+                <ul className="space-y-4">
+                  {links.map((link) => (
+                    <li key={link.label}>
+                      <FooterNavItem link={link} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="pt-8 border-t border-[#2A2A2A] flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] font-mono text-[#F5F5F5]/40">
-          <LanguageToggle compact />
+        <div className="pt-8 border-t border-[#2A2A2A] flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] font-mono text-[#F5F5F5]/70">
+          {/* Traductor desactivado temporalmente por rendimiento. */}
+          {/* <LanguageToggle compact /> */}
 
-          <p>© {currentYear} FABRIC SOFT MEXICO SA DE CV</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link to="/terminos" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 tracking-[0.12em] uppercase text-[10px]">
+              Términos de uso
+            </Link>
+            <span className="text-[#2A2A2A]">·</span>
+            <Link to="/privacidad" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 tracking-[0.12em] uppercase text-[10px]">
+              Aviso de privacidad
+            </Link>
+            <span className="text-[#2A2A2A]">·</span>
+            <p className="footer-copyright" aria-label={`© ${currentYear} FABRIC SOFT MEXICO SA DE CV`}>
+              <span>©</span>
+              <span>{currentYear}</span>
+              <span>FABRIC SOFT MEXICO SA DE CV</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

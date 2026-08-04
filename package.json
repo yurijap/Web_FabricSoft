@@ -12,6 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@amcharts/amcharts5": "^5.18.0",
+    "@amcharts/amcharts5-geodata": "^5.1.5",
     "@clerk/clerk-react": "^5.61.6",
     "@clerk/localizations": "^4.6.6",
     "@clerk/themes": "^2.4.57",

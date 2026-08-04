@@ -1,4 +1,5 @@
-import logoFabric from '../../assets/logo/logo.png';
+const logoFabric = '/Logo_FabricSoft.webp';
+
 
 interface LoaderProps {
   mensaje?: string;

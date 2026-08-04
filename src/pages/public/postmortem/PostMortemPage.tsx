@@ -1,5 +1,7 @@
 import BackButton from '../../../components/BackButton';
 import { Link } from 'react-router-dom';
+import './post-mortem.css';
+
 
 const entregables = [
   { num: '01', titulo: '2 días de inmersión', descripcion: 'Sesiones cerradas con dirección, usuarios clave y responsables técnicos para reconstruir decisiones, riesgos y bloqueos.' },

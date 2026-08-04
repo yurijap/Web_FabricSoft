@@ -83,7 +83,7 @@ export default function PaperPage() {
     );
   }
 
-  if (!paper) return <Navigate to="/#s14" replace />;
+  if (!paper) return <Navigate to="/#investigacion" replace />;
 
   async function requestPaper() {
     if (!paper) return;

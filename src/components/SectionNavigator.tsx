@@ -8,20 +8,70 @@ type SectionItem = {
 };
 
 const sections: SectionItem[] = [
-  { id: "inicio",           label: "Hero",                       number: "01" },
-  { id: "tco",              label: "ERP TCO · AI",               number: "02" },
-  { id: "rescue-diagnostic", label: "Rescue Diagnostic",          number: "03" },
-  { id: "doctrina",         label: "Doctrina",                   number: "04" },
-  { id: "s07",              label: "Casos · Industrias",         number: "05" },
-  { id: "rescue-assessment",label: "Rescue Assessment",          number: "06" },
-  { id: "s09",              label: "FABRIC OS · Lifecycle",      number: "07" },
-  { id: "s11",              label: "Office Hours",               number: "08" },
-  { id: "s12",              label: "Referencias",                number: "09" },
-  { id: "s13",              label: "Transparencia · Investigación", number: "10" },
-  { id: "s15",              label: "Founder · Wait List",        number: "11" },
+  { id: "inicio", label: "Hero", number: "01" },
+  { id: "tco", label: "TCO Comparator", number: "02" },
+  { id: "fabric-ai", label: "FABRIC AI", number: "03" },
+  { id: "rescue-diagnostic", label: "Diagnostico", number: "04" },
+  { id: "doctrina", label: "Doctrina", number: "05" },
+  { id: "casos", label: "Casos", number: "06" },
+  { id: "rescue-assessment", label: "Rescue Assessment", number: "07" },
+  { id: "industrias", label: "Industrias", number: "08" },
+  { id: "fabric-os", label: "FABRIC OS", number: "09" },
+  { id: "lifecycle", label: "Lifecycle", number: "10" },
+  { id: "office-hours", label: "Office Hours", number: "11" },
+  { id: "referencias", label: "Referencias", number: "12" },
+  { id: "transparencia", label: "Transparencia", number: "13" },
+  { id: "investigacion", label: "Investigacion", number: "14" },
+  { id: "founder-wait-list", label: "Founder Wait List", number: "15" },
 ];
 
-export default function SectionNavigator() {
+const legacyHashAliases: Record<string, string> = {
+  s07: "casos",
+  s08: "industrias",
+  s09: "fabric-os",
+  s10: "lifecycle",
+  s11: "office-hours",
+  s12: "referencias",
+  s13: "transparencia",
+  s14: "investigacion",
+  s15: "founder-wait-list",
+};
+
+const getCanonicalHashId = () => {
+  const hashId = decodeURIComponent(window.location.hash.replace("#", ""));
+  return legacyHashAliases[hashId] ?? hashId;
+};
+
+const isKnownSection = (id: string) => sections.some((section) => section.id === id);
+
+const getHeaderOffset = () => {
+  const header = document.querySelector<HTMLElement>("header[data-no-translate]");
+  return (header?.offsetHeight ?? 0) + 12;
+};
+
+const getVisualSectionInset = (id: string) => {
+  if (id === "inicio") return 0;
+  return Math.min(88, Math.max(48, window.innerHeight * 0.08));
+};
+
+function useDesktopSectionNavigator() {
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : false,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(media.matches);
+
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isDesktop;
+}
+
+function DesktopSectionNavigator() {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("inicio");
@@ -30,7 +80,14 @@ export default function SectionNavigator() {
     let ticking = false;
 
     const updateActiveSection = () => {
-      const scrollPosition = window.scrollY + 180;
+      const hashId = getCanonicalHashId();
+      if (window.location.pathname === "/" && isKnownSection(hashId)) {
+        setActiveSection(hashId);
+        ticking = false;
+        return;
+      }
+
+      const scrollPosition = window.scrollY + getHeaderOffset() + 80;
       let nextSection = sections[0].id;
 
       sections.forEach((section) => {
@@ -64,20 +121,26 @@ export default function SectionNavigator() {
   }, []);
 
   useEffect(() => {
-    const hashId = decodeURIComponent(location.hash.replace("#", ""));
-    if (sections.some((section) => section.id === hashId)) {
-      setActiveSection(hashId);
+    const hashId = legacyHashAliases[decodeURIComponent(location.hash.replace("#", ""))] ?? decodeURIComponent(location.hash.replace("#", ""));
+    if (isKnownSection(hashId)) {
+      const frame = window.requestAnimationFrame(() => setActiveSection(hashId));
+      return () => window.cancelAnimationFrame(frame);
     }
   }, [location.hash]);
 
   const scrollToSection = (id: string) => {
-    const section = document.getElementById(id);
-    if (!section) return;
     setActiveSection(id);
-    navigate({ pathname: "/", hash: `#${id}` }, { replace: false });
 
-    const top = section.getBoundingClientRect().top + window.scrollY - 16;
-    window.scrollTo({ top, behavior: "smooth" });
+    if (location.pathname === "/" && location.hash === `#${id}`) {
+      const section = document.getElementById(id);
+      if (!section) return;
+
+      const top = section.getBoundingClientRect().top + window.scrollY - getHeaderOffset() + getVisualSectionInset(id);
+      window.scrollTo({ top, behavior: "smooth" });
+      return;
+    }
+
+    navigate({ pathname: "/", hash: `#${id}` }, { replace: false });
   };
 
   return (
@@ -140,4 +203,9 @@ export default function SectionNavigator() {
       </nav>
     </aside>
   );
+}
+
+export default function SectionNavigator() {
+  const isDesktop = useDesktopSectionNavigator();
+  return isDesktop ? <DesktopSectionNavigator /> : null;
 }

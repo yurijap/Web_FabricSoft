@@ -1,5 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { DoctrineGeneratorModal } from "./DoctrinaModal";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+
+const DoctrineGeneratorModal = lazy(() =>
+  import("./DoctrinaModal").then((module) => ({
+    default: module.DoctrineGeneratorModal,
+  })),
+);
 
 // --- HOOK DE ANIMACIÓN ---
 function useInView(threshold = 0.15) {
@@ -97,6 +102,37 @@ const clauses = [
 export default function S06Doctrina() {
   const { ref: headerRef, isInView: headerInView } = useInView(0.1);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const clausesRef = useRef<HTMLDivElement>(null);
+  const [visibleClauses, setVisibleClauses] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    const root = clausesRef.current;
+    if (!root) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = (entry.target as HTMLElement).dataset.clauseId;
+            if (id) {
+              setVisibleClauses((current) => {
+                if (current.has(id)) return current;
+                const next = new Set(current);
+                next.add(id);
+                return next;
+              });
+              observer.unobserve(entry.target);
+            }
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: "80px" },
+    );
+
+    const nodes = root.querySelectorAll<HTMLElement>("[data-clause-id]");
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section id="doctrina" className="relative w-full bg-[#050203] py-24 md:py-32 border-t border-[#111]">
@@ -112,11 +148,10 @@ export default function S06Doctrina() {
             COLUMNA IZQUIERDA (Se queda pegada en la pantalla)
             ========================================================= */}
         <div className="lg:w-5/12 lg:sticky lg:top-32 flex flex-col">
-          <div ref={headerRef} className={`transition-all duration-1000 ${headerInView ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"}`}>
+          <div ref={headerRef} className={`transition-[transform,opacity] duration-1000 ${headerInView ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"}`}>
 
             <div className="mb-6 inline-flex items-center gap-3 px-4 py-1.5 rounded-sm border border-[#C9A96E]/20 bg-[#C9A96E]/5 backdrop-blur-md">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C9A96E] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#C9A96E]"></span>
               </span>
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#C9A96E]">
@@ -152,21 +187,20 @@ export default function S06Doctrina() {
         {/* =========================================================
             COLUMNA DERECHA (El "Feed" que fluye al hacer scroll)
             ========================================================= */}
-        <div className="lg:w-7/12 relative flex flex-col gap-8 pb-10">
+        <div ref={clausesRef} className="lg:w-7/12 relative flex flex-col gap-8 pb-10">
 
           {/* Línea conectora de la línea de tiempo */}
           <div className="absolute left-[38px] top-10 bottom-10 w-px bg-gradient-to-b from-transparent via-[#C9A96E]/30 to-transparent hidden sm:block" />
 
           {clauses.map((clause) => {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const { ref, isInView } = useInView(0.3);
+            const isInView = visibleClauses.has(clause.id);
             const isContractual = clause.type === "contractual";
 
             return (
               <div
                 key={clause.id}
-                ref={ref}
-                className={`relative pl-0 sm:pl-24 transition-all duration-700 ease-out will-change-transform
+                data-clause-id={clause.id}
+                className={`relative pl-0 sm:pl-24 transition-[transform,opacity] duration-700 ease-out will-change-[transform,opacity]
                   ${isInView ? "opacity-100 translate-x-0 scale-100" : "opacity-30 translate-x-12 scale-[0.96]"}`}
               >
                 {/* Número flotante (Timeline node) */}
@@ -177,7 +211,7 @@ export default function S06Doctrina() {
                 </div>
 
                 {/* Tarjeta de Cláusula */}
-                <div className={`p-8 md:p-10 border rounded-xl transition-all duration-500 bg-[#080706]/80 backdrop-blur-sm
+                <div className={`p-8 md:p-10 border rounded-xl transition-[border-color,box-shadow] duration-500 bg-[#080706]
                   ${isInView ? 'border-[#C9A96E]/40 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'border-[#1A1A1A] shadow-none'}`}
                 >
                   <div className="flex flex-col gap-6">
@@ -218,10 +252,14 @@ export default function S06Doctrina() {
 
       </div>
 
-      <DoctrineGeneratorModal
-        isOpen={isGeneratorOpen}
-        onClose={() => setIsGeneratorOpen(false)}
-      />
+      {isGeneratorOpen && (
+        <Suspense fallback={null}>
+          <DoctrineGeneratorModal
+            isOpen={isGeneratorOpen}
+            onClose={() => setIsGeneratorOpen(false)}
+          />
+        </Suspense>
+      )}
     </section>
   );
 }

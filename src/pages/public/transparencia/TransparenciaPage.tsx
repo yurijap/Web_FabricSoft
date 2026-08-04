@@ -195,20 +195,20 @@ export default function TransparenciaPage() {
   }, []);
 
   return (
-    <div style={{ background: 'var(--bg-base)', paddingTop: 100 }}>
+    <div className="transparency-page">
 
       {/* Back */}
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 56px 0' }}>
+      <div className="transparency-container transparency-back">
         <BackButton />
       </div>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: 64, marginBottom: 0 }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 56px' }}>
+      <div className="transparency-hero">
+        <div className="transparency-container">
           <div className="label" style={{ marginBottom: 20 }}>Transparencia · FABRIC</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 80px', alignItems: 'end' }}>
+          <div className="transparency-hero-grid">
             <div>
-              <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(40px, 5vw, 72px)', fontWeight: 300, lineHeight: 1.02, color: 'var(--text-primary)', marginBottom: 24 }}>
+              <h1 className="transparency-title-main">
                 Datos verificables.<br />
                 <em style={{ color: 'var(--accent)', fontStyle: 'italic' }}>Metodología pública.</em>
               </h1>
@@ -226,16 +226,16 @@ export default function TransparenciaPage() {
       </div>
 
       {/* ── Métricas por caso real — Nivel 1 ───────────────────────────────── */}
-      <section style={{ borderBottom: '1px solid var(--border)', padding: '80px 0' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 56px' }}>
+      <section className="transparency-section">
+        <div className="transparency-container">
           <div className="label" style={{ marginBottom: 40 }}>Nivel 1 · Métricas por caso real</div>
 
           <div style={{ borderTop: '1px solid var(--border)' }}>
             {publicadas.map(m => (
-              <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '56px minmax(220px, 0.9fr) minmax(180px, 0.55fr) minmax(320px, 1.45fr)', gap: '0 36px', padding: '32px 0', borderBottom: '1px solid var(--border)', alignItems: 'start' }}>
+              <div key={m.id} className="transparency-metric-row">
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: '0.2em' }}>{m.id}</div>
                 <div>
-                  <div style={{ fontFamily: 'var(--sans)', fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.5 }}>{m.label}</div>
+                  <div className="transparency-metric-label">{m.label}</div>
                   {m.fuente?.descripcion && (
                     <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--text-tertiary)', letterSpacing: '0.1em', marginTop: 6 }}>
                       Fuente · {m.fuente.descripcion}
@@ -243,17 +243,17 @@ export default function TransparenciaPage() {
                   )}
                 </div>
                 <div>
-                  <div style={{ fontFamily: 'var(--serif)', fontSize: 28, color: 'var(--accent)', lineHeight: 1, fontWeight: 400 }}>{m.valor}</div>
+                  <div className="transparency-metric-value">{m.valor}</div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--text-tertiary)', letterSpacing: '0.14em', marginTop: 4 }}>{m.unidad}</div>
                   {m.periodo && (
                     <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--text-tertiary)', letterSpacing: '0.1em', marginTop: 4 }}>{m.periodo}</div>
                   )}
                 </div>
                 <div>
-                  <div style={{ marginBottom: 14, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-tertiary)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
+                  <div className="transparency-methodology">
                     {m.metodologia}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div className="transparency-detail-grid">
                     {[
                       ['Definición', metricDetail(m, 'definicion', m.metodologia)],
                       ['Universo', metricDetail(m, 'universo', 'Universo documentado por fuente y período.')],
@@ -262,7 +262,7 @@ export default function TransparenciaPage() {
                       ['Validación', metricDetail(m, 'validacion', 'Evidencia disponible bajo NDA mutuo.')],
                       ['Auditoría', metricDetail(m, 'auditoria', 'Revisión interna formal FABRIC.')],
                     ].map(([label, value]) => (
-                      <div key={label} style={{ border: '1px solid var(--border)', background: 'rgba(255,255,255,0.012)', padding: '10px 12px' }}>
+                      <div key={label} className="transparency-detail-card">
                         <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 5 }}>
                           {label}
                         </div>
@@ -290,11 +290,11 @@ export default function TransparenciaPage() {
       </section>
 
       {/* ── Compromisos de medición — Nivel 2 ──────────────────────────────── */}
-      <section style={{ borderBottom: '1px solid var(--border)', padding: '80px 0' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 56px' }}>
+      <section className="transparency-section">
+        <div className="transparency-container">
           <div className="label" style={{ marginBottom: 40 }}>Nivel 2 · Compromisos de medición</div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+          <div className="grid-3col">
             {compromisos.map(c => (
               <div key={c.id} style={{ border: '1px solid var(--border)', padding: '32px 28px' }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: '0.25em', marginBottom: 16 }}>{c.id}</div>
@@ -316,11 +316,11 @@ export default function TransparenciaPage() {
       </section>
 
       {/* ── Datos del equipo — Nivel 3 (editorial, no conectado a DB) ───────── */}
-      <section style={{ padding: '80px 0 120px' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 56px' }}>
+      <section className="transparency-section transparency-section-final">
+        <div className="transparency-container">
           <div className="label" style={{ marginBottom: 40 }}>Nivel 3 · Datos del equipo</div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+          <div className="grid-3col" style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
             {[
               { num: '8+',   label: 'Años de experiencia Oracle', sub: 'Mínimo por consultor' },
               { num: '100%', label: 'Plantilla senior',           sub: 'Cero juniors facturables · Por contrato' },
@@ -348,3 +348,4 @@ export default function TransparenciaPage() {
     </div>
   );
 }
+

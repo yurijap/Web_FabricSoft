@@ -329,7 +329,7 @@ export default function AdminCloudComparator() {
             </p>
           </div>
 
-          <label className="block w-52">
+          <label className="block w-full md:w-52">
             <FieldLabel>Filtrar estado</FieldLabel>
             <select
               value={statusFilter}
@@ -348,7 +348,7 @@ export default function AdminCloudComparator() {
         </div>
 
         <div className="overflow-hidden border border-[#2A2A2A] bg-[#0A0A0A] rounded-sm">
-          <div className="overflow-x-auto">
+          <div className="admin-cloud-table-wrap">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-[#2A2A2A] bg-[#111]">
                 <tr>
@@ -380,7 +380,7 @@ export default function AdminCloudComparator() {
                       <td className="p-4 text-right">
                         <button
                           onClick={() => openDrawer(item)}
-                          className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#C9A96E] opacity-0 transition-opacity hover:underline group-hover:opacity-100"
+                          className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#C9A96E] opacity-0 transition-opacity hover:underline group-hover:opacity-100"
                         >
                           Revisar
                         </button>
@@ -392,24 +392,73 @@ export default function AdminCloudComparator() {
             </table>
           </div>
 
-          <div className="flex items-center justify-between border-t border-[#2A2A2A] bg-[#111] p-4">
-            <span className="font-mono text-[10px] uppercase text-[#F5F5F5]/50">
-              Pagina {page} de {totalPages}
+          <div className="admin-cloud-cards">
+            {loading ? (
+              <div className="p-8 text-center font-mono text-xs text-[#F5F5F5]/40 animate-pulse">Cargando datos...</div>
+            ) : items.length === 0 ? (
+              <div className="p-8 text-center font-mono text-xs text-[#F5F5F5]/40">No hay solicitudes con este filtro.</div>
+            ) : (
+              items.map((item) => (
+                <div key={item._id} className="admin-cloud-card">
+                  <div className="admin-cloud-card-header">
+                    <div>
+                      <h3 className="admin-cloud-card-empresa">{item.empresa}</h3>
+                      <p className="admin-cloud-card-nombre">{item.nombre} / {item.cargo}</p>
+                    </div>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  
+                  <div className="admin-cloud-card-body">
+                    <div className="admin-cloud-card-meta">
+                      <span className="meta-label">Cloud</span>
+                      <span className="meta-val font-mono text-[#C9A96E]">{item.provider}</span>
+                    </div>
+                    <div className="admin-cloud-card-meta">
+                      <span className="meta-label">Gasto mensual</span>
+                      <span className="meta-val font-mono text-[#F5F5F5]/80">{fmtCurrency(item.monthlySpend)}</span>
+                    </div>
+                    <div className="admin-cloud-card-meta col-span-2">
+                      <span className="meta-label mb-1">Score</span>
+                      <ScoreBadge score={item.score} />
+                    </div>
+                  </div>
+
+                  <div className="admin-cloud-card-footer">
+                    <span className="font-mono text-[10px] text-[#F5F5F5]/35 truncate max-w-[180px]" title={item.email}>
+                      {item.email}
+                    </span>
+                    <button
+                      onClick={() => openDrawer(item)}
+                      className="border border-[#C9A96E]/30 bg-[#C9A96E]/5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#C9A96E] rounded-sm transition-colors active:bg-[#C9A96E]/20"
+                    >
+                      Revisar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border-t border-[#2A2A2A] bg-[#111] p-4 px-6">
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#F5F5F5]/40">
+              Página <span className="text-[#C9A96E] font-bold">{page}</span> de <span className="text-[#C9A96E] font-bold">{totalPages}</span>
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-6">
               <button
                 disabled={page === 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="border border-[#2A2A2A] px-3 py-1 font-mono text-[10px] uppercase text-[#F5F5F5]/60 transition-colors hover:border-[#C9A96E] hover:text-[#C9A96E] disabled:cursor-not-allowed disabled:opacity-30 rounded-sm"
+                className="group flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#F5F5F5]/50 transition-colors hover:text-[#C9A96E] disabled:opacity-20 disabled:hover:text-[#F5F5F5]/50 disabled:cursor-not-allowed"
               >
-                Anterior
+                <span className="transition-transform duration-300 group-hover:-translate-x-0.5">←</span>
+                <span>Anterior</span>
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((current) => current + 1)}
-                className="border border-[#2A2A2A] px-3 py-1 font-mono text-[10px] uppercase text-[#F5F5F5]/60 transition-colors hover:border-[#C9A96E] hover:text-[#C9A96E] disabled:cursor-not-allowed disabled:opacity-30 rounded-sm"
+                className="group flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#F5F5F5]/50 transition-colors hover:text-[#C9A96E] disabled:opacity-20 disabled:hover:text-[#F5F5F5]/50 disabled:cursor-not-allowed"
               >
-                Siguiente
+                <span>Siguiente</span>
+                <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>
               </button>
             </div>
           </div>

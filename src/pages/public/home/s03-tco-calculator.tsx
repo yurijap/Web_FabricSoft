@@ -1,6 +1,7 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { api } from "../../../config/api";
+import "./s03-tco-calculator.css";
 
 type ErpSystem =
   | "SAP S/4 HANA"
@@ -53,6 +54,9 @@ type TcoResult = {
     savingsRateAdjusted?: number;
     annualCostAssumption?: number;
     costSource?: string;
+    isCostAbnormallyLow?: boolean;
+    enteredAnnualCost?: number;
+    minOperatingCost?: number;
   };
   recommendation?: {
     level: string;
@@ -137,11 +141,28 @@ const clamp = (value: number, min = 0, max = Number.POSITIVE_INFINITY) => {
   return Math.min(Math.max(value, min), max);
 };
 
+function getSavingsRange(val: number) {
+  const rounded = Math.round(val);
+  const low = Math.max(5, Math.floor(rounded / 5) * 5);
+  const high = Math.min(95, Math.ceil(rounded / 5) * 5);
+  if (low === high) {
+    return `${low - 5}% - ${high}%`;
+  }
+  return `${low}% - ${high}%`;
+}
+
 function calculateTCO(data: FormState) {
   const marketAnnualCost = Math.round(
     data.users * MARKET_COST_PER_USER[data.erp] * INDUSTRY_COST_MULTIPLIER[data.industry]
   );
-  const totalAnnualCost = data.annualErpSpend > 0 ? data.annualErpSpend : marketAnnualCost;
+  
+  // Lógica de costo mínimo operativo estimado (ej. mínimo $5k o $150 por usuario)
+  const minOperatingCost = Math.max(5000, data.users * 150);
+  const isCostAbnormallyLow = data.annualErpSpend > 0 && data.annualErpSpend < minOperatingCost;
+
+  const totalAnnualCost = (data.annualErpSpend > 0 && !isCostAbnormallyLow) ? data.annualErpSpend : marketAnnualCost;
+  const costSource = (data.annualErpSpend > 0 && !isCostAbnormallyLow) ? "provided" : "market";
+
   const benchmark = BENCHMARKS[data.erp];
   const scaleBoost = data.users >= 1000 ? 1.12 : data.users >= 250 ? 1.06 : data.users >= 75 ? 1 : 0.94;
   const industryBoost = data.industry === "Servicios financieros" ? 1.08 : data.industry === "Inmobiliario / Centros comerciales" ? 1.06 : data.industry === "Logistica / Distribucion / Transporte" ? 1.05 : 1;
@@ -176,12 +197,17 @@ function calculateTCO(data: FormState) {
       rationale: "Lectura local con referencias por ERP, industria y numero de usuarios.",
       savingsRateAdjusted: adjustedSavings,
       annualCostAssumption: marketAnnualCost,
-      costSource: data.annualErpSpend > 0 ? "provided" : "market",
+      costSource,
+      isCostAbnormallyLow,
+      enteredAnnualCost: data.annualErpSpend,
+      minOperatingCost,
     },
     recommendation: {
-      level: "Lectura inicial",
-      nextStep: "Validar con endpoint de mercado.",
-      summary: "Resultado temporal calculado en cliente.",
+      level: costSource === "provided" ? "Lectura con dato declarado" : "Lectura con referencia de mercado",
+      nextStep: "Para recibir un análisis más preciso, comparte tus datos corporativos y solicita el documento ejecutivo.",
+      summary: costSource === "provided"
+        ? `Análisis con gasto anual declarado para ${data.users.toLocaleString()} usuarios en ${data.erp}. El rango de ahorro refleja benchmarks de migraciones comparables en el sector.`
+        : `Análisis basado en costo de referencia de mercado para ${data.erp} × ${data.users.toLocaleString()} usuarios en el sector "${data.industry}". Al no contar con gasto declarado, se aplica la referencia de industria.`,
     },
   };
 }
@@ -366,7 +392,6 @@ function EmptySignalPanel() {
 
 function OpportunityMeter({ tco }: { tco: TcoResult }) {
   const score = clamp(Math.round(tco.qualificationScore), 0, 100);
-  const reduction = Math.round(tco.percentReduction);
 
   return (
     <div className="mb-6 grid gap-4 border border-[#1A1A1A] bg-[#080706] p-5 sm:grid-cols-[170px_minmax(0,1fr)] rounded-sm">
@@ -382,11 +407,10 @@ function OpportunityMeter({ tco }: { tco: TcoResult }) {
           </div>
         </div>
       </div>
-
       <div className="flex flex-col justify-center">
         <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#C9A96E]">Oportunidad detectada</p>
         <p className="mt-2 font-serif text-2xl leading-tight text-[#F5F5F5]">
-          {reduction}% de reduccion potencial frente al TCO actual.
+          {getSavingsRange(tco.percentReduction)} de reduccion potencial frente al TCO actual.
         </p>
         <p className="mt-3 font-sans text-sm leading-relaxed text-[#888]">
           El score combina ERP, industria, usuarios y costo anual para priorizar si merece una revision senior.
@@ -450,26 +474,31 @@ function SavingsChart({ currentTCO10y, oracleTCO10y }: { currentTCO10y: number; 
 }
 
 function BreakEvenChart({ tco }: { tco: TcoResult }) {
-  const width = `${clamp((tco.breakeven / 36) * 100, 12, 100)}%`;
+  const isHighBreakeven = tco.breakeven > 48;
+  const width = `${clamp(((isHighBreakeven ? 48 : tco.breakeven) / 36) * 100, 12, 100)}%`;
 
   return (
     <div className="border border-[#1A1A1A] bg-[#080706] p-6 rounded-sm">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#C9A96E]">Punto de retorno</p>
-          <p className="mt-2 font-serif text-2xl text-[#F5F5F5]">{tco.breakeven} meses</p>
+          <p className="mt-2 font-serif text-2xl text-[#F5F5F5]">
+            {isHighBreakeven ? "> 48 meses" : `${tco.breakeven} meses`}
+          </p>
         </div>
         <p className="max-w-[190px] text-right font-sans text-xs leading-relaxed text-[#888]">
-          Lectura rapida para saber si el caso amerita documento ejecutivo.
+          {isHighBreakeven 
+            ? "Retorno financiero a largo plazo. Se aconseja evaluar beneficios intangibles." 
+            : "Lectura rapida para saber si el caso amerita documento ejecutivo."}
         </p>
       </div>
       <div className="h-2 overflow-hidden bg-[#161616] rounded-full">
-        <div className="h-full bg-[#C9A96E] rounded-full" style={{ width }} />
+        <div className={`h-full rounded-full ${isHighBreakeven ? 'bg-[#B85450]' : 'bg-[#C9A96E]'}`} style={{ width }} />
       </div>
       <div className="mt-3 flex justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-[#666]">
         <span>0</span>
         <span>18m</span>
-        <span>36m</span>
+        <span>36m+</span>
       </div>
     </div>
   );
@@ -481,7 +510,7 @@ function LeadPreviewCard({ onOpen }: { onOpen: () => void }) {
     { label: "ERP actual", value: DEFAULT_FORM.erp },
     { label: "Usuarios", value: String(DEFAULT_FORM.users) },
     { label: "Costo anual mercado", value: fmt(preview.totalAnnualCost) },
-    { label: "Reduccion potencial", value: `${Math.round(preview.percentReduction)}%` },
+    { label: "Rango de reducción", value: getSavingsRange(preview.percentReduction) },
     { label: "Ahorro 5 años", value: fmt(preview.savings5y) },
     { label: "Breakeven", value: `${preview.breakeven} meses` },
   ];
@@ -702,13 +731,35 @@ function CalculatorModal({ open, onClose }: { open: boolean; onClose: () => void
 
               {hasCalculated && tco ? (
                 <>
+                  {tco.market?.isCostAbnormallyLow && (
+                    <div className="mb-6 border border-[#C9A96E]/30 bg-[#C9A96E]/5 p-4 rounded-sm text-left">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#C9A96E] mb-1">
+                        ⚠️ Gasto anual ajustado
+                      </p>
+                      <p className="font-sans text-[12px] leading-relaxed text-[#888]">
+                        El costo anual conocido ingresado (<strong>USD {fmt(tco.market?.enteredAnnualCost || 0)}</strong>) es inferior al mínimo operativo estimado para {form.users} usuarios. Hemos aplicado el costo de referencia de mercado (<strong>USD {fmt(tco.totalAnnualCost)}</strong>) para asegurar la viabilidad del ahorro y breakeven.
+                      </p>
+                    </div>
+                  )}
+
+                  {tco.breakeven > 48 && (
+                    <div className="mb-6 border border-[#B85450]/30 bg-[#B85450]/5 p-4 rounded-sm text-left">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#B85450] mb-1">
+                        ⚠️ Retorno de inversión a largo plazo
+                      </p>
+                      <p className="font-sans text-[12px] leading-relaxed text-[#888]">
+                        Dado que tu gasto actual declarado ya es muy bajo, el periodo de breakeven estimado supera los 4 años. Se aconseja una revisión senior para evaluar beneficios de modernización y soporte, más allá del ahorro inmediato.
+                      </p>
+                    </div>
+                  )}
+
                   <OpportunityMeter tco={tco} />
 
                   <div className="mb-6 grid gap-4 sm:grid-cols-2">
                     <MetricBox label="Ahorro 5 años" value={fmt(tco.savings5y)} />
                     <MetricBox label="Ahorro 10 años" value={fmtCompact(tco.savings10y)} accent />
-                    <MetricBox label="Reduccion total" value={`${Math.round(tco.percentReduction)}%`} />
-                    <MetricBox label="Breakeven migracion" value={`${tco.breakeven} meses`} />
+                    <MetricBox label="Rango de Reducción" value={getSavingsRange(tco.percentReduction)} />
+                    <MetricBox label="Breakeven migracion" value={tco.breakeven > 48 ? "> 48 meses" : `${tco.breakeven} meses`} />
                     <MetricBox label="Fit ejecutivo" value={`${Math.round(tco.qualificationScore)} / 100`} />
                     <MetricBox label="Inversion guia" value={fmtCompact(tco.migrationInvestment)} />
                   </div>
@@ -732,10 +783,24 @@ function CalculatorModal({ open, onClose }: { open: boolean; onClose: () => void
                 <EmptySignalPanel />
               )}
 
-              <div className="mt-8 border-t border-[#1A1A1A] pt-6 font-sans text-xs leading-relaxed text-[#888]">
-                {hasCalculated
-                  ? "Lectura calculada por backend con referencias de mercado por ERP, industria y escala. No consulta base de datos para calcular este comparativo."
-                  : "La lectura permanece oculta hasta que el usuario pulse Ver oportunidad."}
+              <div className="mt-8 border-t border-[#1A1A1A] pt-6">
+                {hasCalculated && tco ? (
+                  <details className="group">
+                    <summary className="cursor-pointer list-none font-mono text-[9px] uppercase tracking-[0.14em] text-[#444] hover:text-[#888] transition-colors duration-200 select-none">
+                      <span className="mr-1 group-open:hidden">▸</span>
+                      <span className="mr-1 hidden group-open:inline">▾</span>
+                      Supuestos del cálculo
+                    </summary>
+                    <div className="mt-4 space-y-2 font-sans text-[11px] leading-relaxed text-[#666]">
+                      <p><span className="text-[#888]">Base de costo:</span> {tco.market?.costSource === "provided" ? "Gasto anual declarado por el usuario." : `Referencia de mercado: ${form.erp} × ${form.users} usuarios × factor industria.`}</p>
+                      <p><span className="text-[#888]">Rango de ahorro:</span> Benchmark de migraciones ERP reales, ajustado por escala de usuarios e industria. Se muestra como rango para evitar falsa precisión.</p>
+                      <p><span className="text-[#888]">Breakeven:</span> Inversión estimada de migración ÷ ahorro anual × 12 meses.</p>
+                      <p><span className="text-[#888]">FIT ejecutivo:</span> Score 0–100 basado en costo total (30 pts), usuarios (24 pts), industria (14 pts) y base de 24 pts. No reemplaza una evaluación técnica.</p>
+                    </div>
+                  </details>
+                ) : (
+                  <p className="font-sans text-xs leading-relaxed text-[#888]">La lectura permanece oculta hasta que el usuario pulse Ver oportunidad.</p>
+                )}
               </div>
             </div>
           </div>

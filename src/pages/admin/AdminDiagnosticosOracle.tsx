@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api } from '../../config/api';
+import { AnswerCard } from './components/AnswerCard';
+import { Tabs } from './components/Tabs';
 
 type DiagnosticStatus = 'nuevo' | 'en_revision' | 'contactado' | 'aprobado' | 'descartado';
 type EmailStatus = 'not_sent' | 'sent' | 'preview' | 'failed';
@@ -47,6 +49,7 @@ type Diagnostic = {
     investment: string;
     roi: string;
     pattern: string;
+    recommendations?: string[]; // Added recommendations for actionable insights
   };
   status: DiagnosticStatus;
   emailStatus?: EmailStatus;
@@ -680,26 +683,48 @@ function ProspectDetail({
           <Info icon={Clock3} label="Recibido" value={new Date(item.createdAt).toLocaleString('es-MX')} />
         </div>
 
-        <Panel title="Detalle del resultado" className="mt-5">
-          <p className="text-sm leading-6 text-zinc-300">{item.result.description}</p>
-        </Panel>
-
-        <Panel title="Preguntas que contesto" className="mt-5">
-          <div className="diagnostic-scroll max-h-[520px] overflow-y-auto pr-1">
-            <div className="divide-y divide-zinc-800">
-              {item.answers.map((answer) => (
-                <div key={answer.questionId} className="grid gap-3 py-3 md:grid-cols-[minmax(0,1fr)_240px_58px] md:items-center">
-                  <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-600">Pregunta {answer.questionId}</div>
-                    <div className="mt-1 text-sm leading-5 text-zinc-300">{answer.question}</div>
+        <Tabs
+          tabs={[
+            {
+              label: 'Resultado',
+              content: (
+                <Panel title="Detalle del resultado" className="mt-5">
+                  <p className="text-sm leading-6 text-zinc-300">{item.result.description}</p>
+                </Panel>
+              ),
+            },
+            {
+              label: 'Preguntas',
+              content: (
+                <Panel title="Preguntas que contesto" className="mt-5">
+                  <div className="diagnostic-scroll max-h-[520px] overflow-y-auto pr-1">
+                    <div className="divide-y divide-zinc-800">
+                      {item.answers.map((answer) => (
+                        <AnswerCard key={answer.questionId} answer={answer} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="break-words text-sm font-medium text-zinc-100">{answer.answer}</div>
-                  <div className="font-mono text-xs text-amber-200 md:text-right">+{answer.score}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Panel>
+                </Panel>
+              ),
+            },
+            ...(item.result.recommendations && item.result.recommendations.length > 0
+              ? [
+                  {
+                    label: 'Recomendaciones',
+                    content: (
+                      <Panel title="Recomendaciones" className="mt-5">
+                        <ul className="list-disc pl-5 space-y-1 text-sm text-zinc-300">
+                          {item.result.recommendations.map((rec, idx) => (
+                            <li key={idx}>{rec}</li>
+                          ))}
+                        </ul>
+                      </Panel>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
       </section>
 
       <aside className="p-5 2xl:p-6">

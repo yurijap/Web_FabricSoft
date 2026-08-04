@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../config/api';
+import { applyOfficeHoursFomoToMonth } from '../utils/officeHoursFomo';
+import './office-hours-calendar.css';
+
 
 type MonthData = Record<string, number>;
 
@@ -57,7 +60,6 @@ export default function OfficeHoursCalendar({ onDayClick }: Props) {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [monthData,   setMonthData]   = useState<MonthData>({});
   const [monthFull,   setMonthFull]   = useState(false);
-  const [monthBooked, setMonthBooked] = useState(0);
   const [loadingCal,  setLoadingCal]  = useState(false);
 
   useEffect(() => {
@@ -66,9 +68,8 @@ export default function OfficeHoursCalendar({ onDayClick }: Props) {
       .then(res => {
         setMonthData(res.data.data ?? {});
         setMonthFull(res.data.monthFull ?? false);
-        setMonthBooked(res.data.booked ?? 0);
       })
-      .catch(() => { setMonthData({}); setMonthFull(false); setMonthBooked(0); })
+      .catch(() => { setMonthData({}); setMonthFull(false); })
       .finally(() => setLoadingCal(false));
   }, [year, month]);
 
@@ -91,7 +92,8 @@ export default function OfficeHoursCalendar({ onDayClick }: Props) {
   };
   const goToday = () => { setYear(nowYear); setMonth(nowMonth); };
 
-  const cells = buildCalendarGrid(year, month, monthData);
+  const visibleMonthData = applyOfficeHoursFomoToMonth(year, month, monthData);
+  const cells = buildCalendarGrid(year, month, visibleMonthData);
 
   const handleDayClick = (cell: typeof cells[0]) => {
     if (cell.available <= 0 || !cell.dateStr) return;
@@ -121,7 +123,6 @@ export default function OfficeHoursCalendar({ onDayClick }: Props) {
           <div
             key={idx}
             className={`cal-day ${cell.className}`}
-            data-slots={cell.available > 0 ? 'Disponible' : undefined}
             data-interaction={cell.available > 0 ? 'office-hours' : undefined}
             data-date={cell.available > 0 ? cell.dateStr : undefined}
             onClick={() => handleDayClick(cell)}
@@ -136,15 +137,12 @@ export default function OfficeHoursCalendar({ onDayClick }: Props) {
           SESIONES AGOTADAS · {MONTH_NAMES[month - 1].toUpperCase()} · Navega al mes siguiente →
         </div>
       ) : (
-        <div style={{ marginTop: 12, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-tertiary)', letterSpacing: '0.12em' }}>
-          {4 - monthBooked} / 4 sesiones disponibles en {MONTH_NAMES[month - 1]}
-        </div>
+        null
       )}
 
       <div className="calendar-legend">
-        <span><span className="legend-swatch available"></span>Slot disponible</span>
-        <span><span className="legend-swatch full"></span>Sin slots</span>
-        <span><span className="legend-swatch today"></span>Hoy</span>
+        <span><span className="legend-swatch available"></span>Disponible</span>
+        <span><span className="legend-swatch full"></span>Sin disponibilidad</span>
       </div>
     </div>
   );

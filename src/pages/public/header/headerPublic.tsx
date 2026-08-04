@@ -1,37 +1,67 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { Moon, Sun } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import logoImg from '../../../assets/logo/logo.png';
-import LanguageToggle from '../../../components/LanguageToggle';
+// Traductor desactivado temporalmente por rendimiento.
+// import LanguageToggle from '../../../components/LanguageToggle';
 import { useI18n } from '../../../i18n/I18nProvider';
 import type { TranslationKey } from '../../../i18n/translations';
+import { useTheme } from '../../../theme/ThemeProvider';
 
 const NAV: Array<{ key: TranslationKey; href: string; sectionId: string; page?: boolean }> = [
   { key: 'nav.hero',         href: '/#inicio',       sectionId: 'inicio' },
   { key: 'nav.tco',          href: '/#tco',          sectionId: 'tco' },
   { key: 'nav.fabricAi',     href: '/#fabric-ai',    sectionId: 'fabric-ai' },
-  { key: 'nav.diagnostic',   href: '/#diagnostico',  sectionId: 'diagnostico' },
+  { key: 'nav.diagnostic',   href: '/#rescue-diagnostic', sectionId: 'rescue-diagnostic' },
   { key: 'nav.doctrine',     href: '/#doctrina',     sectionId: 'doctrina' },
-  { key: 'nav.cases',        href: '/#s07',          sectionId: 's07' },
-  { key: 'nav.industries',   href: '/#s08',          sectionId: 's08' },
-  { key: 'nav.fabricOs',     href: '/#s09',          sectionId: 's09' },
-  { key: 'nav.lifecycle',    href: '/#s10',          sectionId: 's10' },
-  { key: 'nav.officeHours',  href: '/#s11',          sectionId: 's11' },
-  { key: 'nav.research',     href: '/#s14',          sectionId: 's14' },
-  { key: 'nav.founder',      href: '/#s15',          sectionId: 's15' },
+  { key: 'nav.cases',        href: '/#casos',        sectionId: 'casos' },
+  { key: 'nav.industries',   href: '/#industrias',   sectionId: 'industrias' },
+  { key: 'nav.fabricOs',     href: '/#fabric-os',    sectionId: 'fabric-os' },
+  { key: 'nav.lifecycle',    href: '/#lifecycle',    sectionId: 'lifecycle' },
+  { key: 'nav.officeHours',  href: '/#office-hours', sectionId: 'office-hours' },
+  { key: 'nav.research',     href: '/#investigacion', sectionId: 'investigacion' },
+  { key: 'nav.founder',      href: '/#founder-wait-list', sectionId: 'founder-wait-list' },
   { key: 'nav.transparency', href: '/transparencia', sectionId: '', page: true },
   { key: 'nav.apply',        href: '/aplicar',       sectionId: '', page: true },
 ];
 
-const HEADER_SCROLL_OFFSET = 16;
+function scrollCurrentSection(sectionId: string) {
+  const target = document.getElementById(sectionId);
+  if (!target) return;
 
-function scrollToSection(sectionId: string) {
-  window.setTimeout(() => {
-    const target = document.getElementById(sectionId);
-    if (!target) return;
+  const header = document.querySelector<HTMLElement>('header[data-no-translate]');
+  const headerOffset = (header?.offsetHeight ?? 0) + 12;
+  const visualInset = sectionId === 'inicio' ? 0 : Math.min(88, Math.max(48, window.innerHeight * 0.08));
+  const top = target.getBoundingClientRect().top + window.scrollY - headerOffset + visualInset;
+  window.scrollTo({ top, behavior: 'smooth' });
+}
 
-    const top = target.getBoundingClientRect().top + window.scrollY - HEADER_SCROLL_OFFSET;
-    window.scrollTo({ top, behavior: 'smooth' });
-  }, 30);
+function ThemeToggle({ mobile = false }: { mobile?: boolean }) {
+  const { theme, toggleTheme } = useTheme();
+  const isLight = theme === 'light';
+  const Icon = isLight ? Moon : Sun;
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => toggleTheme({ origin: { x: event.clientX, y: event.clientY } })}
+      aria-label={isLight ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+      title={isLight ? 'Modo oscuro' : 'Modo claro'}
+      className={`
+        group inline-flex items-center justify-center border font-mono uppercase
+        transition-all duration-200 active:scale-95
+        ${mobile ? 'h-11 w-full gap-3 rounded-full text-[10px] tracking-[0.2em]' : 'h-9 w-9 rounded-full'}
+      `}
+      style={{
+        color: 'var(--accent)',
+        borderColor: 'var(--accent-deep)',
+        background: 'var(--accent-soft)',
+        boxShadow: '0 10px 30px rgba(var(--accent-rgb), 0.08)',
+      }}
+    >
+      <Icon className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" strokeWidth={1.7} />
+      {mobile ? <span>{isLight ? 'Oscuro' : 'Claro'}</span> : null}
+    </button>
+  );
 }
 
 export default function Header() {
@@ -52,7 +82,7 @@ export default function Header() {
     const onScroll = () => {
       if (!ticking.current) {
         requestAnimationFrame(() => {
-          setScrolled(window.scrollY > 60);
+          setScrolled(window.scrollY > 8);
           ticking.current = false;
         });
         ticking.current = true;
@@ -75,19 +105,26 @@ export default function Header() {
   ) => {
     event.preventDefault();
     setMobileOpen(false);
-    navigate({ pathname: '/', hash: `#${sectionId}` });
-    scrollToSection(sectionId);
+    const targetHash = `#${sectionId}`;
+
+    if (location.pathname === '/' && location.hash === targetHash) {
+      scrollCurrentSection(sectionId);
+      return;
+    }
+
+    navigate({ pathname: '/', hash: targetHash });
   };
 
   const startLink = (
     <Link
       to="/#fabric-ai"
       onClick={(event) => handleSectionNavigation(event, 'fabric-ai')}
-      className="hidden sm:inline-flex items-center gap-2 relative group text-[#C9A96E] font-mono font-semibold text-[10px] tracking-[0.22em] uppercase px-0 py-2 transition-colors duration-300 hover:text-[#F5F5F5] active:scale-[0.98]"
+      className="hidden sm:inline-flex items-center gap-2 relative group font-mono font-semibold text-[10px] tracking-[0.22em] uppercase px-0 py-2 transition-colors duration-300 active:scale-[0.98]"
+      style={{ color: 'var(--accent)' }}
     >
       <span className="relative">
         {t('cta.start')}
-        <span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full bg-[#C9A96E] origin-right scale-x-100 transition-transform duration-300 ease-out group-hover:scale-x-0" />
+        <span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-right scale-x-100 transition-transform duration-300 ease-out group-hover:scale-x-0" style={{ background: 'var(--accent)' }} />
       </span>
       <span className="transition-transform duration-300 group-hover:translate-x-1">-&gt;</span>
     </Link>
@@ -100,10 +137,15 @@ export default function Header() {
         className={`
           fixed top-0 left-0 right-0 z-50
           flex justify-center px-6 md:px-12
-          transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${scrolled ? 'bg-[#050203]/90 backdrop-blur-xl border-b border-[#2A2A2A] shadow-md py-2' : 'bg-transparent border-b border-transparent py-3'}
+          transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+          ${scrolled ? 'backdrop-blur-xl border-b shadow-md py-1.5' : 'bg-transparent border-b border-transparent py-3'}
           ${mounted ? 'opacity-100' : 'opacity-0'}
         `}
+        style={scrolled ? {
+          background: 'color-mix(in srgb, var(--bg-base) 90%, transparent)',
+          borderColor: 'var(--border)',
+          boxShadow: 'var(--shadow-float)',
+        } : undefined}
       >
         <div className="relative w-full max-w-[1440px] flex items-center justify-between">
           <Link
@@ -115,11 +157,12 @@ export default function Header() {
             `}
             style={{ transitionDelay: '60ms' }}
           >
-            <img
-              src={logoImg}
-              alt="FABRIC"
-              className="h-10 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity duration-500"
-              style={{ transform: 'scale(3.2)', transformOrigin: 'left center' }}
+            {/* LOGO ESCRITORIO: Logo_FabricSoft.webp */}
+            <img 
+              src="/Logo_FabricSoft.webp" 
+              alt="FABRIC" 
+              className={`w-auto object-contain transition-all duration-300 ${scrolled ? 'h-[42px] md:h-[52px]' : 'h-[72px] md:h-[86px]'}`}
+              style={{ filter: 'drop-shadow(0 1px 10px rgba(var(--accent-rgb),0.22))' }}
             />
           </Link>
 
@@ -132,9 +175,11 @@ export default function Header() {
             style={{ transitionDelay: '180ms' }}
           >
             {startLink}
-            <div className="hidden translate-y-[1px] sm:flex sm:pl-8">
+            <ThemeToggle />
+            {/* Traductor desactivado temporalmente por rendimiento. */}
+            {/* <div className="hidden translate-y-[1px] sm:flex sm:pl-8">
               <LanguageToggle compact />
-            </div>
+            </div> */}
 
             <button
               onClick={() => setMobileOpen(true)}
@@ -154,10 +199,17 @@ export default function Header() {
         className={`fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm lg:hidden transition-opacity duration-500 ${mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       />
       <aside className={`fixed right-0 top-0 bottom-0 z-[110] w-full sm:w-[380px] bg-[#050203]/95 backdrop-blur-2xl border-l border-[#2A2A2A] flex flex-col transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${mobileOpen ? 'translate-x-0' : 'translate-x-full'} lg:hidden`}>
-        <div className="flex items-center justify-between px-8 py-6 border-b border-[#2A2A2A]/40">
+        <div className="flex items-center justify-between px-8 py-2 border-b border-[#2A2A2A]/40">
+          
           <div className="flex items-center">
-            <img src={logoImg} alt="FABRIC" className="h-8 w-auto object-contain opacity-90" style={{ transform: 'scale(4.2)', transformOrigin: 'left center' }} />
+            {/* LOGO MÓVIL: Logo_FabricSoft.webp */}
+            <img 
+              src="/Logo_FabricSoft.webp" 
+              alt="FABRIC" 
+              className="h-[50px] w-auto object-contain" 
+            />
           </div>
+
           <button onClick={() => setMobileOpen(false)} aria-label="Cerrar menu" className="text-[#F5F5F5]/40 hover:text-[#C9A96E] p-2 -mr-2 rounded-full transition-all duration-500 hover:rotate-90 active:scale-90">
             <svg className="w-6 h-6 stroke-[1.2px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -165,7 +217,7 @@ export default function Header() {
           </button>
         </div>
 
-        <nav className="flex-1 flex flex-col justify-start px-10 py-10 gap-2 overflow-y-auto">
+        <nav className="fabric-mobile-menu-nav flex-1 flex flex-col justify-start px-10 py-10 gap-2 overflow-y-auto overscroll-contain">
           {NAV.map((item, i) => {
             const isActive = item.page
               ? location.pathname === item.href
@@ -199,8 +251,12 @@ export default function Header() {
         </nav>
 
         <div className={`px-8 py-8 border-t border-[#2A2A2A]/40 transition-all duration-700 ${mobileOpen ? 'opacity-100 translate-y-0 delay-[500ms]' : 'opacity-0 translate-y-8'}`}>
-          <div className="mb-6 flex justify-center">
+          {/* Traductor desactivado temporalmente por rendimiento. */}
+          {/* <div className="mb-6 flex justify-center">
             <LanguageToggle />
+          </div> */}
+          <div className="mb-3">
+            <ThemeToggle mobile />
           </div>
           <Link
             to="/#fabric-ai"

@@ -14,10 +14,12 @@ export default function BackButton() {
 
   return (
     <button
+      className="fabric-back-button"
       onClick={handleBack}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: 'flex-start',
         gap: 10,
         fontFamily: 'var(--mono)',
         fontSize: 10,
@@ -28,6 +30,8 @@ export default function BackButton() {
         border: 'none',
         cursor: 'pointer',
         padding: 0,
+        minHeight: 28,
+        whiteSpace: 'nowrap',
         transition: 'color .2s',
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'; }}

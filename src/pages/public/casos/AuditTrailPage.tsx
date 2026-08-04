@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import BackButton from '../../../components/BackButton';
+import './casos-detalle.css';
 
 const CASOS: Record<string, {
   nombre: string;
@@ -75,23 +76,23 @@ export default function AuditTrailPage() {
   const verificables = caso.hitos.filter(h => h.verificable).length;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingTop: 100 }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 56px 0' }}>
+    <div className="audit-trail-page" style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingTop: 100 }}>
+      <div className="audit-trail-back" style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 56px 0' }}>
         <BackButton />
       </div>
 
       {/* Hero */}
-      <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: 64 }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 56px' }}>
+      <div className="audit-trail-hero" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 64 }}>
+        <div className="audit-trail-hero-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 56px' }}>
           <div className="label" style={{ marginBottom: 20 }}>Audit Trail · {caso.nombre}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 80px', alignItems: 'end' }}>
+          <div className="audit-trail-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 80px', alignItems: 'end' }}>
             <div>
-              <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(40px, 5vw, 72px)', fontWeight: 300, lineHeight: 1.02, color: 'var(--text-primary)', marginBottom: 24 }}>
+              <h1 className="audit-trail-title" style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(40px, 5vw, 72px)', fontWeight: 300, lineHeight: 1.02, color: 'var(--text-primary)', marginBottom: 24 }}>
                 Transparencia radical.<br />
                 <em style={{ color: 'var(--accent)', fontStyle: 'italic' }}>Verificable.</em>
               </h1>
             </div>
-            <div>
+            <div className="audit-trail-summary">
               <p style={{ fontFamily: 'var(--sans)', fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.75 }}>
                 Registro público de los hitos del proyecto con fechas exactas. La evidencia respaldatoria está disponible bajo NDA mutuo para CFO, CIO y CTO evaluando FABRIC.
               </p>
@@ -104,22 +105,22 @@ export default function AuditTrailPage() {
       </div>
 
       {/* Timeline */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '80px 56px' }}>
-        <div style={{ position: 'relative', paddingLeft: 40 }}>
-          <div style={{ position: 'absolute', left: 7, top: 8, bottom: 8, width: 1, background: 'linear-gradient(to bottom, var(--accent) 80%, var(--border))' }} />
+      <div className="audit-trail-timeline-wrap" style={{ maxWidth: 900, margin: '0 auto', padding: '80px 56px' }}>
+        <div className="audit-trail-timeline" style={{ position: 'relative', paddingLeft: 40 }}>
+          <div className="audit-trail-line" style={{ position: 'absolute', left: 7, top: 8, bottom: 8, width: 1, background: 'linear-gradient(to bottom, var(--accent) 80%, var(--border))' }} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 56 }}>
             {caso.hitos.map((hito, i) => (
-              <div key={i} style={{ position: 'relative' }}>
+              <div className="audit-trail-item" key={i} style={{ position: 'relative' }}>
                 {/* Dot */}
-                <div style={{
+                <div className="audit-trail-dot" style={{
                   position: 'absolute', left: -40, top: 6,
                   width: 14, height: 14,
                   border: `1px solid ${hito.verificable ? 'var(--accent)' : 'var(--border)'}`,
                   background: hito.verificable ? 'var(--accent)' : 'var(--bg-base)',
                 }} />
 
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div className="audit-trail-date" style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
                   {hito.fecha}
                   {hito.verificable && (
                     <span style={{ color: 'var(--accent)', opacity: 0.55, fontSize: 8 }}>◆ Verificable bajo NDA</span>

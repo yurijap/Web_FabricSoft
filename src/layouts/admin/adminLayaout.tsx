@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, Suspense, type ReactNode } from 'react';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
@@ -93,6 +93,18 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+const NestedLoader = () => (
+  <div className="flex min-h-[60vh] w-full flex-col items-center justify-center bg-transparent">
+    <div className="relative mb-4 flex h-10 w-10 items-center justify-center">
+      <div className="absolute inset-0 rounded-full border border-[#2A2A2A]" />
+      <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#C9A96E]" />
+    </div>
+    <div className="font-mono text-[9px] font-bold text-[#C9A96E] uppercase tracking-[0.2em] animate-pulse">
+      Cargando sección...
+    </div>
+  </div>
+);
+
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function AdminLayout({ children }: { children?: ReactNode }) {
@@ -143,21 +155,24 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
 
     return (
       <aside
+        className="fabric-admin-sidebar"
         style={{
-          width: 264,
+          width: 276,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          background: '#0D0E10',
-          borderRight: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '4px 0 32px rgba(0,0,0,0.5)',
+          background:
+            'linear-gradient(180deg, rgba(15,15,14,0.98) 0%, rgba(5,5,5,0.98) 52%, rgba(10,8,5,0.98) 100%)',
+          borderRight: '1px solid rgba(201,169,110,0.12)',
+          boxShadow: '12px 0 60px rgba(0,0,0,0.55)',
         }}
       >
         {/* ── Logo ── */}
         <div
+          className="fabric-admin-sidebar-brand"
           style={{
-            padding: '20px 20px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            padding: '18px 18px 16px',
+            borderBottom: '1px solid rgba(201,169,110,0.10)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -165,38 +180,33 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Monograma F */}
+            {/* Logo_FabricSoft.webp replacing monogram F */}
             <div
+              className="fabric-admin-sidebar-logo"
               style={{
-                width: 36,
-                height: 36,
+                width: 60,
+                height: 60,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid rgba(201,169,110,0.3)',
-                background: 'rgba(201,169,110,0.06)',
+                border: '1px solid rgba(201,169,110,0.28)',
+                background: 'rgba(201,169,110,0.02)',
                 flexShrink: 0,
+                position: 'relative',
               }}
             >
-              <span
-                style={{
-                  fontFamily: 'Georgia, serif',
-                  fontSize: 20,
-                  color: '#C9A96E',
-                  lineHeight: 1,
-                  fontWeight: 300,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                F
-              </span>
+              <img 
+                src="/Logo_FabricSoft.webp" 
+                alt="F" 
+                style={{ width: '85%', height: '85%', objectFit: 'contain' }} 
+              />
             </div>
 
             <div>
               <div
                 style={{
                   fontFamily: 'var(--mono, monospace)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   letterSpacing: '0.22em',
                   color: '#E8E8E8',
@@ -245,6 +255,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
         {/* ── Nav ── */}
         <div
           ref={navRef}
+          data-admin-nav
+          className="fabric-admin-sidebar-nav"
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -365,18 +377,20 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                               gridTemplateColumns: '16px 1fr auto',
                               alignItems: 'center',
                               gap: 10,
-                              padding: '8px 10px',
+                              padding: '9px 11px',
                               textDecoration: 'none',
                               position: 'relative',
                               overflow: 'hidden',
+                              borderRadius: 6,
                               background: active
-                                ? 'rgba(201,169,110,0.08)'
+                                ? 'linear-gradient(90deg, rgba(201,169,110,0.13), rgba(201,169,110,0.035))'
                                 : 'transparent',
                               borderLeft: active
                                 ? '2px solid rgba(201,169,110,0.7)'
                                 : '2px solid transparent',
                               transition: 'background 150ms, border-color 150ms',
                               animationDelay: `${ii * 30}ms`,
+                              boxShadow: active ? 'inset 0 0 0 1px rgba(201,169,110,0.08)' : 'none',
                             }}
                             onMouseEnter={(e) => {
                               if (!active) {
@@ -454,11 +468,12 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
 
         {/* ── Footer usuario ── */}
         <div
+          className="fabric-admin-sidebar-user"
           style={{
             flexShrink: 0,
-            borderTop: '1px solid rgba(255,255,255,0.05)',
+            borderTop: '1px solid rgba(201,169,110,0.10)',
             padding: '14px 16px',
-            background: '#0A0B0D',
+            background: 'rgba(0,0,0,0.18)',
           }}
         >
           {/* Avatar + nombre */}
@@ -630,7 +645,10 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
   // ─── Layout principal ──────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: '100vh', background: '#050505', color: '#E8E8E8' }}>
+    <div
+      className="fabric-admin-shell"
+      style={{ minHeight: '100vh', background: '#050505', color: '#E8E8E8' }}
+    >
       <style>{`
         @keyframes admin-content-in {
           from { opacity: 0; transform: translateY(8px); }
@@ -657,7 +675,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
         style={{
           position: 'fixed',
           inset: '0 auto 0 0',
-          width: 264,
+          width: 276,
           zIndex: 40,
         }}
         className="hidden lg:block"
@@ -693,7 +711,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
       {/* Contenido principal */}
       <main
         style={{ minHeight: '100vh' }}
-        className="lg:pl-[264px]"
+        className="lg:pl-[276px]"
       >
         {/* Top bar mobile */}
         <header
@@ -701,7 +719,6 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             position: 'sticky',
             top: 0,
             zIndex: 30,
-            display: 'flex',
             height: 56,
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -710,29 +727,21 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             backdropFilter: 'blur(12px)',
             padding: '0 20px',
           }}
-          className="lg:hidden"
+          className="flex lg:hidden"
         >
-          <div>
-            <div
-              style={{
-                fontFamily: 'var(--mono, monospace)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.22em',
-                color: '#E8E8E8',
-                textTransform: 'uppercase',
-              }}
-            >
-              FABRIC
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img 
+              src="/Logo_FabricSoft.webp" 
+              alt="FABRIC" 
+              style={{ height: 38, width: 'auto', objectFit: 'contain' }} 
+            />
             <div
               style={{
                 fontFamily: 'var(--mono, monospace)',
                 fontSize: 9,
-                letterSpacing: '0.18em',
-                color: 'rgba(255,255,255,0.28)',
+                letterSpacing: '0.12em',
+                color: 'rgba(255,255,255,0.4)',
                 textTransform: 'uppercase',
-                marginTop: 2,
               }}
             >
               Admin Console
@@ -760,7 +769,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
 
         {/* Área de contenido */}
         <section
-          style={{ position: 'relative', minHeight: '100vh', background: '#050505' }}
+          style={{ position: 'relative', minHeight: '100vh', background: 'transparent' }}
         >
           {/* Línea dorada superior animada */}
           <div
@@ -781,14 +790,16 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               position: 'absolute',
               top: 0,
               right: 0,
-              width: 320,
-              height: 320,
-              background: 'radial-gradient(circle, rgba(201,169,110,0.04) 0%, transparent 70%)',
+              width: 420,
+              height: 420,
+              background: 'radial-gradient(circle, rgba(201,169,110,0.07) 0%, transparent 68%)',
               pointerEvents: 'none',
             }}
           />
           <div className="admin-content-shell" style={{ position: 'relative' }}>
-            {children ?? <Outlet />}
+            <Suspense fallback={<NestedLoader />}>
+              {children ?? <Outlet />}
+            </Suspense>
           </div>
         </section>
       </main>

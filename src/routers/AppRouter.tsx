@@ -1,13 +1,22 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, Suspense, lazy } from 'react';
-import { SignIn, SignUp } from '@clerk/clerk-react';
 
 import PublicLayout from '../layouts/public/publicLayaout';
 import { ProtectorRoles } from '../auth/ProtecteRoles';
 import { PublicRouteProtector } from '../auth/PublicProtecte';
 
+// Limite de Clerk: provee el ClerkProvider solo a las rutas de auth/admin.
+// Lazy => la landing publica no carga el runtime de Clerk.
+const ClerkBoundary = lazy(() => import('../auth/ClerkBoundary'));
+const AccesoScreen = lazy(() =>
+  import('../auth/AuthScreens').then((m) => ({ default: m.AccesoScreen })),
+);
+const CrearCuentaScreen = lazy(() =>
+  import('../auth/AuthScreens').then((m) => ({ default: m.CrearCuentaScreen })),
+);
+
 // Páginas Públicas
-const Home = lazy(() => import('../pages/public/home/home'));
+import Home from '../pages/public/home/home';
 const CasoPage = lazy(() => import('../pages/public/casos/CasoPage'));
 const AplicarPage = lazy(() => import('../pages/public/aplicar/AplicarPage'));
 const TransparenciaPage = lazy(() => import('../pages/public/transparencia/TransparenciaPage'));
@@ -63,12 +72,22 @@ const AdminMigrationRoadmap   = lazy(() => import('../pages/admin/AdminMigration
 const AdminReadinessScore     = lazy(() => import('../pages/admin/AdminReadinessScore'));
 const AdminCloudComparator    = lazy(() => import('../pages/admin/AdminCloudComparator'));
 
-// =========================================================================
-// UTILIDADES Y COMPONENTES GLOBALES
-// =========================================================================
+
+const legacyHashAliases: Record<string, string> = {
+  s07: 'casos',
+  s08: 'industrias',
+  s09: 'fabric-os',
+  s10: 'lifecycle',
+  s11: 'office-hours',
+  s12: 'referencias',
+  s13: 'transparencia',
+  s14: 'investigacion',
+  s15: 'founder-wait-list',
+};
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!hash) {
@@ -76,23 +95,50 @@ function ScrollToTop() {
       return;
     }
 
-    const scrollToHash = () => {
-      const id = decodeURIComponent(hash.slice(1));
+    const requestedId = decodeURIComponent(hash.slice(1));
+    const canonicalId = legacyHashAliases[requestedId] ?? requestedId;
+
+    if (canonicalId !== requestedId) {
+      navigate({ pathname, hash: `#${canonicalId}` }, { replace: true });
+      return;
+    }
+
+    const viewportHeight = window.innerHeight;
+    let didSmoothScroll = false;
+    let stableChecks = 0;
+
+    const scrollToHash = (behavior: ScrollBehavior) => {
+      const id = canonicalId;
       const target = document.getElementById(id);
       if (!target) return false;
 
-      const headerOffset = 16;
-      const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
-      window.scrollTo({ top, behavior: 'smooth' });
-      return true;
+      const header = document.querySelector<HTMLElement>('header[data-no-translate]');
+      const headerOffset = (header?.offsetHeight ?? 0) + 12;
+      const visualInset = id === 'inicio' ? 0 : Math.min(88, Math.max(48, viewportHeight * 0.08));
+      const top = target.getBoundingClientRect().top + window.scrollY - headerOffset + visualInset;
+      const distance = Math.abs(top - window.scrollY);
+
+      if (distance < 6) {
+        stableChecks += 1;
+        return stableChecks >= 2;
+      }
+
+      stableChecks = 0;
+      window.scrollTo({ top, behavior });
+      didSmoothScroll = true;
+      return false;
     };
 
-    const timers = [30, 160, 360].map((delay) =>
-      window.setTimeout(scrollToHash, delay),
+    const timers = [0, 80, 180, 360, 700, 1100, 1600, 2200].map((delay) =>
+      window.setTimeout(() => {
+        if (stableChecks >= 2) return;
+        const behavior: ScrollBehavior = didSmoothScroll ? 'auto' : 'smooth';
+        scrollToHash(behavior);
+      }, delay),
     );
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [pathname, hash]);
+  }, [pathname, hash, navigate]);
 
   return null;
 }
@@ -120,15 +166,9 @@ export const AppRouter = () => {
       <Suspense fallback={<GlobalLoader />}>
         <Routes>
 
-          <Route path="/verificar-acceso" element={<VerificarAcceso />} />
-
           <Route
             path="/"
-            element={
-              <PublicRouteProtector>
-                <PublicLayout />
-              </PublicRouteProtector>
-            }
+            element={<PublicLayout />}
           >
             <Route index element={<Home />} />
 
@@ -165,70 +205,61 @@ export const AppRouter = () => {
           </Route>
 
           {/* =================================================================
-              RUTAS DE AUTENTICACIÓN (CLERK)
+              RUTAS QUE REQUIEREN CLERK (auth + admin)
+              Agrupadas bajo ClerkBoundary (lazy) para que el ClerkProvider
+              y el runtime de Clerk NO carguen en las rutas publicas.
               ================================================================= */}
-          <Route
-            path="/acceso/*"
-            element={
-              <PublicRouteProtector>
-                <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 relative overflow-hidden">
-                  <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-10" />
-                  <div className="pointer-events-none absolute -top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 bg-[#C9A96E] opacity-[0.03] blur-[120px]" />
-                  <div className="relative z-10">
-                    <SignIn routing="path" path="/acceso" signUpUrl="/crear-cuenta" />
-                  </div>
-                </div>
-              </PublicRouteProtector>
-            }
-          />
+          <Route element={<ClerkBoundary />}>
+            <Route path="/verificar-acceso" element={<VerificarAcceso />} />
 
-          <Route
-            path="/crear-cuenta/*"
-            element={
-              <PublicRouteProtector>
-                <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 relative overflow-hidden">
-                  <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-10" />
-                  <div className="pointer-events-none absolute -bottom-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 bg-[#C9A96E] opacity-[0.03] blur-[120px]" />
-                  <div className="relative z-10">
-                    <SignUp routing="path" path="/crear-cuenta" signInUrl="/acceso" />
-                  </div>
-                </div>
-              </PublicRouteProtector>
-            }
-          />
+            <Route
+              path="/acceso/*"
+              element={
+                <PublicRouteProtector>
+                  <AccesoScreen />
+                </PublicRouteProtector>
+              }
+            />
 
-          {/* =================================================================
-              RUTAS DE ADMINISTRACIÓN — protegidas por Clerk + roles
-              ================================================================= */}
-          <Route path="/admin/login" element={<Navigate to="/acceso" replace />} />
+            <Route
+              path="/crear-cuenta/*"
+              element={
+                <PublicRouteProtector>
+                  <CrearCuentaScreen />
+                </PublicRouteProtector>
+              }
+            />
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectorRoles rolesPermitidos={['admin']}>
-                <AdminLayout />
-              </ProtectorRoles>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="leads" element={<AdminLeads />} />
-            <Route path="papers" element={<AdminPapers />} />
-            <Route path="nda" element={<AdminNda />} />
-            <Route path="referencias" element={<AdminReferencias />} />
-            <Route path="transparencia" element={<AdminTransparencia />} />
-            <Route path="research-letters" element={<AdminResearchLetters />} />
-            <Route path="metricas" element={<AdminMetricas />} />
-            <Route path="capacidad" element={<AdminCapacidad />} />
-            <Route path="office-hours" element={<AdminOfficeHours />} />
-            <Route path="logs" element={<AdminLogs />} />
-            <Route path="agente-ia" element={<AdminAgenteIA />} />
-            <Route path="conversaciones-ia" element={<AdminConversacionesIA />} />
-            <Route path="diagnosticos-oracle"  element={<AdminDiagnosticosOracle />} />
-            <Route path="rescue-assessment"    element={<AdminRescueAssessment />} />
-            <Route path="oci-audit"           element={<AdminOciAudit />} />
-            <Route path="migration-roadmap"   element={<AdminMigrationRoadmap />} />
-            <Route path="readiness-score"     element={<AdminReadinessScore />} />
-            <Route path="cloud-comparator"     element={<AdminCloudComparator />} />
+            <Route path="/admin/login" element={<Navigate to="/acceso" replace />} />
+
+            <Route
+              path="/admin"
+              element={
+                <ProtectorRoles rolesPermitidos={['admin']}>
+                  <AdminLayout />
+                </ProtectorRoles>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="leads" element={<AdminLeads />} />
+              <Route path="papers" element={<AdminPapers />} />
+              <Route path="nda" element={<AdminNda />} />
+              <Route path="referencias" element={<AdminReferencias />} />
+              <Route path="transparencia" element={<AdminTransparencia />} />
+              <Route path="research-letters" element={<AdminResearchLetters />} />
+              <Route path="metricas" element={<AdminMetricas />} />
+              <Route path="capacidad" element={<AdminCapacidad />} />
+              <Route path="office-hours" element={<AdminOfficeHours />} />
+              <Route path="logs" element={<AdminLogs />} />
+              <Route path="agente-ia" element={<AdminAgenteIA />} />
+              <Route path="conversaciones-ia" element={<AdminConversacionesIA />} />
+              <Route path="diagnosticos-oracle"  element={<AdminDiagnosticosOracle />} />
+              <Route path="rescue-assessment"    element={<AdminRescueAssessment />} />
+              <Route path="oci-audit"           element={<AdminOciAudit />} />
+              <Route path="migration-roadmap"   element={<AdminMigrationRoadmap />} />
+              <Route path="readiness-score"     element={<AdminReadinessScore />} />
+              <Route path="cloud-comparator"     element={<AdminCloudComparator />} />
+            </Route>
           </Route>
 
           {/* 404 → Home */}

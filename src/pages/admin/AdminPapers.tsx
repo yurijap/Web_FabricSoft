@@ -227,65 +227,68 @@ export default function AdminPapers() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid #1a1a1a' }}>
+      <div className="ap-tabs">
         {(['papers', 'benchmark', 'catalog'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            style={{
-              padding: '14px 28px', background: 'transparent', border: 'none',
-              fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
-              color: tab === t ? '#C9A96E' : '#5A5A5A',
-              borderBottom: `2px solid ${tab === t ? '#C9A96E' : 'transparent'}`,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
+            className={`ap-tab${tab === t ? ' ap-tab--active' : ''}`}
           >
-            {t === 'papers' ? `Solicitudes (${papers.length})` : t === 'benchmark' ? `Benchmark Early Access (${benchmark.length})` : `Catálogo de Papers (${catalogPapers.length})`}
+            {t === 'papers'
+              ? <><span className="ap-tab-full">Solicitudes ({papers.length})</span><span className="ap-tab-short">Solicit. ({papers.length})</span></>
+              : t === 'benchmark'
+              ? <><span className="ap-tab-full">Benchmark Early Access ({benchmark.length})</span><span className="ap-tab-short">Benchmark ({benchmark.length})</span></>
+              : <><span className="ap-tab-full">Catálogo de Papers ({catalogPapers.length})</span><span className="ap-tab-short">Catálogo ({catalogPapers.length})</span></>
+            }
           </button>
         ))}
       </div>
 
       {tab === 'papers' && (
         <>
-          <div style={{ padding: '16px 36px', display: 'flex', gap: 16, borderBottom: '1px solid #1a1a1a', flexWrap: 'wrap', alignItems: 'center' }}>
-            {['Todos', ...catalogPapers.map(p => p.paperId)].map(f => (
-              <button
-                key={f}
-                onClick={() => setFilterPaper(f)}
-                style={{
-                  fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '5px 12px',
-                  background: filterPaper === f ? 'rgba(201,169,110,0.1)' : 'transparent',
-                  border: `1px solid ${filterPaper === f ? '#C9A96E' : '#252525'}`,
-                  color: filterPaper === f ? '#C9A96E' : '#5A5A5A', cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                {f === 'Todos' ? 'Todos los papers' : getPaperLabel(f).split(' — ')[0]}
-              </button>
-            ))}
-            <div style={{ width: 1, background: '#1e1e1e', height: 20 }} />
-            {(['Todos', 'descargado', 'pendiente', 'enviado', 'bloqueado'] as const).map(s => (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(s)}
-                style={{
-                  fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '5px 12px',
-                  background: 'transparent', border: 'none',
-                  color: filterStatus === s ? '#F5F5F5' : '#3A3A3A',
-                  borderBottom: `1px solid ${filterStatus === s ? '#C9A96E' : 'transparent'}`,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                {s}
-              </button>
-            ))}
+          <div className="ap-filters">
+            <div className="ap-filter-group">
+              {['Todos', ...catalogPapers.map(p => p.paperId)].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilterPaper(f)}
+                  style={{
+                    fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '5px 12px',
+                    background: filterPaper === f ? 'rgba(201,169,110,0.1)' : 'transparent',
+                    border: `1px solid ${filterPaper === f ? '#C9A96E' : '#252525'}`,
+                    color: filterPaper === f ? '#C9A96E' : '#5A5A5A', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                >
+                  {f === 'Todos' ? 'Todos los papers' : getPaperLabel(f).split(' — ')[0]}
+                </button>
+              ))}
+            </div>
+            <div className="ap-filter-divider" />
+            <div className="ap-filter-group">
+              {(['Todos', 'descargado', 'pendiente', 'enviado', 'bloqueado'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFilterStatus(s)}
+                  style={{
+                    fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '5px 12px',
+                    background: 'transparent', border: 'none',
+                    color: filterStatus === s ? '#F5F5F5' : '#3A3A3A',
+                    borderBottom: `1px solid ${filterStatus === s ? '#C9A96E' : 'transparent'}`,
+                    cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div style={{ padding: '16px 36px', borderBottom: '1px solid #1a1a1a', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 9, letterSpacing: '0.16em', color: '#5A5A5A', textTransform: 'uppercase' }}>
+          <div className="ap-pdf-band">
+            <span style={{ fontSize: 9, letterSpacing: '0.16em', color: '#5A5A5A', textTransform: 'uppercase', flexShrink: 0 }}>
               PDFs de entrega
             </span>
             {catalogPapers.map(p => (
-              <label key={p.paperId} style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '7px 12px', border: '1px solid #252525', color: uploadingPaper === p.paperId ? '#C9A96E' : '#8A8A8A', cursor: uploadingPaper ? 'wait' : 'pointer' }}>
+              <label key={p.paperId} style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '7px 12px', border: '1px solid #252525', color: uploadingPaper === p.paperId ? '#C9A96E' : '#8A8A8A', cursor: uploadingPaper ? 'wait' : 'pointer', flexShrink: 0 }}>
                 {uploadingPaper === p.paperId ? 'Subiendo...' : `Subir/Reemplazar PDF ${p.paperId}`}
                 <input
                   type="file"
@@ -303,111 +306,176 @@ export default function AdminPapers() {
             )}
           </div>
 
-          <div className="fabric-admin-content" style={{ overflowX: 'auto' }}>
+          <div className="fabric-admin-content">
             {loading ? (
               <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Cargando...</div>
             ) : visiblePapers.length === 0 ? (
               <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Sin solicitudes con este filtro.</div>
             ) : (
-              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
-                    {['Fecha', 'Paper', 'Empresa', 'Contacto', 'Cargo', 'Origen', 'Estado', 'Acciones'].map(h => (
-                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                {/* Desktop table */}
+                <div className="ap-table-wrap ap-table-desktop">
+                  <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 680 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
+                        {['Fecha', 'Paper', 'Empresa', 'Contacto', 'Cargo', 'Origen', 'Estado', 'Acciones'].map(h => (
+                          <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visiblePapers.map(p => (
+                        <tr key={p._id} style={{ borderBottom: '1px solid #111' }}>
+                          <td style={{ padding: '12px 16px', fontSize: 10, color: '#5A5A5A', whiteSpace: 'nowrap' }}>{fmt(p.createdAt)}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{ fontSize: 9, padding: '3px 8px', border: '1px solid #252525', color: '#C9A96E', letterSpacing: '0.1em' }}>
+                              Paper {p.paperId}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: 11, color: '#F5F5F5' }}>{p.empresa}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ fontSize: 10, color: '#F5F5F5' }}>{p.nombre || 'Sin nombre'}</div>
+                            <div style={{ fontSize: 9, color: '#5A5A5A' }}>{p.email}</div>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: 10, color: '#8A8A8A' }}>{p.cargo}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 10, color: '#8A8A8A' }}>{[p.tracking?.sourceSection, p.tracking?.interactionType].filter(Boolean).join(' · ') || p.email}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{ fontSize: 8, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '3px 10px', border: `1px solid ${STATUS_COLOR[p.status]}44`, color: STATUS_COLOR[p.status], background: `${STATUS_COLOR[p.status]}10` }}>
+                              {p.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {p.status !== 'enviado' && (
+                                <button
+                                  disabled={updating === p._id}
+                                  onClick={() => handleStatusChange(p._id, 'enviado')}
+                                  style={{ fontSize: 8, padding: '4px 10px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.1em' }}
+                                >
+                                  Marcar enviado
+                                </button>
+                              )}
+                              {p.status !== 'bloqueado' && (
+                                <button
+                                  disabled={updating === p._id}
+                                  onClick={() => handleStatusChange(p._id, 'bloqueado')}
+                                  style={{ fontSize: 8, padding: '4px 10px', background: 'transparent', border: '1px solid #B85450', color: '#B85450', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.1em' }}
+                                >
+                                  Bloquear
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile cards */}
+                <div className="ap-cards ap-cards-mobile">
                   {visiblePapers.map(p => (
-                    <tr key={p._id} style={{ borderBottom: '1px solid #111' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 10, color: '#5A5A5A', whiteSpace: 'nowrap' }}>{fmt(p.createdAt)}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: 9, padding: '3px 8px', border: '1px solid #252525', color: '#C9A96E', letterSpacing: '0.1em' }}>
-                          Paper {p.paperId}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 11, color: '#F5F5F5' }}>{p.empresa}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontSize: 10, color: '#F5F5F5' }}>{p.nombre || 'Sin nombre'}</div>
-                        <div style={{ fontSize: 9, color: '#5A5A5A' }}>{p.email}</div>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 10, color: '#8A8A8A' }}>{p.cargo}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 10, color: '#8A8A8A' }}>{[p.tracking?.sourceSection, p.tracking?.interactionType].filter(Boolean).join(' · ') || p.email}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: 8, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '3px 10px', border: `1px solid ${STATUS_COLOR[p.status]}44`, color: STATUS_COLOR[p.status], background: `${STATUS_COLOR[p.status]}10` }}>
+                    <div key={p._id} className="ap-card">
+                      <div className="ap-card-top">
+                        <span className="ap-card-badge">Paper {p.paperId}</span>
+                        <span className="ap-card-status" style={{ borderColor: `${STATUS_COLOR[p.status]}44`, color: STATUS_COLOR[p.status], background: `${STATUS_COLOR[p.status]}10` }}>
                           {p.status}
                         </span>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {p.status !== 'enviado' && (
-                            <button
-                              disabled={updating === p._id}
-                              onClick={() => handleStatusChange(p._id, 'enviado')}
-                              style={{ fontSize: 8, padding: '4px 10px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.1em' }}
-                            >
-                              Marcar enviado
-                            </button>
-                          )}
-                          {p.status !== 'bloqueado' && (
-                            <button
-                              disabled={updating === p._id}
-                              onClick={() => handleStatusChange(p._id, 'bloqueado')}
-                              style={{ fontSize: 8, padding: '4px 10px', background: 'transparent', border: '1px solid #B85450', color: '#B85450', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.1em' }}
-                            >
-                              Bloquear
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                        <span className="ap-card-date">{fmt(p.createdAt)}</span>
+                      </div>
+                      <div className="ap-card-empresa">{p.empresa}</div>
+                      <div className="ap-card-contact">
+                        <span className="ap-card-nombre">{p.nombre || 'Sin nombre'}</span>
+                        <span className="ap-card-email">{p.email}</span>
+                      </div>
+                      {p.cargo && <div className="ap-card-cargo">{p.cargo}</div>}
+                      <div className="ap-card-actions">
+                        {p.status !== 'enviado' && (
+                          <button
+                            disabled={updating === p._id}
+                            onClick={() => handleStatusChange(p._id, 'enviado')}
+                            className="ap-card-btn ap-card-btn--send"
+                          >
+                            Marcar enviado
+                          </button>
+                        )}
+                        {p.status !== 'bloqueado' && (
+                          <button
+                            disabled={updating === p._id}
+                            onClick={() => handleStatusChange(p._id, 'bloqueado')}
+                            className="ap-card-btn ap-card-btn--block"
+                          >
+                            Bloquear
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </>
             )}
           </div>
         </>
       )}
 
       {tab === 'benchmark' && (
-        <div className="fabric-admin-content" style={{ overflowX: 'auto' }}>
+        <div className="fabric-admin-content">
           <div style={{ padding: '20px 0 16px', fontSize: 10, color: '#5A5A5A', letterSpacing: '0.14em' }}>
             {benchmark.length} registros para Benchmark Index · Q4 2026
           </div>
           {benchmark.length === 0 ? (
             <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Sin registros aún.</div>
           ) : (
-            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
-                  {['Fecha', 'Nombre', 'Empresa', 'Email', 'Origen', 'Estado'].map(h => (
-                    <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* Desktop table */}
+              <div className="ap-table-wrap ap-table-desktop">
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 540 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
+                      {['Fecha', 'Nombre', 'Empresa', 'Email', 'Origen', 'Estado'].map(h => (
+                        <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {benchmark.map(b => (
+                      <tr key={b._id} style={{ borderBottom: '1px solid #111' }}>
+                        <td style={{ padding: '12px 16px', fontSize: 10, color: '#5A5A5A', whiteSpace: 'nowrap' }}>{fmt(b.createdAt)}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#F5F5F5' }}>{b.nombre}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#F5F5F5' }}>{b.empresa}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 10, color: '#8A8A8A' }}>{b.email}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 9, color: '#5A5A5A' }}>{[b.tracking?.sourceSection, b.tracking?.interactionType].filter(Boolean).join(' · ') || 'Sin tracking'}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ fontSize: 8, padding: '3px 8px', border: '1px solid #C9A96E44', color: '#C9A96E', letterSpacing: '0.1em' }}>
+                            {b.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile cards */}
+              <div className="ap-cards ap-cards-mobile">
                 {benchmark.map(b => (
-                  <tr key={b._id} style={{ borderBottom: '1px solid #111' }}>
-                    <td style={{ padding: '12px 16px', fontSize: 10, color: '#5A5A5A', whiteSpace: 'nowrap' }}>{fmt(b.createdAt)}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 11, color: '#F5F5F5' }}>{b.nombre}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 11, color: '#F5F5F5' }}>{b.empresa}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 10, color: '#8A8A8A' }}>{b.email}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 9, color: '#5A5A5A' }}>{[b.tracking?.sourceSection, b.tracking?.interactionType].filter(Boolean).join(' · ') || 'Sin tracking'}</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: 8, padding: '3px 8px', border: '1px solid #C9A96E44', color: '#C9A96E', letterSpacing: '0.1em' }}>
-                        {b.status}
-                      </span>
-                    </td>
-                  </tr>
+                  <div key={b._id} className="ap-card">
+                    <div className="ap-card-top">
+                      <span className="ap-card-status" style={{ borderColor: '#C9A96E44', color: '#C9A96E', background: 'transparent' }}>{b.status}</span>
+                      <span className="ap-card-date">{fmt(b.createdAt)}</span>
+                    </div>
+                    <div className="ap-card-empresa">{b.nombre} · {b.empresa}</div>
+                    <div className="ap-card-contact">
+                      <span className="ap-card-email">{b.email}</span>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       )}
 
       {tab === 'catalog' && (
-        <div className="fabric-admin-content" style={{ overflowX: 'auto', padding: '16px 36px' }}>
+        <div className="fabric-admin-content ap-catalog-content">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
             <div style={{ fontSize: 10, color: '#5A5A5A', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Gestión de papers disponibles en la web pública
@@ -433,10 +501,11 @@ export default function AdminPapers() {
             </button>
           </div>
 
+          <div className="ap-table-wrap">
           {catalogPapers.length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Catálogo vacío o cargando...</div>
           ) : (
-            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
                   {['Orden', 'ID', 'Título', 'Categoría / Tag', 'Metadata', 'Visible', 'Acciones'].map(h => (
@@ -493,12 +562,13 @@ export default function AdminPapers() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
       )}
 
       {editingPaper && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,6,6,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
-          <div style={{ background: '#0a0a0a', border: '1px solid #252525', width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', padding: '30px 40px' }}>
+          <div className="ap-modal-inner">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, borderBottom: '1px solid #1a1a1a', paddingBottom: 16 }}>
               <div style={{ fontFamily: 'var(--serif)', fontSize: 20, color: '#C9A96E' }}>
                 {isNewPaper ? 'Añadir Nuevo Paper' : `Editar Paper ${editingPaper.paperId}`}
@@ -512,7 +582,7 @@ export default function AdminPapers() {
             </div>
 
             <form onSubmit={handleSavePaper} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="ap-form-2col">
                 <div>
                   <label style={{ display: 'block', fontSize: 9, letterSpacing: '0.18em', color: '#5A5A5A', textTransform: 'uppercase', marginBottom: 6 }}>ID del Paper</label>
                   <input
@@ -557,7 +627,7 @@ export default function AdminPapers() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="ap-form-2col">
                 <div>
                   <label style={{ display: 'block', fontSize: 9, letterSpacing: '0.18em', color: '#5A5A5A', textTransform: 'uppercase', marginBottom: 6 }}>Tag de Categoría</label>
                   <input

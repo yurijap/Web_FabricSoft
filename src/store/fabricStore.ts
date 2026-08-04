@@ -1,13 +1,3 @@
-/**
- * Fuente única de verdad para datos operativos de FABRIC.
- * Capacidad, métricas públicas y leads se leen de aquí —
- * tanto el home público como el admin usan este módulo.
- *
- * Sin backend todavía: todo vive en memoria de sesión.
- * Cuando haya API, solo cambia este archivo.
- */
-
-// ─── TIPOS ───────────────────────────────────────────────────────────────────
 
 export type SlotStatus = 'activo' | 'reservado' | 'libre';
 

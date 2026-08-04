@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthApi } from '../../config/api';
+import { Sparkles } from 'lucide-react';
 
 type NivelScore = 'LISTO' | 'PREPARACIÓN PREVIA' | 'ESPERAR';
 type LeadStatus = 'Nuevo' | 'Aprobado' | 'WaitList' | 'Revisión' | 'Rechazado';
@@ -70,6 +71,24 @@ const FACTOR_LABELS: Record<string, string> = {
   comunicacion:  'Gestión del cambio',
 };
 
+const FACTOR_WEIGHT: Record<keyof typeof FACTOR_LABELS, number> = {
+  patrocinio:    0.10,
+  presupuesto:   0.10,
+  procesos:      0.10,
+  datos:         0.10,
+  equipo:        0.10,
+  integraciones: 0.10,
+  plazo:         0.05,
+  usuarios:      0.05,
+  compliance:    0.05,
+  experiencia:   0.05,
+  consultora:    0.05,
+  alcance:       0.05,
+  gobierno:      0.05,
+  ciclo:         0.05,
+  comunicacion:  0.05,
+};
+
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX', {
     day: '2-digit', month: 'short', year: '2-digit',
@@ -77,10 +96,149 @@ function fmt(iso: string) {
   });
 }
 
+const WEIGHT_SUM = Object.values(FACTOR_WEIGHT).reduce((a, b) => a + b, 0);
+
+function normFactor(value: string): number {
+  if (/alta|aprobado|activo|completo/i.test(value)) return 100;
+  if (/moderado|pre[- ]aprobado|limitado/i.test(value)) return 70;
+  return 40;
+}
+
+function rsValue(rs: ReadinessLead['readinessScore'], key: keyof typeof FACTOR_LABELS): string {
+  return (rs as Record<string, unknown>)[key] as string ?? '';
+}
+
+function calculateWeightedScore(rs: ReadinessLead['readinessScore'] | undefined): number {
+  if (!rs) return 0;
+  let total = 0;
+  for (const key of Object.keys(FACTOR_LABELS) as (keyof typeof FACTOR_LABELS)[]) {
+    const weight = FACTOR_WEIGHT[key] ?? 0;
+    total += normFactor(rsValue(rs, key)) * weight;
+  }
+  return Math.round(total / WEIGHT_SUM);
+}
+
+function getTopImprovableFactors(rs: ReadinessLead['readinessScore'] | undefined): { label: string; gain: number }[] {
+  if (!rs) return [];
+  return (Object.keys(FACTOR_LABELS) as (keyof typeof FACTOR_LABELS)[])
+    .map(key => {
+      const weight = FACTOR_WEIGHT[key] ?? 0;
+      const value = rsValue(rs, key);
+      const gain = Math.round((100 - normFactor(value)) * weight / WEIGHT_SUM);
+      return { label: FACTOR_LABELS[key], gain };
+    })
+    .filter(f => f.gain > 0)
+    .sort((a, b) => b.gain - a.gain)
+    .slice(0, 3);
+}
+
 function nivelShort(nivel: string) {
   if (nivel === 'PREPARACIÓN PREVIA') return 'PREP. PREVIA';
   return nivel;
 }
+
+const DEMO_READINESS: ReadinessLead[] = [
+  {
+    _id: 'demo-rd-1',
+    nombre: 'Vicente Fox',
+    cargo: 'Director General',
+    empresa: 'Botas San Cristóbal',
+    email: 'vfox@botassancristobal.com',
+    score: 87,
+    status: 'Nuevo',
+    notas: 'Cliente con alta disposición al cambio y patrocinio ejecutivo total. Calificación técnica de OCI completada con éxito.',
+    createdAt: '2026-05-28T09:30:00Z',
+    historial: [{ fecha: '28 May 09:30', estado: 'Nuevo', autor: 'Sistema' }],
+    readinessScore: {
+      patrocinio: 'Comité de dirección alineado, patrocinio activo del CEO.',
+      presupuesto: 'Presupuesto total estimado aprobado para licenciamiento e implantación.',
+      procesos: '75% de los procesos de negocio documentados e identificados.',
+      datos: 'Bases de datos depuradas, listos para mapeo de migración.',
+      equipo: 'Equipo clave asignado con 4 líderes de departamento dedicados.',
+      integraciones: 'Requiere integrar CRM Salesforce y sistema logístico propio.',
+      plazo: 'Objetivo de Go-Live en 6 meses.',
+      usuarios: 'Alrededor de 150 usuarios finales identificados para capacitación.',
+      compliance: 'Cumple con regulaciones locales de facturación y auditoría.',
+      experiencia: 'Equipo con experiencia previa en herramientas ERP locales.',
+      consultora: 'Consultora Oracle ya pre-seleccionada.',
+      alcance: 'Alcance cerrado: Finanzas, Compras e Inventarios.',
+      gobierno: 'Estructura de gobernanza definida con comités semanales.',
+      ciclo: 'Indicadores clave de éxito (KPIs) definidos por el negocio.',
+      comunicacion: 'Plan de gestión del cambio en diseño por recursos humanos.',
+      scoreTotal: 87,
+      nivel: 'LISTO',
+    },
+  },
+  {
+    _id: 'demo-rd-2',
+    nombre: 'Sor Juana Inés',
+    cargo: 'Directora de TI',
+    empresa: 'Librerías del Claustro',
+    email: 'sjuana@claustro.edu.mx',
+    score: 62,
+    status: 'Revisión',
+    notas: 'Requiere capacitación previa del equipo técnico en arquitecturas de nube pública y microservicios.',
+    createdAt: '2026-05-25T11:00:00Z',
+    historial: [
+      { fecha: '25 May 11:00', estado: 'Nuevo', autor: 'Sistema' },
+      { fecha: '26 May 15:00', estado: 'Revisión', autor: 'Admin' }
+    ],
+    readinessScore: {
+      patrocinio: 'Patrocinio limitado al área de tecnología por el momento.',
+      presupuesto: 'Presupuesto pre-aprobado para fase de diagnóstico.',
+      procesos: 'Procesos de inventarios bien definidos; finanzas requiere depuración.',
+      datos: 'Requiere limpieza de catálogo de clientes duplicados.',
+      equipo: 'Equipo técnico saturado, requiere consultores dedicados externos.',
+      integraciones: 'Integraciones complejas con e-commerce Shopify.',
+      plazo: 'Flexibilidad de plazo de inicio en los próximos 12 meses.',
+      usuarios: 'Falta definir plan de capacitación para usuarios operativos.',
+      compliance: 'Bajo impacto regulatorio externo.',
+      experiencia: 'Conocimiento nulo de la suite de Oracle Fusion.',
+      consultora: 'Falta evaluar partners de implementación.',
+      alcance: 'Alcance funcional semi-abierto.',
+      gobierno: 'Falta definir la estructura de gobierno de proyecto.',
+      ciclo: 'Criterios de éxito aún informales.',
+      comunicacion: 'Sin plan de gestión del cambio redactado.',
+      scoreTotal: 62,
+      nivel: 'PREPARACIÓN PREVIA',
+    },
+  },
+  {
+    _id: 'demo-rd-3',
+    nombre: 'Octavio Paz',
+    cargo: 'Director de Administración',
+    empresa: 'Editorial Laberinto',
+    email: 'opaz@editoriallaberinto.com',
+    score: 38,
+    status: 'Rechazado',
+    notas: 'Nivel de madurez digital bajo. Procesos no documentados y resistencia alta al cambio a nivel directivo.',
+    createdAt: '2026-05-20T16:45:00Z',
+    historial: [
+      { fecha: '20 May 16:45', estado: 'Nuevo', autor: 'Sistema' },
+      { fecha: '22 May 11:30', estado: 'Revisión', autor: 'Admin' },
+      { fecha: '24 May 10:00', estado: 'Rechazado', autor: 'Admin' }
+    ],
+    readinessScore: {
+      patrocinio: 'Sin patrocinio ejecutivo visible (resistencia del CFO).',
+      presupuesto: 'Sin presupuesto asignado para Q3/Q4.',
+      procesos: 'Procesos informales sin diagramas de flujo ni documentación.',
+      datos: 'Baja calidad de datos y discrepancias de saldos históricos.',
+      equipo: 'Sin personal interno disponible para actuar como usuarios clave.',
+      integraciones: 'Múltiples sistemas legacy desarrollados in-house sin APIs.',
+      plazo: 'Urgencia por fallas críticas de sistemas actuales.',
+      usuarios: 'Forte resistencia al cambio esperada en el staff operativo.',
+      compliance: 'Riesgos de compliance por multas fiscales pendientes.',
+      experiencia: 'Bajo nivel de alfabetización digital de la plantilla.',
+      consultora: 'Sin búsqueda activa de partners.',
+      alcance: 'Alcance difuso y cambiante.',
+      gobierno: 'Sin organigrama ni gobierno de proyecto planteado.',
+      ciclo: 'Falta alinear las metas del ERP con el negocio.',
+      comunicacion: 'Resistencia gremial alta, sin plan de mitigación.',
+      scoreTotal: 38,
+      nivel: 'ESPERAR',
+    },
+  }
+];
 
 export default function AdminReadinessScore() {
   const adminApi = useAuthApi();
@@ -90,9 +248,11 @@ export default function AdminReadinessScore() {
   const [notasEdit, setNotasEdit] = useState('');
   const [updating, setUpdating]   = useState<string | null>(null);
   const [nivelFilter, setNivelFilter] = useState<NivelScore | 'Todos'>('Todos');
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(true);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { fetchLeads(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchLeads(); }, [isDemoMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selected && panelRef.current) {
@@ -101,6 +261,7 @@ export default function AdminReadinessScore() {
   }, [selected?._id]);
 
   async function fetchLeads() {
+    if (isDemoMode) return;
     setLoading(true);
     try {
       const res = await adminApi.get('/leads/admin?source=readiness-score&limit=200');
@@ -113,6 +274,30 @@ export default function AdminReadinessScore() {
   }
 
   async function handleStatusChange(id: string, status: LeadStatus) {
+    if (isDemoMode) {
+      setLeads(prev => prev.map(l => {
+        if (l._id === id) {
+          const updated = {
+            ...l,
+            status,
+            historial: [...l.historial, { fecha: fmt(new Date().toISOString()), estado: status, autor: 'Admin (Demo)' }]
+          };
+          return updated;
+        }
+        return l;
+      }));
+      setSelected(prev => {
+        if (prev?._id === id) {
+          return {
+            ...prev,
+            status,
+            historial: [...prev.historial, { fecha: fmt(new Date().toISOString()), estado: status, autor: 'Admin (Demo)' }]
+          };
+        }
+        return prev;
+      });
+      return;
+    }
     setUpdating(id);
     try {
       const res = await adminApi.patch(`/leads/admin/${id}/status`, { status });
@@ -128,6 +313,11 @@ export default function AdminReadinessScore() {
 
   async function handleSaveNotas() {
     if (!selected) return;
+    if (isDemoMode) {
+      setLeads(prev => prev.map(l => l._id === selected._id ? { ...l, notas: notasEdit } : l));
+      setSelected(prev => prev ? { ...prev, notas: notasEdit } : prev);
+      return;
+    }
     setUpdating(selected._id);
     try {
       const res = await adminApi.patch(`/leads/admin/${selected._id}/notas`, { notas: notasEdit });
@@ -154,6 +344,22 @@ export default function AdminReadinessScore() {
 
   return (
     <div className="fabric-admin-page">
+
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <div className="mb-4 flex items-center justify-between border border-accent/30 bg-[var(--accent-soft)] px-4 py-3 text-xs text-accent rounded-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="animate-pulse" />
+            <span><strong>Modo de Simulación Activo</strong>: Estás visualizando y operando con datos de demostración realistas para pruebas. Las modificaciones se guardarán en memoria temporal.</span>
+          </div>
+          <button 
+            onClick={() => { setIsDemoMode(false); setLeads([]); setSelected(null); }}
+            className="underline font-bold uppercase tracking-wider text-[10px] hover:text-text-primary bg-transparent border-none cursor-pointer"
+          >
+            Salir de simulación
+          </button>
+        </div>
+      )}
       <div className="fabric-admin-hero">
         <div className="fabric-admin-hero-inner">
           <div>
@@ -207,7 +413,43 @@ export default function AdminReadinessScore() {
         {loading ? (
           <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Cargando...</div>
         ) : visible.length === 0 ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Sin evaluaciones con este filtro.</div>
+          <div className="max-w-2xl border border-border/60 bg-bg-panel/40 p-8 rounded-sm text-center mx-auto my-12 shadow-lg">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-accent/25 bg-[var(--accent-soft)] text-accent">
+              <Sparkles size={20} />
+            </div>
+            <h3 className="font-serif text-xl text-text-primary mb-2">Evaluación de Oracle Readiness Score</h3>
+            <p className="text-xs text-text-secondary leading-relaxed mb-6">
+              Este submódulo gestiona las evaluaciones completadas por clientes para auditar la madurez y preparación organizacional en su transición a Oracle Fusion ERP.
+              Evalúa 15 factores críticos incluyendo patrocinio ejecutivo, calidad de datos, procesos documentados y gestión del cambio.
+            </p>
+            <div className="border border-border/40 bg-bg-base/30 rounded p-4 text-left text-xs text-text-tertiary mb-6 space-y-2.5">
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Cálculo ponderado del score de preparación técnica y operativa global.</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Desglose pormenorizado de las respuestas cualitativas y cuantitativas.</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Clasificación automatizada en niveles de preparación: LISTO, PREPARACIÓN PREVIA o ESPERAR.</span>
+              </div>
+            </div>
+            <p className="text-xs text-text-secondary mb-4 italic">
+              No se encontraron evaluaciones registradas en la base de datos viva.
+            </p>
+            <button
+              onClick={() => {
+                setLeads(DEMO_READINESS);
+                setIsDemoMode(true);
+              }}
+              style={{ fontFamily: 'var(--sans), sans-serif' }}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-accent/50 bg-[var(--accent-soft)] px-6 text-[10px] font-semibold uppercase tracking-[0.15em] text-accent transition hover:bg-accent hover:text-black cursor-pointer"
+            >
+              Cargar datos de simulación (Modo Demo)
+            </button>
+          </div>
         ) : (
           <>
             {/* Tabla (Desktop/Tablet grande) */}
@@ -224,8 +466,8 @@ export default function AdminReadinessScore() {
                 </thead>
                 <tbody>
                   {visible.map(lead => {
-                    const rs = lead.readinessScore ?? {};
-                    const color = NIVEL_COLOR[rs.nivel] ?? '#5A5A5A';
+                    const rs = lead.readinessScore;
+                    const color = NIVEL_COLOR[rs?.nivel ?? ''] ?? '#5A5A5A';
                     return (
                       <tr
                         key={lead._id}
@@ -238,11 +480,11 @@ export default function AdminReadinessScore() {
                         <td style={{ padding: '13px 16px', fontSize: 11, color: '#F5F5F5', fontWeight: 500 }}>{lead.empresa}</td>
                         <td style={{ padding: '13px 16px', fontSize: 10, color: '#8A8A8A' }}>{lead.cargo}</td>
                         <td style={{ padding: '13px 16px' }}>
-                          <span style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 20, fontStyle: 'italic', color }}>{rs.scoreTotal ?? '—'}</span>
+                          <span style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 20, fontStyle: 'italic', color }}>{rs?.scoreTotal ?? '—'}</span>
                           <span style={{ fontSize: 9, color: '#3A3A3A' }}>/100</span>
                         </td>
                         <td style={{ padding: '13px 16px' }}>
-                          {rs.nivel ? (
+                          {rs?.nivel ? (
                             <span style={{
                               fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 10px',
                               border: `1px solid ${color}44`, color, background: `${color}10`,
@@ -267,8 +509,8 @@ export default function AdminReadinessScore() {
             {/* Tarjetas (Móvil/Tablet pequeña) */}
             <div className="admin-readiness-cards">
               {visible.map(lead => {
-                const rs = lead.readinessScore ?? {};
-                const color = NIVEL_COLOR[rs.nivel] ?? '#5A5A5A';
+                const rs = lead.readinessScore;
+                const color = NIVEL_COLOR[rs?.nivel ?? ''] ?? '#5A5A5A';
                 return (
                   <div
                     key={lead._id}
@@ -283,7 +525,7 @@ export default function AdminReadinessScore() {
                       </div>
                       <div className="admin-readiness-card-score">
                         <span className="score-label">SCORE</span>
-                        <span className="score-val" style={{ color }}>{rs.scoreTotal ?? '—'}</span>
+                        <span className="score-val" style={{ color }}>{rs?.scoreTotal ?? '—'}</span>
                         <span style={{ fontSize: 8, color: '#3A3A3A' }}>/100</span>
                       </div>
                     </div>
@@ -293,7 +535,7 @@ export default function AdminReadinessScore() {
                         <span className="meta-label">Email:</span>
                         <span className="meta-val" style={{ wordBreak: 'break-all' }}>{lead.email}</span>
                       </div>
-                      {rs.nivel && (
+                      {rs?.nivel && (
                         <div className="admin-readiness-card-meta">
                           <span className="meta-label">Nivel de preparación:</span>
                           <span className="meta-val" style={{ color, fontWeight: 500 }}>{rs.nivel}</span>
@@ -349,10 +591,51 @@ export default function AdminReadinessScore() {
             <div className="admin-readiness-detail-metrics">
               <div style={{ padding: '20px 24px', textAlign: 'center' }}>
                 <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 8 }}>Score</div>
-                <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 40, fontStyle: 'italic', color: NIVEL_COLOR[selected.readinessScore?.nivel] ?? '#C9A96E', lineHeight: 1 }}>
-                  {selected.readinessScore?.scoreTotal ?? '—'}
+                <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 40, fontStyle: 'italic', color: NIVEL_COLOR[selected.readinessScore?.nivel ?? ''] ?? '#C9A96E', lineHeight: 1 }}>
+                  {calculateWeightedScore(selected.readinessScore!)}
                 </div>
                 <div style={{ fontSize: 9, color: '#3A3A3A', marginTop: 4 }}>/100</div>
+                <button
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                  style={{ marginTop: 8, padding: '4px 8px', fontSize: 9, background: '#222', border: '1px solid #555', color: '#FFF', cursor: 'pointer' }}
+                >
+                  {showBreakdown ? 'Ocultar desglose' : 'Ver desglose'}
+                </button>
+                {showBreakdown && selected?.readinessScore && (
+                  <div style={{ marginTop: 12, padding: '8px', background: '#111', borderRadius: 4 }}>
+                    <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#AAA', textTransform: 'uppercase', marginBottom: 4 }}>Desglose del Score</div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: '4px', fontSize: 8, color: '#888' }}>Factor</th>
+                          <th style={{ textAlign: 'right', padding: '4px', fontSize: 8, color: '#888' }}>Peso</th>
+                          <th style={{ textAlign: 'right', padding: '4px', fontSize: 8, color: '#888' }}>Aporte</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(Object.entries(FACTOR_LABELS) as [keyof typeof FACTOR_LABELS, string][]).map(([key, label]) => {
+                          const txt = selected.readinessScore ? rsValue(selected.readinessScore, key) : undefined;
+                          if (!txt) return null;
+                          const weight = FACTOR_WEIGHT[key];
+                          const norm = normFactor(txt);
+                          const contrib = Math.round(norm * weight / WEIGHT_SUM);
+                          return (
+                            <tr key={key}>
+                              <td style={{ padding: '4px', fontSize: 9, color: norm === 100 ? '#7B9E6B' : norm === 70 ? '#C9A96E' : '#888' }}>{label}</td>
+                              <td style={{ padding: '4px', fontSize: 9, color: '#5A5A5A', textAlign: 'right' }}>{(weight / WEIGHT_SUM * 100).toFixed(0)}%</td>
+                              <td style={{ padding: '4px', fontSize: 9, color: '#FFF', textAlign: 'right' }}>{contrib}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr>
+                          <td colSpan={2} style={{ padding: '4px', fontSize: 9, color: '#FFF', textAlign: 'right' }}><strong>Total</strong></td>
+                          <td style={{ padding: '4px', fontSize: 9, color: '#FFF', textAlign: 'right' }}><strong>{calculateWeightedScore(selected.readinessScore!)}</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
               </div>
               <div style={{ background: '#141414' }} />
               <div style={{ padding: '20px 24px', textAlign: 'center' }}>
@@ -369,6 +652,39 @@ export default function AdminReadinessScore() {
                 </span>
               </div>
             </div>
+
+            {/* Interpretación del score + Para mejorar */}
+            {selected.readinessScore && (() => {
+              const score = calculateWeightedScore(selected.readinessScore);
+              const mejoras = getTopImprovableFactors(selected.readinessScore);
+              const interpretation = score >= 70
+                ? { label: 'LISTO (≥70)', color: '#7B9E6B', text: 'Organización preparada para iniciar migración a Oracle Fusion.' }
+                : score >= 40
+                  ? { label: 'PREP. PREVIA (40–69)', color: '#C9A96E', text: 'Requiere trabajo previo en factores críticos antes de comprometer inversión.' }
+                  : { label: 'ESPERAR (<40)', color: '#B85450', text: 'Madurez insuficiente. Riesgo alto de fallo si avanza sin preparación.' };
+              return (
+                <div style={{ margin: '0 0 20px', padding: '16px 20px', border: '1px solid #1a1a1a', background: '#080808', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 180px' }}>
+                    <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 6 }}>Nivel · Rango</div>
+                    <div style={{ fontSize: 10, color: interpretation.color, fontWeight: 600, marginBottom: 4 }}>{interpretation.label}</div>
+                    <div style={{ fontSize: 10, color: '#5A5A5A', lineHeight: 1.5 }}>{interpretation.text}</div>
+                  </div>
+                  {mejoras.length > 0 && (
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 6 }}>Para mejorar el score</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {mejoras.map(f => (
+                          <div key={f.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 10, color: '#8A8A8A' }}>{f.label}</span>
+                            <span style={{ fontSize: 9, color: '#C9A96E', whiteSpace: 'nowrap' }}>+{f.gain} pts</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Cuerpo */}
             <div className="admin-readiness-detail-body">

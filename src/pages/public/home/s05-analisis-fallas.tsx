@@ -58,6 +58,7 @@ const QUESTIONS = [
   { id: 9,  text: "¿En qué industria opera tu empresa?",                                       options: ["Servicios Financieros", "Inmobiliario", "Logística", "Otro"] },
   { id: 10, text: "¿Cuál es el revenue anual aproximado de tu empresa?",                       options: ["< USD 50M", "USD 50–250M", "USD 250–500M", "> USD 500M"] },
   { id: 11, text: "¿En qué plazo deseas remediar la situación?",                               options: ["Inmediato (< 3 meses)", "Corto (3–6 meses)", "Medio (6–12 meses)", "No definido"] },
+  { id: 12, text: "Que tan transferido quedo el conocimiento al equipo interno?",              options: ["Documentado y transferido", "Transferencia parcial", "Dependencia alta de la consultora", "Sin transferencia real"] },
 ];
 
 function answerScore(questionId: number, answer: string) {
@@ -77,6 +78,7 @@ function getDiagnosticResult(answers: Record<number, string>) {
   const adoption = answers[4];
   const incidents = answers[5];
   const consultant = answers[6];
+  const knowledgeTransfer = answers[12];
 
   const patterns = [
     (reports === "4–7" || reports === "Más de 7") && "Reportes manuales paralelos",
@@ -84,6 +86,7 @@ function getDiagnosticResult(answers: Record<number, string>) {
     (adoption === "50–70%" || adoption === "<50%") && "Baja adopción de usuarios clave",
     (incidents === "4–7" || incidents === "Más de 7") && "Incidencias críticas abiertas",
     (consultant === "Soporte limitado" || consultant === "No responde") && "Riesgo por consultora anterior",
+    (knowledgeTransfer === "Dependencia alta de la consultora" || knowledgeTransfer === "Sin transferencia real") && "Conocimiento no transferido al equipo interno",
   ].filter(Boolean) as string[];
 
   if (total >= 20) {
@@ -191,7 +194,7 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     
     // Pausa dramática para mostrar la selección en dorado antes de avanzar
     setTimeout(() => {
-      setStep(prev => prev === 11 ? 12 : prev + 1);
+      setStep(prev => prev === QUESTIONS.length ? QUESTIONS.length + 1 : prev + 1);
     }, 650);
   };
 
@@ -256,7 +259,7 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
       });
 
       setIsProcessing(false);
-      setStep(14); 
+      setStep(QUESTIONS.length + 3); 
     } catch (error: any) {
       setIsProcessing(false);
       setFormError(error.response?.data?.error || "No pudimos guardar el diagnóstico. Inténtalo de nuevo.");
@@ -265,10 +268,14 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   };
 
   const diagnostic = getDiagnosticResult(answers);
-  const progressPercentage = step > 0 && step <= 11 ? (step / 12) * 100 : step === 12 || step === 13 ? 100 : 0;
+  const progressPercentage = step > 0 && step <= QUESTIONS.length
+    ? (step / QUESTIONS.length) * 100
+    : step === QUESTIONS.length + 1 || step === QUESTIONS.length + 2
+      ? 100
+      : 0;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-[fadeIn_0.3s_ease-out]">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-[rgba(7,25,47,0.92)] backdrop-blur-md animate-[fadeIn_0.3s_ease-out]">
       
       <style>{`
         @keyframes slideInFade {
@@ -280,12 +287,12 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
         }
       `}</style>
 
-      <div className="relative flex flex-col w-full max-w-[700px] min-h-[550px] max-h-[90vh] overflow-hidden bg-[#080706] border border-[#2A2A2A] shadow-[0_0_80px_rgba(0,0,0,0.8)] rounded-xl">
+      <div className="relative flex flex-col w-full max-w-[700px] min-h-[550px] max-h-[90vh] overflow-hidden bg-[var(--bg-panel)] border border-[#2A2A2A] shadow-[0_0_80px_rgba(3,12,26,0.52)] rounded-xl">
         
         <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#C9A96E] opacity-[0.03] blur-[100px]" />
 
         {/* Header del Modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]/60 bg-[#050203]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]/60 bg-[var(--bg-elevated)]">
           <div className="flex items-center gap-3">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C9A96E] opacity-75"></span>
@@ -303,7 +310,7 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
         </div>
 
         {/* Barra de Progreso */}
-        {step > 0 && step <= 13 && (
+          {step > 0 && step <= QUESTIONS.length + 2 && (
           <div className="w-full h-[2px] bg-[#1A1A1A]">
             <div 
               className="h-full bg-gradient-to-r from-[#C9A96E]/50 to-[#C9A96E] transition-all duration-700 ease-out"
@@ -325,15 +332,15 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
-                <div className="border border-[#2A2A2A] bg-[#111]/50 p-5 rounded-md text-center">
+                <div className="border border-[#2A2A2A] bg-[rgba(18,50,84,0.58)] p-5 rounded-md text-center">
                   <span className="block text-[#C9A96E] font-serif text-2xl mb-1">12</span>
                   <span className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/50">Preguntas</span>
                 </div>
-                <div className="border border-[#2A2A2A] bg-[#111]/50 p-5 rounded-md text-center">
+                <div className="border border-[#2A2A2A] bg-[rgba(18,50,84,0.58)] p-5 rounded-md text-center">
                   <span className="block text-[#C9A96E] font-serif text-2xl mb-1">5m</span>
                   <span className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/50">Tiempo Est.</span>
                 </div>
-                <div className="border border-[#2A2A2A] bg-[#111]/50 p-5 rounded-md text-center">
+                <div className="border border-[#2A2A2A] bg-[rgba(18,50,84,0.58)] p-5 rounded-md text-center">
                   <span className="block text-[#C9A96E] font-serif text-2xl mb-1">100%</span>
                   <span className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/50">Confidencial</span>
                 </div>
@@ -349,8 +356,8 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
             </div>
           )}
 
-          {/* ================= PASOS 1-11: DIAGNOSTICO OPERATIVO ================= */}
-          {step > 0 && step <= 11 && (
+          {/* ================= PASOS 1-12: DIAGNOSTICO OPERATIVO ================= */}
+          {step > 0 && step <= QUESTIONS.length && (
             <div key={`question-${step}`} className="animate-step h-full flex flex-col justify-center">
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#F5F5F5]/40 mb-4 flex items-center gap-2">
                 <span className="text-[#C9A96E]">[{String(step).padStart(2, '0')}]</span> de 12
@@ -372,7 +379,7 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                       className={`relative w-full text-left p-5 md:p-6 border rounded-sm transition-all duration-400 font-sans text-sm md:text-base leading-relaxed flex items-center justify-between group overflow-hidden
                         ${isSelected 
                           ? 'border-[#C9A96E] bg-[#C9A96E]/10 text-[#C9A96E] shadow-[0_0_25px_rgba(201,169,110,0.15)] scale-[1.02]' 
-                          : 'border-[#2A2A2A] bg-[#111]/50 text-[#F5F5F5]/70 hover:border-[#C9A96E]/50 hover:bg-[#1A1A1A] hover:text-[#F5F5F5]'
+                          : 'border-[#2A2A2A] bg-[rgba(18,50,84,0.58)] text-[#F5F5F5]/70 hover:border-[#C9A96E]/50 hover:bg-[var(--bg-elevated)] hover:text-[#F5F5F5]'
                         }
                       `}
                     >
@@ -395,9 +402,9 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
             </div>
           )}
 
-          {/* ================= PASO 12: OUTPUT INMEDIATO ================= */}
-          {step === 12 && (
-            <div key="step-12" className="animate-step">
+          {/* ================= OUTPUT INMEDIATO ================= */}
+          {step === QUESTIONS.length + 1 && (
+            <div key="diagnostic-result" className="animate-step">
               <div className="mb-8">
                 <span className="inline-flex mb-3 border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#C9A96E] rounded-sm">
                   Resultado inmediato
@@ -410,40 +417,40 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                 </p>
               </div>
 
-              <div className="border border-[#2A2A2A] bg-[#111]/60 rounded-sm overflow-hidden">
+              <div className="border border-[#2A2A2A] bg-[rgba(18,50,84,0.64)] rounded-sm overflow-hidden">
                 <div className="p-5 border-b border-[#2A2A2A]">
                   <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#C9A96E] mb-2">Patrón detectado</p>
                   <p className="font-serif text-2xl text-[#F5F5F5] leading-tight">{diagnostic.pattern}</p>
                 </div>
                 <div className="grid gap-px bg-[#2A2A2A] sm:grid-cols-3">
-                  <div className="bg-[#111] p-5">
+                  <div className="bg-[var(--bg-panel)] p-5">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/40 mb-2">Acción recomendada</p>
                     <p className="font-sans text-sm text-[#F5F5F5]/80">{diagnostic.action}</p>
                   </div>
-                  <div className="bg-[#111] p-5">
+                  <div className="bg-[var(--bg-panel)] p-5">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/40 mb-2">Inversión típica</p>
                     <p className="font-sans text-sm text-[#C9A96E]">{diagnostic.investment}</p>
                   </div>
-                  <div className="bg-[#111] p-5">
+                  <div className="bg-[var(--bg-panel)] p-5">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/40 mb-2">ROI esperado</p>
                     <p className="font-sans text-sm text-[#F5F5F5]/80">{diagnostic.roi}</p>
                   </div>
                 </div>
               </div>
 
-              <button onClick={() => setStep(13)} className="btn-primary mt-8 w-full">
+              <button onClick={() => setStep(QUESTIONS.length + 2)} className="btn-primary mt-8 w-full">
                 Solicitar evaluación detallada
                 <ArrowIcon />
               </button>
             </div>
           )}
 
-          {/* ================= PASO 13: FORMULARIO ================= */}
-          {step === 13 && (
-            <div key="step-13" className="animate-step">
+          {/* ================= FORMULARIO ================= */}
+          {step === QUESTIONS.length + 2 && (
+            <div key="contact-form" className="animate-step">
               <div className="mb-8">
                 <span className="inline-flex mb-3 border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#C9A96E] rounded-sm">
-                  Pregunta 12 de 12
+                  Evaluacion detallada
                 </span>
                 <h3 className="font-serif text-3xl text-[#F5F5F5] md:text-4xl tracking-tight mb-4">
                   Datos de contacto para la evaluación detallada
@@ -463,36 +470,36 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <label className="block">
                     <span className="mb-2 block font-mono text-[9px] uppercase tracking-[0.15em] text-[#F5F5F5]/50">Nombre directivo</span>
-                    <input required type="text" maxLength={80} value={contact.name} onChange={(e) => setContact(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-[#050203] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
+                    <input required type="text" maxLength={80} value={contact.name} onChange={(e) => setContact(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-[var(--bg-deep)] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
                   </label>
                   <label className="block">
                     <span className="mb-2 block font-mono text-[9px] uppercase tracking-[0.15em] text-[#F5F5F5]/50">Cargo (Ej. CFO / CIO)</span>
-                    <input required type="text" value={contact.role} onChange={(e) => setContact(prev => ({ ...prev, role: e.target.value }))} className="w-full bg-[#050203] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
+                    <input required type="text" value={contact.role} onChange={(e) => setContact(prev => ({ ...prev, role: e.target.value }))} className="w-full bg-[var(--bg-deep)] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
                   </label>
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <label className="block">
                     <span className="mb-2 block font-mono text-[9px] uppercase tracking-[0.15em] text-[#F5F5F5]/50">Correo corporativo oficial</span>
-                    <input required type="email" value={contact.email} onChange={(e) => setContact(prev => ({ ...prev, email: e.target.value }))} className="w-full bg-[#050203] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
+                    <input required type="email" value={contact.email} onChange={(e) => setContact(prev => ({ ...prev, email: e.target.value }))} className="w-full bg-[var(--bg-deep)] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
                   </label>
                   <label className="block">
                     <span className="mb-2 block font-mono text-[9px] uppercase tracking-[0.15em] text-[#F5F5F5]/50">Nombre de la Empresa</span>
-                    <input required type="text" value={contact.company} onChange={(e) => setContact(prev => ({ ...prev, company: e.target.value }))} className="w-full bg-[#050203] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
+                    <input required type="text" value={contact.company} onChange={(e) => setContact(prev => ({ ...prev, company: e.target.value }))} className="w-full bg-[var(--bg-deep)] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all" />
                   </label>
                 </div>
 
                 <label className="block">
                   <span className="mb-2 block font-mono text-[9px] uppercase tracking-[0.15em] text-[#F5F5F5]/50">Teléfono (opcional)</span>
-                  <input type="tel" inputMode="numeric" maxLength={10} value={contact.phone} onChange={(e) => setContact(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, "") }))} placeholder="10 dígitos" className="w-full bg-[#050203] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all placeholder:text-[#F5F5F5]/20" />
+                  <input type="tel" inputMode="numeric" maxLength={10} value={contact.phone} onChange={(e) => setContact(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, "") }))} placeholder="10 dígitos" className="w-full bg-[var(--bg-deep)] border border-[#2A2A2A] rounded-sm px-4 py-3.5 text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] focus:shadow-[0_0_15px_rgba(201,169,110,0.1)] transition-all placeholder:text-[#F5F5F5]/20" />
                 </label>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_140px] sm:items-end bg-[#111]/30 p-4 border border-[#2A2A2A] rounded-sm">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_140px] sm:items-end bg-[rgba(18,50,84,0.48)] p-4 border border-[#2A2A2A] rounded-sm">
                   <div>
                     <span className="block font-mono text-[9px] uppercase tracking-[0.15em] text-[#C9A96E]">Protocolo Anti-Bot</span>
                     <p className="mt-1 text-sm text-[#F5F5F5]/65">Autenticación requerida: <span className="font-mono font-bold text-[#F5F5F5]">{captcha.a} + {captcha.b}</span></p>
                   </div>
-                  <input required type="number" inputMode="numeric" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} placeholder="Suma" className="w-full bg-[#050203] border border-[#2A2A2A] rounded-sm px-4 py-3 text-center text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] transition-all" />
+                  <input required type="number" inputMode="numeric" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} placeholder="Suma" className="w-full bg-[var(--bg-deep)] border border-[#2A2A2A] rounded-sm px-4 py-3 text-center text-sm text-[#F5F5F5] outline-none focus:border-[#C9A96E] transition-all" />
                 </div>
 
                 <label className="flex items-start gap-4 p-2 cursor-pointer group">
@@ -517,8 +524,8 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           )}
 
           {/* ================= PASO 14: ÉXITO ================= */}
-          {step === 14 && (
-            <div key="step-14" className="animate-step h-full flex flex-col items-center justify-center text-center">
+          {step === QUESTIONS.length + 3 && (
+            <div key="success" className="animate-step h-full flex flex-col items-center justify-center text-center">
               <div className="mb-8 relative flex h-24 w-24 items-center justify-center rounded-full border border-[#C9A96E] bg-[#C9A96E]/10 text-[#C9A96E] shadow-[0_0_40px_rgba(201,169,110,0.2)]">
                 <div className="absolute inset-0 rounded-full border border-[#C9A96E] animate-[ping_2s_ease-out_infinite] opacity-30" />
                 <CheckIcon className="w-8 h-8" />
@@ -532,7 +539,7 @@ function DiagnosticModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                 La data ha sido transferida de manera segura. Nuestro comité técnico está realizando el análisis cruzado de tus 12 métricas operativas.
               </p>
               
-              <div className="inline-block border border-[#2A2A2A] bg-[#111]/50 px-6 py-3 rounded-sm mb-10">
+              <div className="inline-block border border-[#2A2A2A] bg-[rgba(18,50,84,0.58)] px-6 py-3 rounded-sm mb-10">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[#C9A96E]">
                   Resolución estimada: Máx. 5 Días Hábiles
                 </p>
@@ -566,7 +573,7 @@ export default function Parte5Home() {
   ];
 
   return (
-    <section id="rescue-diagnostic" className="relative w-full overflow-hidden bg-[#050203] py-24 text-[#F5F5F5] md:py-32">
+    <section id="rescue-diagnostic" className="relative w-full overflow-hidden bg-[var(--bg-base)] py-24 text-[#F5F5F5] md:py-32">
       
       <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-10" />
       <div className="pointer-events-none absolute right-0 top-1/2 -z-10 h-[600px] w-[600px] -translate-y-1/2 translate-x-1/4 bg-[#C9A96E] opacity-[0.03] blur-[150px]" />
@@ -620,7 +627,7 @@ export default function Parte5Home() {
 
           {/* ================= RIGHT: LIVE PREVIEW ================= */}
           <div ref={previewRef} className={`relative flex-col justify-center lg:flex transition-all duration-1000 delay-300 ${previewInView ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"}`}>
-            <div className="relative border border-[#2A2A2A] bg-[#080706] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.8)] md:p-8 rounded-xl hover:border-[#C9A96E]/30 transition-colors duration-500">
+            <div className="relative border border-[#2A2A2A] bg-[var(--bg-panel)] p-6 shadow-[0_30px_80px_rgba(3,12,26,0.46)] md:p-8 rounded-xl hover:border-[#C9A96E]/30 transition-colors duration-500">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[#C9A96E]/50 to-transparent" />
 
               <div className="mb-6 flex items-center justify-between border-b border-[#2A2A2A]/60 pb-4">
@@ -633,7 +640,7 @@ export default function Parte5Home() {
                 <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#F5F5F5]/40">Diagnostic_Report.pdf</span>
               </div>
 
-              <div className="border border-[#2A2A2A] bg-[#111] rounded-sm overflow-hidden">
+              <div className="border border-[#2A2A2A] bg-[var(--bg-elevated)] rounded-sm overflow-hidden">
                 <div className="bg-red-950/20 border-b border-[#B85450]/30 px-6 py-4 flex items-center justify-between">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-[#F5F5F5]/60">Nivel de Severidad</span>
                   <div className="flex items-center gap-2">
@@ -643,25 +650,25 @@ export default function Parte5Home() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-px bg-[#2A2A2A]">
-                  <div className="bg-[#111] p-5 hover:bg-[#161616] transition-colors">
+                  <div className="bg-[var(--bg-panel)] p-5 hover:bg-[var(--bg-elevated)] transition-colors">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/40 mb-2">Cierre Contable</p>
                     <p className="font-serif text-2xl text-[#E7A09D]">&gt;15 días</p>
                   </div>
-                  <div className="bg-[#111] p-5 hover:bg-[#161616] transition-colors">
+                  <div className="bg-[var(--bg-panel)] p-5 hover:bg-[var(--bg-elevated)] transition-colors">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/40 mb-2">Reportes Manuales</p>
                     <p className="font-serif text-2xl text-[#F5F5F5]">12 activos</p>
                   </div>
-                  <div className="bg-[#111] p-5 hover:bg-[#161616] transition-colors">
+                  <div className="bg-[var(--bg-panel)] p-5 hover:bg-[var(--bg-elevated)] transition-colors">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/40 mb-2">Adopción Usuarios</p>
                     <p className="font-serif text-2xl text-[#E7A09D]">42%</p>
                   </div>
-                  <div className="bg-[#111] p-5 hover:bg-[#161616] transition-colors">
+                  <div className="bg-[var(--bg-panel)] p-5 hover:bg-[var(--bg-elevated)] transition-colors">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#F5F5F5]/40 mb-2">Incidencias Críticas</p>
                     <p className="font-serif text-2xl text-[#F5F5F5]">7 abiertas</p>
                   </div>
                 </div>
 
-                <div className="p-6 bg-gradient-to-br from-[#111] to-[#C9A96E]/5 border-t border-[#2A2A2A]">
+                <div className="p-6 bg-gradient-to-br from-[var(--bg-elevated)] to-[#C9A96E]/5 border-t border-[#2A2A2A]">
                   <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#C9A96E] mb-3">Patrón Detectado</p>
                   <p className="font-serif text-2xl md:text-3xl text-[#F5F5F5] mb-6">Abandono post go-live</p>
                   

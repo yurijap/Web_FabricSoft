@@ -42,7 +42,7 @@ export default function S02bPuente() {
         position: 'relative',
         overflow: 'hidden',
         background:
-          'radial-gradient(circle at 18% 14%, rgba(201,169,110,0.055), transparent 32%), radial-gradient(circle at 84% 72%, rgba(201,169,110,0.045), transparent 34%), #050203',
+          'radial-gradient(circle at 18% 14%, rgba(201,169,110,0.055), transparent 32%), radial-gradient(circle at 84% 72%, rgba(82,161,218,0.09), transparent 34%), var(--bg-base)',
         borderTop: '1px solid rgba(255,255,255,0.075)',
         borderBottom: '1px solid rgba(255,255,255,0.075)',
         padding: 'clamp(88px, 9vw, 132px) 0',
@@ -221,7 +221,7 @@ export default function S02bPuente() {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           border: 1px solid rgba(255,255,255,0.095);
-          background: rgba(8,8,8,0.72);
+          background: rgba(7,25,47,0.82);
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
         }
 
@@ -260,10 +260,10 @@ export default function S02bPuente() {
           min-height: 470px;
           border: 1px solid rgba(201,169,110,0.18);
           background:
-            linear-gradient(145deg, rgba(201,169,110,0.055), rgba(9,9,9,0.96) 32%, rgba(4,4,4,0.99)),
+            linear-gradient(145deg, rgba(201,169,110,0.06), rgba(14,39,71,0.96) 32%, rgba(7,25,47,0.99)),
             repeating-linear-gradient(90deg, rgba(255,255,255,0.018) 0, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 72px);
           box-shadow:
-            0 34px 90px rgba(0,0,0,0.58),
+            0 34px 90px rgba(3,12,26,0.42),
             inset 0 1px 0 rgba(255,255,255,0.04);
         }
 
@@ -304,7 +304,7 @@ export default function S02bPuente() {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           border-bottom: 1px solid rgba(255,255,255,0.075);
-          background: rgba(0,0,0,0.18);
+          background: rgba(7,25,47,0.36);
         }
 
         .fabric-puente-tabs button {

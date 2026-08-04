@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 import {
@@ -15,12 +16,24 @@ import {
   SlidersHorizontal,
   TerminalSquare,
   UploadCloud,
+  Coins,
+  X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api } from '../../config/api';
 
 type ProcessStatus = 'idle' | 'running' | 'done';
-type ChatMessage = { role: 'agent' | 'user'; text: string };
+type ChatMessage = {
+  role: 'agent' | 'user';
+  text: string;
+  usage?: {
+    provider: string;
+    model: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+};
 type KnowledgeFile = {
   name: string;
   mimeType: string;
@@ -95,6 +108,32 @@ export default function AdminAgenteIA() {
     { role: 'agent', text: 'Entorno de prueba listo. Escribe un mensaje para evaluar la configuracion actual.' },
   ]);
   const [isTesting, setIsTesting] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [tokenStats, setTokenStats] = useState<{
+    summary: { totalPrompt: number; totalCompletion: number; totalTokens: number; count: number };
+    byProvider: Array<{ _id: string; promptTokens: number; completionTokens: number; totalTokens: number; count: number }>;
+    byType: Array<{ _id: string; totalTokens: number; count: number }>;
+    dailyUsage: Array<{ _id: string; totalTokens: number; promptTokens: number; completionTokens: number; count: number }>;
+  } | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const cargarEstadisticasTokens = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      setIsLoadingStats(true);
+      const { data } = await api.get('/agente-ia/tokens/stats', {
+        headers: authHeaders(token),
+      });
+      if (data.success) {
+        setTokenStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error cargando estadísticas de tokens:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
 
   const canSave = prompt.trim().length > 10;
 
@@ -148,6 +187,7 @@ export default function AdminAgenteIA() {
     };
 
     cargarAgente();
+    cargarEstadisticasTokens();
 
     return () => {
       mounted = false;
@@ -348,6 +388,7 @@ export default function AdminAgenteIA() {
     setMessages((current) => [...current, { role: 'user', text: userText }]);
     setTestMessage('');
     setIsTesting(true);
+    setProcessLog((current) => [...current, `Simulación: Enviando consulta...`]);
 
     try {
       const token = await getToken();
@@ -370,7 +411,42 @@ export default function AdminAgenteIA() {
           headers: authHeaders(token),
         },
       );
-      setMessages((current) => [...current, { role: 'agent', text: data.reply }]);
+
+      const usage = data.usedConfig?.usage;
+      const provider = data.usedConfig?.provider;
+      const model = data.usedConfig?.model;
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: 'agent',
+          text: data.reply,
+          usage: usage
+            ? {
+                provider: provider || '',
+                model: model || '',
+                promptTokens: usage.promptTokens || 0,
+                completionTokens: usage.completionTokens || 0,
+                totalTokens: usage.totalTokens || 0,
+              }
+            : undefined,
+        },
+      ]);
+
+      if (usage) {
+        setProcessLog((current) => [
+          ...current,
+          `Simulación: Consulta procesada por ${provider} (${model}).`,
+          `Tokens consumidos: ${usage.totalTokens} (Prompt: ${usage.promptTokens} | Completion: ${usage.completionTokens})`,
+        ]);
+      } else {
+        setProcessLog((current) => [
+          ...current,
+          `Simulación: Consulta procesada por ${provider || 'desconocido'} (${model || 'desconocido'}). Sin datos de tokens.`,
+        ]);
+      }
+
+      cargarEstadisticasTokens();
     } catch (error: any) {
       toast.error('No se pudo probar el agente', {
         description: error.response?.data?.error || 'Revisa la API e intenta otra vez.',
@@ -379,6 +455,22 @@ export default function AdminAgenteIA() {
         ...current,
         { role: 'agent', text: 'No pude generar respuesta porque la API devolvio un error.' },
       ]);
+      const attempts = error.response?.data?.attempts;
+      if (attempts && Array.isArray(attempts)) {
+        const attemptLogs = attempts.map(
+          (att) => `Fallo ${att.provider} (${att.model}): ${att.error}`
+        );
+        setProcessLog((current) => [
+          ...current,
+          `Simulación fallida en todos los modelos:`,
+          ...attemptLogs,
+        ]);
+      } else {
+        setProcessLog((current) => [
+          ...current,
+          `Simulación fallida: ${error.response?.data?.error || error.message}`,
+        ]);
+      }
     } finally {
       setIsTesting(false);
     }
@@ -397,6 +489,17 @@ export default function AdminAgenteIA() {
             En Linea
           </span>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            cargarEstadisticasTokens();
+            setShowStatsModal(true);
+          }}
+          className="flex items-center gap-2 px-3.5 py-1.5 border border-[#2A2A2A] hover:border-[#C9A96E]/50 bg-[#050505] hover:bg-[#C9A96E]/5 rounded-sm text-[#888] hover:text-[#F5F5F5] transition-all group active:scale-[0.98]"
+        >
+          <Coins size={14} className="text-[#C9A96E] group-hover:scale-110 transition-transform" />
+          <span className="font-mono text-[10px] uppercase tracking-wider">Consumo de Tokens</span>
+        </button>
       </header>
 
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 py-6 grid lg:grid-cols-2 gap-6">
@@ -569,6 +672,13 @@ export default function AdminAgenteIA() {
                         {message.role === 'user' ? 'Usuario' : 'Agente FABRIC'}
                       </div>
                       <p className="font-sans text-[12px] leading-[1.5] whitespace-pre-wrap">{message.text}</p>
+                      {message.usage && (
+                        <div className="mt-2 pt-1.5 border-t border-[#1C1C1C] flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[8px] text-[#C9A96E] uppercase tracking-widest opacity-80">
+                          <span>{message.usage.provider} ({message.usage.model})</span>
+                          <span className="text-[#333]">•</span>
+                          <span>Tokens: {message.usage.totalTokens} (P: {message.usage.promptTokens} / C: {message.usage.completionTokens})</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -603,6 +713,202 @@ export default function AdminAgenteIA() {
           </Panel>
         </div>
       </main>
+
+      {showStatsModal && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+          <article className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-2xl bg-[#0A0A0A] border border-[#1A1A1A] rounded-sm p-4 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#1A1A1A] pb-3 sm:pb-4 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <Coins size={16} className="text-[#C9A96E] shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-mono text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-[#C9A96E]">Estadísticas de Uso</div>
+                  <h2 className="font-serif text-lg sm:text-xl text-[#F5F5F5] truncate">Consumo de Tokens Acumulado</h2>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStatsModal(false)}
+                className="p-1 text-[#555] hover:text-[#F5F5F5] transition-colors rounded-sm hover:bg-[#111] shrink-0 ml-2"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto space-y-5 sm:space-y-6 pr-2 scrollbar-thin scrollbar-thumb-[#1A1A1A]">
+              {isLoadingStats && !tokenStats ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <RotateCcw size={24} className="animate-spin text-[#C9A96E] mb-3" />
+                  <span className="font-mono text-[10px] text-[#888] uppercase tracking-wider">Cargando métricas...</span>
+                </div>
+              ) : tokenStats ? (
+                <>
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="border border-[#1A1A1A] bg-[#050505] p-3 sm:p-4 rounded-sm flex flex-col relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-2 text-[#C9A96E]/5 pointer-events-none hidden sm:block">
+                        <Coins size={48} />
+                      </div>
+                      <span className="font-mono text-[8px] uppercase tracking-widest text-[#888] mb-1">Tokens Totales</span>
+                      <span className="font-serif text-xl sm:text-2xl text-[#C9A96E] font-bold tracking-tight">
+                        {tokenStats.summary.totalTokens.toLocaleString()}
+                      </span>
+                      <span className="font-mono text-[9px] text-[#555] mt-1">{tokenStats.summary.count.toLocaleString()} peticiones</span>
+                    </div>
+
+                    <div className="border border-[#1A1A1A] bg-[#050505] p-3 sm:p-4 rounded-sm flex flex-col">
+                      <span className="font-mono text-[8px] uppercase tracking-widest text-[#888] mb-1">Tokens de Entrada</span>
+                      <span className="font-serif text-xl sm:text-2xl text-[#F5F5F5] font-bold tracking-tight">
+                        {tokenStats.summary.totalPrompt.toLocaleString()}
+                      </span>
+                      <span className="font-mono text-[9px] text-[#555] mt-1">Prompts / Contexto</span>
+                    </div>
+
+                    <div className="border border-[#1A1A1A] bg-[#050505] p-3 sm:p-4 rounded-sm flex flex-col">
+                      <span className="font-mono text-[8px] uppercase tracking-widest text-[#888] mb-1">Tokens de Salida</span>
+                      <span className="font-serif text-xl sm:text-2xl text-[#F5F5F5] font-bold tracking-tight">
+                        {tokenStats.summary.totalCompletion.toLocaleString()}
+                      </span>
+                      <span className="font-mono text-[9px] text-[#555] mt-1">Completions / Respuestas</span>
+                    </div>
+                  </div>
+
+                  {/* Provider & Environment Breakdown */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    {/* By Provider */}
+                    <div className="border border-[#1A1A1A] bg-[#050505] p-3 sm:p-4 rounded-sm">
+                      <h3 className="font-serif text-sm text-[#F5F5F5] mb-3 flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#C9A96E]" />
+                        Por Proveedor
+                      </h3>
+                      <div className="space-y-3">
+                        {tokenStats.byProvider.length === 0 ? (
+                          <div className="text-center font-mono text-[10px] text-[#555] py-4 uppercase">Sin consumo registrado</div>
+                        ) : (
+                          tokenStats.byProvider.map((prov) => {
+                            const pct = tokenStats.summary.totalTokens > 0
+                              ? (prov.totalTokens / tokenStats.summary.totalTokens) * 100
+                              : 0;
+                            return (
+                              <div key={prov._id} className="space-y-1">
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="uppercase text-[#A0A0A0]">{prov._id}</span>
+                                  <span className="text-[#F5F5F5] font-bold">{prov.totalTokens.toLocaleString()} ({pct.toFixed(0)}%)</span>
+                                </div>
+                                <div className="h-[4px] bg-[#111] rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-[#C9A96E]"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <div className="flex justify-between text-[8px] font-mono text-[#555]">
+                                  <span>{prov.count} llamadas</span>
+                                  <span>P: {prov.promptTokens.toLocaleString()} / C: {prov.completionTokens.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    {/* By Environment */}
+                    <div className="border border-[#1A1A1A] bg-[#050505] p-3 sm:p-4 rounded-sm">
+                      <h3 className="font-serif text-sm text-[#F5F5F5] mb-3 flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#C9A96E]" />
+                        Por Entorno
+                      </h3>
+                      <div className="space-y-3">
+                        {tokenStats.byType.length === 0 ? (
+                          <div className="text-center font-mono text-[10px] text-[#555] py-4 uppercase">Sin consumo registrado</div>
+                        ) : (
+                          tokenStats.byType.map((t) => {
+                            const pct = tokenStats.summary.totalTokens > 0
+                              ? (t.totalTokens / tokenStats.summary.totalTokens) * 100
+                              : 0;
+                            return (
+                              <div key={t._id} className="space-y-1">
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="capitalize text-[#A0A0A0]">
+                                    {t._id === 'test' ? 'Simulador (Admin)' : 'Público (Chat Web)'}
+                                  </span>
+                                  <span className="text-[#F5F5F5] font-bold">{t.totalTokens.toLocaleString()} ({pct.toFixed(0)}%)</span>
+                                </div>
+                                <div className="h-[4px] bg-[#111] rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full ${t._id === 'test' ? 'bg-[#A0A0A0]' : 'bg-[#C9A96E]'}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <div className="flex justify-between text-[8px] font-mono text-[#555]">
+                                  <span>{t.count} llamadas</span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Daily Usage Last 7 Days */}
+                  <div className="border border-[#1A1A1A] bg-[#050505] p-3 sm:p-4 rounded-sm">
+                    <h3 className="font-serif text-sm text-[#F5F5F5] mb-3 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#C9A96E]" />
+                      Historial Diario (Últimos 7 días)
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[10px] font-mono text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-[#1A1A1A] text-[#555]">
+                            <th className="py-2 font-mono uppercase font-bold tracking-wider">Fecha</th>
+                            <th className="py-2 font-mono uppercase font-bold tracking-wider text-right">Llamadas</th>
+                            <th className="py-2 font-mono uppercase font-bold tracking-wider text-right hidden sm:table-cell">Prompt</th>
+                            <th className="py-2 font-mono uppercase font-bold tracking-wider text-right hidden sm:table-cell">Completion</th>
+                            <th className="py-2 font-mono uppercase font-bold tracking-wider text-right text-[#C9A96E] whitespace-nowrap">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#151515] text-[#A0A0A0]">
+                          {tokenStats.dailyUsage.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="py-4 text-center text-[#555] uppercase">Sin historial en los últimos 7 días</td>
+                            </tr>
+                          ) : (
+                            tokenStats.dailyUsage.map((day) => (
+                              <tr key={day._id} className="hover:bg-[#111]/30">
+                                <td className="py-2">{day._id}</td>
+                                <td className="py-2 text-right">{day.count}</td>
+                                <td className="py-2 text-right hidden sm:table-cell">{day.promptTokens.toLocaleString()}</td>
+                                <td className="py-2 text-right hidden sm:table-cell">{day.completionTokens.toLocaleString()}</td>
+                                <td className="py-2 text-right text-[#C9A96E] font-bold">{day.totalTokens.toLocaleString()}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12 font-mono text-[10px] text-[#555] uppercase">No se pudieron cargar las estadísticas</div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-[#1A1A1A] pt-3 sm:pt-4 mt-4 sm:mt-6 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowStatsModal(false)}
+                className="px-4 py-2 border border-[#2A2A2A] hover:border-[#C9A96E]/50 bg-[#050505] hover:bg-[#C9A96E]/5 rounded-sm font-mono text-[10px] uppercase tracking-wider text-[#A0A0A0] hover:text-[#F5F5F5] transition-all"
+              >
+                Cerrar
+              </button>
+            </div>
+          </article>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

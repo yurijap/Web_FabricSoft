@@ -1,4 +1,7 @@
+import './s12b-criterios.css';
+
 const admissions = [
+
   ["Empresa con revenue USD 50M+ anuales", "Umbral mínimo · Verificado en SOW", "Mandatory"],
   ["Industria: Servicios Financieros, Inmobiliario o Logística", "Verticales con FSOs aplicables", "Mandatory"],
   ["Patrocinio ejecutivo CFO + CTO confirmado", "Patrocinio dual no negociable", "Mandatory"],

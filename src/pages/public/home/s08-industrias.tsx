@@ -1,3 +1,6 @@
+import { useInViewOnce } from '../../../hooks/useInViewOnce';
+import './s08-industrias.css';
+
 const industries = [
   {
     monogram: "S",
@@ -40,21 +43,38 @@ const industries = [
   }
 ];
 
-import { useInViewOnce } from '../../../hooks/useInViewOnce';
-
 export default function S08Industrias() {
   const [ref, isInView] = useInViewOnce<HTMLElement>();
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   return (
-    <section ref={ref} id="s08" className={`demo-section s08 transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+    <section
+      ref={ref}
+      className={`demo-section s08 ${isInView ? 'is-in-view' : ''}`}
+    >
       <div className="container">
         <div className="s08-intro">
           <div className="label">Industrias Focales</div>
-          <h2>Tres verticales donde el ERP es <span className="text-[#C9A96E]">columna vertebral</span> de la operación crítica.</h2>
+          <h2>Tres verticales donde el ERP es <em>columna vertebral</em> de la operación crítica.</h2>
         </div>
 
         <div className="industries-grid">
-          {industries.map((industry) => (
-            <div className="industry-card" key={industry.num}>
+          {industries.map((industry, index) => (
+            <div
+              className="industry-card"
+              key={industry.num}
+              style={{ '--index': index } as React.CSSProperties}
+              onMouseMove={handleMouseMove}
+            >
+              <div className="industry-card-rule" />
               <div className="industry-monogram">{industry.monogram}</div>
               <div className="industry-num">{industry.num}</div>
               <div className="industry-name">{industry.name}</div>

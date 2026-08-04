@@ -44,7 +44,16 @@ const INDUSTRY_LABEL: Record<string, string> = {
   logistica: 'Logística',
 };
 
-type TabKey = 'aplicar' | 'waitlist' | 'rfp-template' | 'benchmark-index' | 'cloud-comparator';
+type TabKey =
+  | 'aplicar'
+  | 'waitlist'
+  | 'rfp-template'
+  | 'benchmark-index'
+  | 'cloud-comparator'
+  | 'referencia'
+  | 'migration-roadmap'
+  | 'office-hours'
+  | 'readiness-score';
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'aplicar',           label: 'Aplicar' },
@@ -52,6 +61,10 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'rfp-template',      label: 'RFP Template' },
   { key: 'benchmark-index',   label: 'Benchmark' },
   { key: 'cloud-comparator',  label: 'Cloud Comparator' },
+  { key: 'referencia',        label: 'Referencias' },
+  { key: 'migration-roadmap', label: 'Migration Roadmap' },
+  { key: 'office-hours',      label: 'Office Hours' },
+  { key: 'readiness-score',   label: 'Readiness Score' },
 ];
 
 // Columns shown per tab
@@ -61,6 +74,10 @@ const TAB_COLUMNS: Record<TabKey, string[]> = {
   'rfp-template':     ['Fecha', 'Compañía', 'Cargo', 'Email', 'Estado', ''],
   'benchmark-index':  ['Fecha', 'Compañía', 'Cargo', 'Email', 'Estado', ''],
   'cloud-comparator': ['Fecha', 'Compañía', 'Cargo', 'Email', 'Estado', ''],
+  'referencia':       ['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
+  'migration-roadmap':['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
+  'office-hours':     ['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
+  'readiness-score':  ['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
 };
 
 function fmt(iso: string) {
@@ -192,7 +209,7 @@ export default function AdminLeads() {
       </div>
 
       {/* Tabs por fuente */}
-      <div style={{ padding: '0 36px', borderBottom: '1px solid #1a1a1a', display: 'flex', gap: 0, overflowX: 'auto' }}>
+      <div className="admin-leads-tabs">
         {TABS.map(tab => {
           const count = tabCount(tab.key);
           const active = activeTab === tab.key;
@@ -235,8 +252,25 @@ export default function AdminLeads() {
         })}
       </div>
 
+      {/* Selector móvil para fuentes */}
+      <div className="admin-leads-select-wrap">
+        <label htmlFor="admin-leads-source-select" style={{ display: 'none' }}>Seleccionar Fuente</label>
+        <select
+          id="admin-leads-source-select"
+          className="admin-leads-select"
+          value={activeTab}
+          onChange={(e) => switchTab(e.target.value as TabKey)}
+        >
+          {TABS.map(tab => (
+            <option key={tab.key} value={tab.key}>
+              {tab.label.toUpperCase()} ({tabCount(tab.key)})
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Filtros de estado dentro del tab */}
-      <div style={{ padding: '10px 36px', display: 'flex', gap: 8, borderBottom: '1px solid #111', flexWrap: 'wrap', background: '#030303' }}>
+      <div className="admin-leads-filters">
         {FILTERS.map(f => {
           const count = f === 'Todos' ? tabLeads.length : tabLeads.filter(l => l.status === f).length;
           return (
@@ -253,8 +287,8 @@ export default function AdminLeads() {
         })}
       </div>
 
-      {/* Tabla */}
-      <div className="fabric-admin-content" style={{ overflowX: 'auto' }}>
+      {/* Contenido (Tabla en Desktop, Tarjetas en Móvil) */}
+      <div className="fabric-admin-content admin-leads-content-container">
         {loading ? (
           <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Cargando...</div>
         ) : visible.length === 0 ? (
@@ -262,30 +296,91 @@ export default function AdminLeads() {
             {tabLeads.length === 0 ? 'Sin leads de esta fuente aún.' : 'Sin leads con este filtro.'}
           </div>
         ) : (
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
-                {columns.map(h => (
-                  <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400 }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Tabla (Desktop/Tablet grande) */}
+            <div className="admin-leads-table-wrap">
+              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
+                    {columns.map(h => (
+                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400 }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map(lead => (
+                    <tr
+                      key={lead._id}
+                      style={{ borderBottom: '1px solid #111', cursor: 'pointer', transition: 'background .15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#0F0F0F')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      onClick={() => openDetail(lead)}
+                    >
+                      {columns.map(col => <LeadCell key={col} col={col} lead={lead} />)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Tarjetas (Móvil/Tablet pequeña) */}
+            <div className="admin-leads-cards">
               {visible.map(lead => (
-                <tr
+                <div
                   key={lead._id}
-                  style={{ borderBottom: '1px solid #111', cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#0F0F0F')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  className="admin-lead-card"
                   onClick={() => openDetail(lead)}
                 >
-                  {columns.map(col => <LeadCell key={col} col={col} lead={lead} />)}
-                </tr>
+                  <div className="admin-lead-card-header">
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <span className="admin-lead-card-date">{fmt(lead.createdAt)}</span>
+                      <h3 className="admin-lead-card-empresa">{lead.empresa}</h3>
+                      <p className="admin-lead-card-nombre">{lead.nombre} · {lead.cargo}</p>
+                    </div>
+                    <div className="admin-lead-card-score">
+                      <span className="score-label">SCORE</span>
+                      <span className="score-val">{lead.score}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="admin-lead-card-body">
+                    {lead.industria && (
+                      <div className="admin-lead-card-meta">
+                        <span className="meta-label">Industria:</span>
+                        <span className="meta-val">{INDUSTRY_LABEL[lead.industria] ?? lead.industria}</span>
+                      </div>
+                    )}
+                    {lead.revenue && (
+                      <div className="admin-lead-card-meta">
+                        <span className="meta-label">Revenue:</span>
+                        <span className="meta-val">{lead.revenue}</span>
+                      </div>
+                    )}
+                    {lead.plazo && (
+                      <div className="admin-lead-card-meta">
+                        <span className="meta-label">Plazo:</span>
+                        <span className="meta-val">{lead.plazo}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="admin-lead-card-footer">
+                    <span style={{
+                      fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '4px 10px',
+                      border: `1px solid ${STATUS_COLOR[lead.status]}44`,
+                      color: STATUS_COLOR[lead.status],
+                      background: `${STATUS_COLOR[lead.status]}10`,
+                    }}>
+                      {lead.status}
+                    </span>
+                    <span className="admin-lead-card-action">Detalle →</span>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -322,7 +417,7 @@ export default function AdminLeads() {
             </div>
 
             {/* Métricas superiores */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', marginBottom: 40, border: '1px solid #141414' }}>
+            <div className="admin-leads-detail-metrics">
               <div style={{ padding: '24px 28px', textAlign: 'center' }}>
                 <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 10 }}>Score FABRIC</div>
                 <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 60, fontStyle: 'italic', color: '#C9A96E', lineHeight: 1 }}>{selected.score}</div>
@@ -346,7 +441,7 @@ export default function AdminLeads() {
             </div>
 
             {/* Cuerpo en dos columnas */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 48px' }}>
+            <div className="admin-leads-detail-body">
 
               {/* Columna izquierda — datos */}
               <div>

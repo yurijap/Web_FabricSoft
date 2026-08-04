@@ -1,5 +1,6 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
-import BackButton from '../../../components/BackButton';
+import './casos-detalle.css';
+
 
 interface TimelineItem { date: string; event: string; meta: string; }
 interface CaseBlock {
@@ -137,14 +138,10 @@ export default function CasoPage() {
   return (
     <>
       <main style={{ background: 'var(--bg-base)', minHeight: '100vh', paddingTop: 80 }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 56px 0' }}>
-          <BackButton />
-        </div>
-
         {/* Hero */}
-        <section style={{ borderBottom: '1px solid var(--border)', padding: '96px 0 64px' }}>
+        <section className="case-page-hero" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="container">
-            <Link to="/#s07" style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-tertiary)', letterSpacing: '0.2em', textTransform: 'uppercase', display: 'inline-block', marginBottom: 40 }}>
+            <Link to="/#casos" style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-tertiary)', letterSpacing: '0.2em', textTransform: 'uppercase', display: 'inline-block', marginBottom: 40 }}>
               ← Volver a casos
             </Link>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -158,7 +155,7 @@ export default function CasoPage() {
             </div>
             <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(36px,5vw,72px)', fontWeight: 300, lineHeight: 1.05, marginBottom: 24, maxWidth: 900 }}>{c.title}</h1>
             <p style={{ fontFamily: 'var(--sans)', fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 720, marginBottom: 56 }}>{c.deck}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 0, border: '1px solid var(--border)', borderBottom: 'none' }}>
+            <div className="grid-auto-fit" style={{ border: '1px solid var(--border)', borderBottom: 'none' }}>
               {c.meta.map((m, i) => (
                 <div key={i} style={{ padding: '24px 28px', borderBottom: '1px solid var(--border)', borderRight: i < c.meta.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--text-tertiary)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 8 }}>{m.label}</div>
@@ -174,7 +171,7 @@ export default function CasoPage() {
         {c.blocks.map((block, bi) => (
           <section key={bi} style={{ borderBottom: '1px solid var(--border)', padding: '80px 0' }}>
             <div className="container">
-              <div style={{ display: 'grid', gridTemplateColumns: 'clamp(120px,20vw,240px) 1fr', gap: '64px', alignItems: 'start' }}>
+              <div className="grid-2col" style={{ gap: '64px', alignItems: 'start' }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-tertiary)', letterSpacing: '0.25em', textTransform: 'uppercase', paddingTop: 8, position: 'sticky', top: 100 }}>{block.eyebrow}</div>
                 <div>
                   <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(24px,3vw,40px)', fontWeight: 300, marginBottom: 32, lineHeight: 1.15 }}>{block.title}</h2>
@@ -241,7 +238,7 @@ export default function CasoPage() {
         {/* CTA final — evidencia y NDA */}
         <section style={{ padding: '80px 0', borderTop: '1px solid var(--border)' }}>
           <div className="container">
-            <div style={{ display: 'grid', gridTemplateColumns: 'clamp(120px,20vw,240px) 1fr', gap: '64px', alignItems: 'start' }}>
+            <div className="grid-2col" style={{ gap: '64px', alignItems: 'start' }}>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-tertiary)', letterSpacing: '0.25em', textTransform: 'uppercase', paddingTop: 8 }}>06 · Evidencia</div>
               <div>
                 <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(24px,3vw,40px)', fontWeight: 300, marginBottom: 16, lineHeight: 1.15 }}>

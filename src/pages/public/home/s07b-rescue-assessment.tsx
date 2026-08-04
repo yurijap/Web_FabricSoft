@@ -378,13 +378,13 @@ export default function S07bRescueAssessment() {
                   {String(current + 1).padStart(2, '0')} / {questions.length}
                 </span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.12em' }}>
-                  {current} respondidas
+                  {Object.keys(answers).length} respondidas
                 </span>
               </div>
               <div style={{ height: 2, background: 'var(--border)', position: 'relative' }}>
                 <div style={{
                   height: '100%',
-                  width: `${(current / questions.length) * 100}%`,
+                  width: `${((current + 1) / questions.length) * 100}%`,
                   background: 'var(--accent)',
                   transition: 'width .3s ease',
                 }} />

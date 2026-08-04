@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthApi } from '../../config/api';
+import { Sparkles } from 'lucide-react';
 
 type OciStatus = 'Nuevo' | 'Contactado' | 'Acceso Coordinado' | 'Reporte Enviado' | 'Descartado';
 
@@ -65,6 +66,89 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
+const DEMO_SOLICITUDES: OciAudit[] = [
+  {
+    _id: 'demo-1',
+    empresa: 'Grupo Bimbo',
+    cargo: 'Director de Infraestructura TI',
+    email: 'infra@bimbo.com',
+    gastoOci: 'USD 45,000 / mes',
+    ndaAceptado: true,
+    score: 88,
+    status: 'Nuevo',
+    notas: 'Cliente busca migrar 12 bases de datos Oracle 19c locales a OCI y optimizar licenciamiento BYOL.',
+    historial: [{ fecha: '28 May 12:30', estado: 'Nuevo', autor: 'Sistema' }],
+    createdAt: '2026-05-28T18:30:00Z',
+  },
+  {
+    _id: 'demo-2',
+    empresa: 'MercadoLibre',
+    cargo: 'Tech Lead - Cloud Operations',
+    email: 'cloud-ops@mercadolibre.com',
+    gastoOci: 'USD 120,000 / mes',
+    ndaAceptado: true,
+    score: 92,
+    status: 'Acceso Coordinado',
+    notas: 'Accesos ya coordinados para el lunes a las 9:00 AM para auditoría de compartimientos de AWS/OCI.',
+    historial: [
+      { fecha: '25 May 09:00', estado: 'Nuevo', autor: 'Sistema' },
+      { fecha: '26 May 10:15', estado: 'Contactado', autor: 'Admin' },
+      { fecha: '27 May 14:30', estado: 'Acceso Coordinado', autor: 'Admin' },
+    ],
+    createdAt: '2026-05-25T15:00:00Z',
+  },
+  {
+    _id: 'demo-3',
+    empresa: 'Banco de México',
+    cargo: 'Subdirector de Arquitectura de Sistemas',
+    email: 'arq-sistemas@banxico.org.mx',
+    gastoOci: 'USD 85,000 / mes',
+    ndaAceptado: true,
+    score: 95,
+    status: 'Reporte Enviado',
+    notas: 'Reporte de optimización de costos entregado. Ahorro potencial proyectado del 34% anual.',
+    historial: [
+      { fecha: '20 May 08:30', estado: 'Nuevo', autor: 'Sistema' },
+      { fecha: '21 May 11:00', estado: 'Contactado', autor: 'Admin' },
+      { fecha: '22 May 16:00', estado: 'Acceso Coordinado', autor: 'Admin' },
+      { fecha: '24 May 18:22', estado: 'Reporte Enviado', autor: 'Admin' },
+    ],
+    createdAt: '2026-05-20T14:30:00Z',
+  },
+  {
+    _id: 'demo-4',
+    empresa: 'Cemex Corp',
+    cargo: 'Global ERP Operations Manager',
+    email: 'erp-ops@cemex.com',
+    gastoOci: 'USD 65,000 / mes',
+    ndaAceptado: true,
+    score: 83,
+    status: 'Contactado',
+    notas: 'Contactado por correo. Pendiente de programar llamada técnica para revisar alcances de auditoría de costos.',
+    historial: [
+      { fecha: '27 May 11:30', estado: 'Nuevo', autor: 'Sistema' },
+      { fecha: '28 May 15:45', estado: 'Contactado', autor: 'Admin' },
+    ],
+    createdAt: '2026-05-27T17:30:00Z',
+  },
+  {
+    _id: 'demo-5',
+    empresa: 'Femsa Retail',
+    cargo: 'IT FinOps Lead',
+    email: 'finops@femsa.com.mx',
+    gastoOci: 'USD 35,000 / mes',
+    ndaAceptado: false,
+    score: 55,
+    status: 'Descartado',
+    notas: 'Cliente descartado temporalmente. No aceptaron términos del NDA inicial ni proporcionaron telemetría.',
+    historial: [
+      { fecha: '18 May 10:00', estado: 'Nuevo', autor: 'Sistema' },
+      { fecha: '19 May 14:00', estado: 'Descartado', autor: 'Admin' },
+    ],
+    createdAt: '2026-05-18T16:00:00Z',
+  },
+];
+
 export default function AdminOciAudit() {
   const adminApi = useAuthApi();
 
@@ -77,8 +161,25 @@ export default function AdminOciAudit() {
   const [savedId, setSavedId]         = useState<string | null>(null);
   const [notaEdit, setNotaEdit]       = useState('');
   const [savingNota, setSavingNota]   = useState(false);
+  const [isDemoMode, setIsDemoMode]   = useState(false);
+
+  const demoStats = useMemo<Stats | null>(() => {
+    if (!isDemoMode) return stats;
+    const activeSolicitudes = solicitudes;
+    const porStatus: Partial<Record<OciStatus, number>> = {};
+    activeSolicitudes.forEach(s => {
+      porStatus[s.status] = (porStatus[s.status] || 0) + 1;
+    });
+    const scoreAlto = activeSolicitudes.filter(s => s.score >= 80).length;
+    return {
+      total: activeSolicitudes.length,
+      porStatus,
+      scoreAlto,
+    };
+  }, [isDemoMode, solicitudes, stats]);
 
   const fetchData = () => {
+    if (isDemoMode) return;
     setLoading(true);
     const params = filtro !== 'Todos' ? `?status=${encodeURIComponent(filtro)}` : '';
     Promise.all([
@@ -93,9 +194,40 @@ export default function AdminOciAudit() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, [filtro]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchData(); }, [filtro, isDemoMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStatus = async (id: string, status: OciStatus) => {
+    if (isDemoMode) {
+      setSolicitudes(prev => prev.map(s => {
+        if (s._id === id) {
+          return {
+            ...s,
+            status,
+            historial: [
+              ...s.historial,
+              { fecha: fmt(new Date().toISOString()), estado: status, autor: 'Admin (Demo)' }
+            ]
+          };
+        }
+        return s;
+      }));
+      setSelected(prev => {
+        if (prev?._id === id) {
+          return {
+            ...prev,
+            status,
+            historial: [
+              ...prev.historial,
+              { fecha: fmt(new Date().toISOString()), estado: status, autor: 'Admin (Demo)' }
+            ]
+          };
+        }
+        return prev;
+      });
+      setSavedId(id);
+      setTimeout(() => setSavedId(null), 2000);
+      return;
+    }
     setSaving(true);
     try {
       const res = await adminApi.patch(`/oci-audit/${id}/status`, { status, autor: 'Admin' });
@@ -110,6 +242,11 @@ export default function AdminOciAudit() {
 
   const handleGuardarNota = async () => {
     if (!selected) return;
+    if (isDemoMode) {
+      setSolicitudes(prev => prev.map(s => s._id === selected._id ? { ...s, notas: notaEdit } : s));
+      setSelected(prev => prev ? { ...prev, notas: notaEdit } : prev);
+      return;
+    }
     setSavingNota(true);
     try {
       await adminApi.patch(`/oci-audit/${selected._id}/notas`, { notas: notaEdit });
@@ -124,11 +261,27 @@ export default function AdminOciAudit() {
     setNotaEdit(s.notas || '');
   };
 
-  const totalSolicitudes = stats?.total ?? solicitudes.length;
-  const scoreAlto = stats?.scoreAlto ?? 0;
+  const totalSolicitudes = demoStats?.total ?? solicitudes.length;
+  const scoreAlto = demoStats?.scoreAlto ?? 0;
 
   return (
     <div className="fabric-admin-page">
+
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <div className="mb-4 flex items-center justify-between border border-accent/30 bg-[var(--accent-soft)] px-4 py-3 text-xs text-accent rounded-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="animate-pulse" />
+            <span><strong>Modo de Simulación Activo</strong>: Estás visualizando y operando con datos de demostración realistas para pruebas. Las modificaciones se guardarán en memoria temporal.</span>
+          </div>
+          <button 
+            onClick={() => { setIsDemoMode(false); setSolicitudes([]); setSelected(null); }}
+            className="underline font-bold uppercase tracking-wider text-[10px] hover:text-text-primary bg-transparent border-none cursor-pointer"
+          >
+            Salir de simulación
+          </button>
+        </div>
+      )}
 
       {/* Hero */}
       <div className="fabric-admin-hero">
@@ -147,7 +300,7 @@ export default function AdminOciAudit() {
       </div>
 
       {/* Stats rápidas */}
-      {stats && (
+      {demoStats && (
         <div style={{ padding: '16px 36px', borderBottom: '1px solid #1a1a1a', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
           {PIPELINE.map(s => (
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -156,7 +309,7 @@ export default function AdminOciAudit() {
                 {s}
               </span>
               <span style={{ fontSize: 11, color: '#F5F5F5', fontWeight: 600 }}>
-                {stats.porStatus[s] ?? 0}
+                {demoStats.porStatus[s] ?? 0}
               </span>
             </div>
           ))}
@@ -193,8 +346,42 @@ export default function AdminOciAudit() {
             Cargando solicitudes...
           </div>
         ) : solicitudes.length === 0 ? (
-          <div style={{ fontSize: 11, color: '#5A5A5A', padding: '40px 0' }}>
-            Sin solicitudes registradas.
+          <div className="max-w-2xl border border-border/60 bg-bg-panel/40 p-8 rounded-sm text-center mx-auto my-12 shadow-lg">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-accent/25 bg-[var(--accent-soft)] text-accent">
+              <Sparkles size={20} />
+            </div>
+            <h3 className="font-serif text-xl text-text-primary mb-2">Consola de Diagnósticos OCI Cost Audit</h3>
+            <p className="text-xs text-text-secondary leading-relaxed mb-6">
+              Esta sección administra las solicitudes de auditoría de costos de infraestructura OCI que completan los clientes en el portal público.
+              Analiza parámetros clave como consumo mensual, licenciamiento BYOL, y acuerdos NDA.
+            </p>
+            <div className="border border-border/40 bg-bg-base/30 rounded p-4 text-left text-xs text-text-tertiary mb-6 space-y-2.5">
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Calificación automática de leads en base a potencial de optimización técnica.</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Seguimiento de accesos de lectura compartidos por el cliente en OCI.</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-accent">•</span>
+                <span>Control de entregas de reportes de optimización y registros de NDA.</span>
+              </div>
+            </div>
+            <p className="text-xs text-text-secondary mb-4 italic">
+              No se detectaron solicitudes en la base de datos viva.
+            </p>
+            <button
+              onClick={() => {
+                setSolicitudes(DEMO_SOLICITUDES);
+                setIsDemoMode(true);
+              }}
+              style={{ fontFamily: 'var(--sans), sans-serif' }}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-accent/50 bg-[var(--accent-soft)] px-6 text-[10px] font-semibold uppercase tracking-[0.15em] text-accent transition hover:bg-accent hover:text-black cursor-pointer"
+            >
+              Cargar datos de simulación (Modo Demo)
+            </button>
           </div>
         ) : (
           <>
