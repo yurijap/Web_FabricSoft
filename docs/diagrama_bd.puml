@@ -1,0 +1,389 @@
+@startuml diagrama_bd
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam linetype ortho
+
+skinparam class {
+  BackgroundColor #FAFAFA
+  BorderColor #888888
+  BorderThickness 1.5
+  HeaderBackgroundColor #2C2C2C
+  HeaderFontColor #FFFFFF
+  HeaderFontStyle bold
+  FontSize 11
+  AttributeFontSize 10
+}
+
+skinparam arrow {
+  Color #555555
+  Thickness 1.5
+}
+
+title <size:18><b>Diagrama de Clases — Base de Datos</b></size>\n<size:12>FABRIC · MongoDB Atlas · 23 Colecciones</size>
+
+' ═══════════════════════════════════════════════════════════
+'  AUTENTICACIÓN Y USUARIOS
+' ═══════════════════════════════════════════════════════════
+
+class User <<collection>> #EEF6FF {
+  + _id            : ObjectId
+  + clerkId        : String  <<unique>>
+  + email          : String
+  + firstName      : String
+  + lastName       : String
+  + photoUrl       : String
+  + rol            : String  <<admin|user>>
+  + status         : String  <<activo|bloqueado|desactivado>>
+  + createdAt      : Date
+}
+
+' ═══════════════════════════════════════════════════════════
+'  LEADS Y PROSPECTOS
+' ═══════════════════════════════════════════════════════════
+
+class Lead <<collection>> #FFF3E0 {
+  + _id            : ObjectId
+  + nombre         : String
+  + cargo          : String
+  + empresa        : String
+  + email          : String  <<corporativo>>
+  + industria      : String
+  + ingresos       : Number
+  + iniciativa     : String
+  + plazo          : String
+  + score          : Number  <<0-95>>
+  + status         : String  <<Nuevo|WaitList|Aceptado|Rechazado>>
+  + source         : String
+  + notas          : String
+  + historial      : HistorialCambio[]
+  + createdAt      : Date
+}
+
+class HistorialCambio <<embedded>> #FFF8F0 {
+  + statusAnterior : String
+  + statusNuevo    : String
+  + autor          : String
+  + fecha          : Date
+  + nota           : String
+}
+
+class AgenteLead <<collection>> #FFF3E0 {
+  + _id            : ObjectId
+  + leadRef        : ObjectId  <<ref: Lead>>
+  + followups      : String[]
+  + metadata       : Object
+  + createdAt      : Date
+}
+
+class CloudComparatorLead <<collection>> #FFF3E0 {
+  + _id            : ObjectId
+  + nombre         : String
+  + empresa        : String
+  + email          : String
+  + datosComparacion : Object
+  + createdAt      : Date
+}
+
+' ═══════════════════════════════════════════════════════════
+'  CAPACIDAD Y OFFICE HOURS
+' ═══════════════════════════════════════════════════════════
+
+class Capacidad <<collection>> #E8F5E9 {
+  + _id            : ObjectId
+  + slots          : Slot[]
+  + admissionOpen  : Boolean
+  + waitlist       : WaitlistEntry[]
+  + quarters       : Object
+  + updatedAt      : Date
+}
+
+class Slot <<embedded>> #F1F8F1 {
+  + index          : Number
+  + status         : String  <<activo|reservado|libre>>
+  + empresa        : String
+  + desde          : Date
+}
+
+class WaitlistEntry <<embedded>> #F1F8F1 {
+  + nombre         : String
+  + empresa        : String
+  + email          : String
+  + fecha          : Date
+  + ranking        : Number
+}
+
+class OfficeHoursBooking <<collection>> #E8F5E9 {
+  + _id            : ObjectId
+  + fecha          : Date
+  + horaInicio     : String
+  + horaFin        : String
+  + disponible     : Boolean
+  + reservadoPor   : String
+  + empresa        : String
+  + email          : String
+  + confirmado     : Boolean
+  + googleEventId  : String
+  + createdAt      : Date
+}
+
+' ═══════════════════════════════════════════════════════════
+'  DIAGNÓSTICOS Y ASSESSMENTS
+' ═══════════════════════════════════════════════════════════
+
+class DiagnosticoOracle <<collection>> #F3E5F5 {
+  + _id            : ObjectId
+  + empresa        : String
+  + contactoEmail  : String
+  + modulos        : ModuloEvaluado[]
+  + riskScore      : Number
+  + reporte        : Object
+  + status         : String
+  + createdAt      : Date
+}
+
+class ModuloEvaluado <<embedded>> #F9F0FF {
+  + nombre         : String
+  + respuestas     : Object
+  + puntuacion     : Number
+  + riesgo         : String  <<bajo|medio|alto>>
+}
+
+class RescueAssessment <<collection>> #F3E5F5 {
+  + _id            : ObjectId
+  + empresa        : String
+  + email          : String
+  + questionSetRef : ObjectId  <<ref: RescueAssessmentQuestionSet>>
+  + respuestas     : Object[]
+  + scoreTotal     : Number
+  + status         : String
+  + createdAt      : Date
+}
+
+class RescueAssessmentQuestionSet <<collection>> #F3E5F5 {
+  + _id            : ObjectId
+  + categoria      : String
+  + version        : String
+  + preguntas      : Pregunta[]
+  + activo         : Boolean
+}
+
+class Pregunta <<embedded>> #F9F0FF {
+  + id             : String
+  + texto          : String
+  + tipo           : String  <<single|multi|scale>>
+  + opciones       : String[]
+  + peso           : Number
+}
+
+class OciAudit <<collection>> #F3E5F5 {
+  + _id            : ObjectId
+  + empresa        : String
+  + email          : String
+  + datos          : Object
+  + reporteUrl     : String
+  + createdAt      : Date
+}
+
+' ═══════════════════════════════════════════════════════════
+'  CONTENIDO Y PUBLICACIONES
+' ═══════════════════════════════════════════════════════════
+
+class PaperCatalog <<collection>> #E3F2FD {
+  + _id            : ObjectId
+  + titulo         : String
+  + descripcion    : String
+  + numero         : String
+  + fileKey        : String
+  + activo         : Boolean
+  + createdAt      : Date
+}
+
+class PaperAccess <<collection>> #E3F2FD {
+  + _id            : ObjectId
+  + paperRef       : ObjectId  <<ref: PaperCatalog>>
+  + email          : String
+  + empresa        : String
+  + ip             : String
+  + accessedAt     : Date
+}
+
+class ResearchLetterSuscriptor <<collection>> #E3F2FD {
+  + _id            : ObjectId
+  + email          : String
+  + nombre         : String
+  + empresa        : String
+  + activo         : Boolean
+  + createdAt      : Date
+}
+
+class ResearchLetterConfig <<collection>> #E3F2FD {
+  + _id            : ObjectId
+  + asunto         : String
+  + cuerpo         : String
+  + activo         : Boolean
+  + updatedAt      : Date
+}
+
+' ═══════════════════════════════════════════════════════════
+'  MÉTRICAS Y TRANSPARENCIA
+' ═══════════════════════════════════════════════════════════
+
+class Metricas <<collection>> #FFF9C4 {
+  + _id            : ObjectId
+  + id             : String  <<unique key>>
+  + label          : String
+  + publicLabel    : String
+  + value          : String
+  + unit           : String
+  + version        : Number
+  + publica        : Boolean
+  + updatedAt      : Date
+}
+
+class Transparencia <<collection>> #FFF9C4 {
+  + _id            : ObjectId
+  + tipo           : String
+  + titulo         : String
+  + descripcion    : String
+  + datos          : Object
+  + fecha          : Date
+  + visible        : Boolean
+}
+
+class BenchmarkAccess <<collection>> #FFF9C4 {
+  + _id            : ObjectId
+  + email          : String
+  + empresa        : String
+  + accessedAt     : Date
+}
+
+' ═══════════════════════════════════════════════════════════
+'  GOVERNANCE
+' ═══════════════════════════════════════════════════════════
+
+class NdaRequest <<collection>> #FCE4EC {
+  + _id            : ObjectId
+  + nombre         : String
+  + empresa        : String
+  + email          : String
+  + status         : String  <<pendiente|firmado|rechazado>>
+  + createdAt      : Date
+}
+
+class Referencia <<collection>> #FCE4EC {
+  + _id            : ObjectId
+  + titulo         : String
+  + descripcion    : String
+  + fileKey        : String
+  + activo         : Boolean
+  + createdAt      : Date
+}
+
+' ═══════════════════════════════════════════════════════════
+'  SISTEMA — IA Y LOGS
+' ═══════════════════════════════════════════════════════════
+
+class AgenteIA <<collection>> #E8EAF6 {
+  + _id            : ObjectId
+  + nombre         : String
+  + instrucciones  : String
+  + modelo         : String
+  + activo         : Boolean
+  + updatedAt      : Date
+}
+
+class ConversacionIA <<collection>> #E8EAF6 {
+  + _id            : ObjectId
+  + agenteRef      : ObjectId  <<ref: AgenteIA>>
+  + empresa        : String
+  + email          : String
+  + historial      : Mensaje[]
+  + contextoDiagnostico : Object
+  + createdAt      : Date
+}
+
+class Mensaje <<embedded>> #ECEEF9 {
+  + role           : String  <<user|assistant>>
+  + content        : String
+  + timestamp      : Date
+}
+
+class Log <<collection>> #ECEFF1 {
+  + _id            : ObjectId
+  + accion         : String
+  + categoria      : String
+  + status         : String  <<OK|WARN|ERROR>>
+  + detalle        : String
+  + metadata       : Object
+  + createdAt      : Date
+}
+
+class TranslationCache <<collection>> #ECEFF1 {
+  + _id            : ObjectId
+  + originalText   : String
+  + translatedText : String
+  + sourceLang     : String
+  + targetLang     : String
+  + provider       : String  <<deepl|fallback>>
+  + createdAt      : Date  <<TTL index>>
+}
+
+class TrackingData <<schema>> #ECEFF1 {
+  + utm_source     : String
+  + utm_medium     : String
+  + utm_campaign   : String
+  + referrer       : String
+}
+
+' ═══════════════════════════════════════════════════════════
+'  RELACIONES
+' ═══════════════════════════════════════════════════════════
+
+' Auth
+User "1" -- "0..*" Lead              : tiene >
+User "1" -- "0..*" OfficeHoursBooking : reserva >
+User "1" -- "0..*" ConversacionIA    : inicia >
+
+' Leads embeds
+Lead "1" *-- "0..*" HistorialCambio  : historial (embedded)
+Lead "1" -- "0..1" AgenteLead        : seguimiento >
+
+' Capacidad embeds
+Capacidad "1" *-- "1..*" Slot          : slots (embedded)
+Capacidad "1" *-- "0..*" WaitlistEntry : waitlist (embedded)
+
+' Diagnósticos
+DiagnosticoOracle "1" *-- "1..*" ModuloEvaluado : modulos (embedded)
+RescueAssessment  "0..*" --> "1" RescueAssessmentQuestionSet : usa >
+RescueAssessmentQuestionSet "1" *-- "1..*" Pregunta : preguntas (embedded)
+
+' Papers
+PaperCatalog "1" -- "0..*" PaperAccess : registra accesos >
+
+' IA
+AgenteIA "1" -- "0..*" ConversacionIA : gestiona >
+ConversacionIA "1" *-- "1..*" Mensaje : historial (embedded)
+
+' Tracking (mixin)
+Lead ..> TrackingData        : incluye (UTM)
+CloudComparatorLead ..> TrackingData : incluye (UTM)
+
+' ═══════════════════════════════════════════════════════════
+'  LEYENDA
+' ═══════════════════════════════════════════════════════════
+legend bottom left
+  |= Color de cabecera |= Dominio |
+  |<#EEF6FF> Azul claro    | Autenticación y Usuarios   |
+  |<#FFF3E0> Naranja claro | Leads y Prospectos          |
+  |<#E8F5E9> Verde claro   | Capacidad y Office Hours    |
+  |<#F3E5F5> Lila claro    | Diagnósticos y Assessments  |
+  |<#E3F2FD> Azul pastel   | Contenido y Publicaciones   |
+  |<#FFF9C4> Amarillo pálido | Métricas y Transparencia  |
+  |<#FCE4EC> Rosa claro    | Governance (NDA, Referencias) |
+  |<#E8EAF6> Índigo claro  | IA y Agentes               |
+  |<#ECEFF1> Gris claro    | Sistema (Logs, Caché, Tracking) |
+endlegend
+
+@enduml

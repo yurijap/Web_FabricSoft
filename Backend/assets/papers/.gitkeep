@@ -1,0 +1,8 @@
+
+# Coloca aquí los PDFs de los papers con el nombre exacto:
+#   paper-01.pdf
+#   paper-02.pdf
+#   paper-03.pdf
+#
+# El controller los lee al momento de aprobar una solicitud
+# y los adjunta directamente al email via Resend.

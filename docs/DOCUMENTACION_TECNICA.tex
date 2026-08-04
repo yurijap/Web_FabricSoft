@@ -1,0 +1,1744 @@
+%% ============================================================
+%%  DOCUMENTACIÓN TÉCNICA — FABRIC
+%%  Plataforma Web de Consultoría Oracle Cloud Infrastructure
+%%  Equipo A — Concurso FabriSoft 2026
+%% ============================================================
+\documentclass[12pt, a4paper, twoside]{report}
+
+%% ── Codificación y fuentes ──────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish, mexico]{babel}
+\usepackage{lmodern}
+
+%% ── Márgenes y geometría ───────────────────────────────────
+\usepackage[top=3cm, bottom=3cm, left=3.5cm, right=2.5cm,
+            headheight=15pt]{geometry}
+
+%% ── Tipografía y espaciado ──────────────────────────────────
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{microtype}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+%% ── Colores ─────────────────────────────────────────────────
+\usepackage[dvipsnames, table]{xcolor}
+\definecolor{fabricgold}{HTML}{C9A96E}
+\definecolor{fabricdark}{HTML}{050203}
+\definecolor{fabricgray}{HTML}{6B7280}
+\definecolor{fabriclight}{HTML}{F3F4F6}
+\definecolor{codebg}{HTML}{F8F9FA}
+\definecolor{coderule}{HTML}{DEE2E6}
+
+%% ── Gráficos e imágenes ────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf, labelsep=period,
+              justification=centering}
+
+%% ── Tablas ──────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+%% ── Código fuente ───────────────────────────────────────────
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  breakatwhitespace=true,
+  frame=single,
+  rulecolor=\color{coderule},
+  backgroundcolor=\color{codebg},
+  numbers=left,
+  numberstyle=\tiny\color{fabricgray},
+  numbersep=8pt,
+  xleftmargin=15pt,
+  xrightmargin=5pt,
+  showstringspaces=false,
+  captionpos=b,
+  aboveskip=8pt,
+  belowskip=8pt,
+  tabsize=2,
+  keepspaces=true,
+}
+\lstdefinestyle{bash}{
+  language=bash,
+  morekeywords={pnpm,npm,node,vercel,git,cd},
+  keywordstyle=\color{fabricgold},
+  stringstyle=\color{BrickRed},
+  commentstyle=\color{fabricgray}\itshape,
+}
+\lstdefinestyle{json}{
+  language=Java,
+  morekeywords={true,false,null},
+  keywordstyle=\color{NavyBlue},
+  stringstyle=\color{BrickRed},
+}
+\lstdefinestyle{env}{
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{NavyBlue},
+  stringstyle=\color{BrickRed},
+  commentstyle=\color{fabricgray}\itshape,
+  morecomment=[l]{\#},
+}
+
+%% ── Encabezados y pies de página ────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\textcolor{fabricgray}{\leftmark}}
+\fancyhead[RO]{\small\textcolor{fabricgray}{\rightmark}}
+\fancyfoot[C]{\small\textcolor{fabricgray}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{fabricgold}\leaders\hrule height \headrulewidth\hfill}}
+
+%% ── Hipervínculos ───────────────────────────────────────────
+\usepackage[hidelinks, colorlinks=false,
+            pdftitle={Documentación Técnica FABRIC},
+            pdfauthor={Equipo A — Concurso FabriSoft 2026},
+            pdflang={es-MX}]{hyperref}
+\usepackage{bookmark}
+
+%% ── Cajas y recuadros ───────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+\tcbset{
+  notebox/.style={
+    colback=fabriclight,
+    colframe=fabricgold,
+    fonttitle=\bfseries\small,
+    title={Nota},
+    boxrule=0.5pt,
+    breakable,
+    left=6pt, right=6pt, top=4pt, bottom=4pt,
+  },
+  warnbox/.style={
+    colback=yellow!8,
+    colframe=orange!70!black,
+    fonttitle=\bfseries\small,
+    title={Importante},
+    boxrule=0.5pt,
+    breakable,
+    left=6pt, right=6pt, top=4pt, bottom=4pt,
+  },
+  codebox/.style={
+    colback=codebg,
+    colframe=coderule,
+    boxrule=0.4pt,
+    breakable,
+    left=4pt, right=4pt, top=2pt, bottom=2pt,
+    fontupper=\ttfamily\footnotesize,
+  },
+}
+
+%% ── Símbolos y listas ───────────────────────────────────────
+\usepackage{enumitem}
+\setlist{nosep, leftmargin=*, topsep=4pt}
+\usepackage{amssymb}
+\usepackage{pifont}
+\newcommand{\cmark}{\textcolor{green!60!black}{\ding{51}}}
+\newcommand{\xmark}{\textcolor{red}{\ding{55}}}
+
+%% ── Título del documento ────────────────────────────────────
+\title{%
+  {\Huge\bfseries Documentación Técnica del Sistema}\\[0.5em]
+  {\large FABRIC — Plataforma Web de Consultoría\\
+  Oracle Cloud Infrastructure}
+}
+\author{Equipo A \\ Concurso FabriSoft 2026}
+\date{Mayo 2026}
+
+%% ============================================================
+\begin{document}
+%% ============================================================
+
+%% ── Portada ─────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\color{fabricgold}\rule{\linewidth}{2pt}}
+  \vspace{1cm}
+
+  {\Huge\bfseries Documentación Técnica\\[0.3em]
+   del Sistema\par}
+  \vspace{1.2cm}
+
+  {\LARGE\bfseries\color{fabricgold} FABRIC\par}
+  \vspace{0.5cm}
+  {\large Plataforma Web de Consultoría\\
+  Oracle Cloud Infrastructure\par}
+
+  \vspace{1.5cm}
+  {\color{fabricgold}\rule{0.4\linewidth}{0.6pt}}
+  \vspace{1.5cm}
+
+  \begin{tabular}{ll}
+    \textbf{Nombre del proyecto:} & FABRIC — Ingeniería Crítica Oracle \\[4pt]
+    \textbf{Organización:}        & FABRIC SOFT MEXICO SA DE CV \\[4pt]
+    \textbf{Sitio en producción:} & \texttt{equipo-a-v2.vercel.app} \\[4pt]
+    \textbf{Versión del documento:} & 1.0 \\[4pt]
+    \textbf{Fecha de elaboración:} & Mayo 2026 \\[4pt]
+    \textbf{Equipo de desarrollo:} & Equipo A \\[4pt]
+    \textbf{Clasificación:}       & Documento técnico interno \\
+  \end{tabular}
+
+  \vfill
+  {\color{fabricgold}\rule{\linewidth}{2pt}}
+  \vspace{0.3cm}
+  {\small\color{fabricgray} Concurso FabriSoft 2026 \quad|\quad
+   Todos los derechos reservados}
+\end{titlepage}
+
+%% ── Tabla de contenido ──────────────────────────────────────
+\tableofcontents
+\clearpage
+
+%% ============================================================
+%%  INTRODUCCIÓN
+%% ============================================================
+\clearpage
+\chapter*{Introducción}
+\addcontentsline{toc}{chapter}{Introducción}
+\markboth{Introducción}{}
+
+El presente documento recoge la documentación técnica completa del sistema \textbf{FABRIC},
+una plataforma web de alto rendimiento diseñada para posicionar y operar los servicios de
+consultoría especializada en \textbf{Oracle Cloud Infrastructure (OCI)} en el mercado mexicano
+de empresas grandes y medianas.
+
+FABRIC no es un sitio informativo estático: es un sistema operativo integral que automatiza
+la calificación de prospectos, gestiona la agenda de consultoría, provee herramientas de
+diagnóstico en línea, administra contenido de investigación y conecta al cliente con un agente
+de inteligencia artificial especializado en OCI. Todo ello bajo un modelo de admisión selectiva:
+no todos los solicitantes son aceptados como clientes.
+
+El sistema fue concebido, diseñado e implementado por el \textbf{Equipo~A} dentro del marco
+del concurso de desarrollo web organizado por FabriSoft. La plataforma responde a una necesidad
+real del mercado: la falta de consultoras mexicanas con credencial técnica visible, operaciones
+transparentes y capacidad para manejar migraciones críticas a nube de Oracle.
+
+Este documento está organizado de modo que un lector técnico ---desarrollador, arquitecto de
+software o evaluador--- pueda comprender el sistema desde la problemática que lo origina hasta
+los procedimientos de instalación y uso final.
+
+%% ============================================================
+%%  CAPÍTULO 1 — PROBLEMÁTICA
+%% ============================================================
+\clearpage
+\chapter{Problemática}
+
+\section{Contexto del Mercado}
+
+Oracle Cloud Infrastructure (OCI) es la plataforma de nube empresarial de Oracle Corporation,
+orientada a cargas de trabajo críticas: bases de datos Exadata, sistemas ERP, aplicaciones de
+misión crítica y migraciones desde \textit{on-premise} hacia nube. En México, empresas de
+sectores como financiero, inmobiliario, logística y manufactura operan sobre infraestructura
+Oracle y enfrentan la necesidad de migrar, optimizar costos o mejorar la disponibilidad de
+sus sistemas.
+
+Sin embargo, el ecosistema de consultoría Oracle en México presenta múltiples deficiencias:
+
+\begin{itemize}
+  \item \textbf{Opacidad operativa:} Las consultoras tradicionales no publican métricas reales
+        de proyectos, tiempos de entrega ni índices de riesgo.
+
+  \item \textbf{Ausencia de credencial técnica verificable:} No existe un mecanismo público que
+        permita a los prospectos evaluar la profundidad técnica de una consultora antes de iniciar
+        una conversación de ventas.
+
+  \item \textbf{Procesos de venta reactivos:} La mayoría de las consultoras no califican a sus
+        clientes; toman cualquier proyecto disponible, lo que genera sobrecontratación y proyectos
+        fallidos.
+
+  \item \textbf{Falta de herramientas de diagnóstico previo:} Los prospectos no pueden estimar
+        el riesgo de su infraestructura actual ni el TCO de una migración sin contratar una
+        consultoría costosa.
+
+  \item \textbf{Baja accesibilidad al conocimiento especializado:} Los documentos técnicos,
+        \textit{papers} y metodologías de ingeniería Oracle se encuentran detrás de barreras de
+        registro o son inexistentes en español.
+\end{itemize}
+
+\section{Necesidades Identificadas}
+
+A partir de este contexto, se identificaron las siguientes necesidades concretas que el sistema
+FABRIC debe resolver:
+
+\begin{center}
+\begin{longtable}{C{0.8cm} L{8.5cm} L{4cm}}
+  \toprule
+  \textbf{\#} & \textbf{Necesidad} & \textbf{Stakeholder} \\
+  \midrule
+  \endhead
+  N1 & Calificar automáticamente a prospectos según criterios objetivos
+       (industria, ingresos, urgencia) & Equipo de consultoría \\[4pt]
+  N2 & Mostrar métricas de capacidad real con actualización en tiempo real
+       & Prospectos \\[4pt]
+  N3 & Proveer herramientas de autodiagnóstico Oracle sin interacción humana
+       previa & Prospectos \\[4pt]
+  N4 & Gestionar la agenda de \textit{Office Hours} del director con integración
+       real de calendario & Director y prospectos \\[4pt]
+  N5 & Publicar contenido de investigación técnica con control de acceso
+       & Comunidad técnica \\[4pt]
+  N6 & Controlar internamente el estado de todos los prospectos, leads y proyectos
+       & Administradores \\[4pt]
+  N7 & Soportar múltiples idiomas (español/inglés) para alcance regional
+       & Prospectos internacionales \\[4pt]
+  N8 & Cumplir estándares SEO para posicionamiento orgánico en buscadores
+       & Marketing \\
+  \bottomrule
+  \caption{Necesidades identificadas del sistema}
+\end{longtable}
+\end{center}
+
+\section{Limitaciones del Enfoque Tradicional}
+
+Un sitio web corporativo estático o un CMS genérico (WordPress, Webflow) no puede resolver
+estas necesidades porque:
+
+\begin{itemize}
+  \item No permite lógica de negocio compleja (calificación de leads con \textit{scoring});
+  \item No integra en tiempo real con Google Calendar, sistemas de email y bases de datos;
+  \item No provee autenticación con roles diferenciados (admin vs.\ público);
+  \item No soporta agentes de IA con contexto de conversación persistente.
+\end{itemize}
+
+Por estas razones se decidió desarrollar un sistema a medida con arquitectura de aplicación
+web moderna.
+
+%% ============================================================
+%%  CAPÍTULO 2 — MARCO TEÓRICO
+%% ============================================================
+\clearpage
+\chapter{Marco Teórico}
+
+\section{Arquitecturas de Aplicaciones Web Modernas}
+
+Las aplicaciones web contemporáneas de alto rendimiento se construyen sobre el paradigma de
+\textbf{Aplicación de Página Única} (\textit{Single Page Application}, SPA) en el frontend,
+combinada con una \textbf{API REST} en el backend. Esta separación permite:
+
+\begin{itemize}
+  \item \textbf{Escalabilidad independiente:} El frontend se sirve como archivos estáticos
+        desde una CDN; el backend escala según carga de cómputo.
+  \item \textbf{Experiencia de usuario fluida:} No hay recargas completas de página; las
+        transiciones son instantáneas.
+  \item \textbf{Separación de responsabilidades:} El backend expone datos; el frontend los
+        presenta.
+\end{itemize}
+
+FABRIC adopta esta arquitectura con un frontend en \textbf{React + Vite} y un backend en
+\textbf{Node.js + Express}, conectados mediante llamadas HTTP/JSON autenticadas con tokens
+Bearer.
+
+\section{React y el Paradigma de Componentes}
+
+\textbf{React} (desarrollado por Meta) es una biblioteca JavaScript para construir interfaces
+de usuario mediante componentes reutilizables. La versión~19 ---usada en este proyecto---
+introduce mejoras de rendimiento en el sistema de reconciliación del DOM virtual. Los principios
+clave que guían el desarrollo son:
+
+\begin{itemize}
+  \item \textbf{Componentes funcionales con Hooks:} La lógica de estado y efectos se encapsula
+        en funciones, no en clases.
+  \item \textbf{Context API:} Permite compartir estado entre componentes sin
+        \textit{prop drilling}, equivalente a un store liviano.
+  \item \textbf{Renderizado declarativo:} El desarrollador describe el estado deseado de la UI;
+        React calcula los cambios mínimos al DOM.
+\end{itemize}
+
+\section{TypeScript como Lenguaje de Tipado Estático}
+
+\textbf{TypeScript} es un superconjunto tipado de JavaScript que añade verificación de tipos
+en tiempo de compilación. En proyectos de mediana y gran escala, TypeScript reduce errores de
+integración entre módulos, provee autocompletado preciso en el IDE y hace explícitos los
+contratos entre funciones y componentes. FABRIC usa TypeScript~6.0 en el frontend para todos
+los módulos \texttt{.ts} y \texttt{.tsx}.
+
+\section{Node.js y Express para APIs REST}
+
+\textbf{Node.js} es un entorno de ejecución JavaScript del lado del servidor basado en el
+motor V8 de Chrome. Su modelo de I/O no bloqueante lo hace especialmente eficiente para APIs
+que manejan múltiples solicitudes concurrentes sin requerir múltiples hilos.
+\textbf{Express.js}~(versión~5.2 en este proyecto) es el framework minimalista más utilizado
+sobre Node.js para construir APIs REST; provee enrutamiento, middleware, manejo de errores y
+extensibilidad mediante plugins.
+
+\section{MongoDB y Mongoose}
+
+\textbf{MongoDB} es una base de datos NoSQL orientada a documentos. Los datos se almacenan en
+formato BSON (\textit{Binary JSON}), lo que permite estructuras flexibles sin esquema rígido.
+\textbf{Mongoose} es el ODM (\textit{Object Document Mapper}) que añade esquemas, validaciones
+y consultas expresivas sobre MongoDB desde Node.js. FABRIC usa MongoDB Atlas, la versión
+gestionada en la nube, con conexión SSL y replicación automática.
+
+\section{Autenticación Moderna con Clerk}
+
+\textbf{Clerk} es una plataforma de autenticación como servicio (\textit{AuthaaS}) que provee
+gestión de usuarios, sesiones seguras, webhooks y control de metadatos (roles) sin requerir
+implementar un sistema de autenticación desde cero. Clerk emite tokens JWT firmados que el
+backend puede verificar con la clave pública de Clerk, garantizando la autenticidad de cada
+solicitud. La sincronización entre Clerk y MongoDB se realiza mediante \textbf{webhooks Svix},
+que envían eventos firmados (\texttt{user.created}, \texttt{user.updated},
+\texttt{user.deleted}) al backend cuando cambia el estado de un usuario.
+
+\section{Internacionalización (i18n)}
+
+La internacionalización de una aplicación web implica separar el texto visible al usuario del
+código que lo presenta, permitiendo cargar diferentes versiones según el idioma del visitante.
+FABRIC implementa un sistema de i18n en dos capas:
+
+\begin{enumerate}
+  \item \textbf{Traducciones estáticas:} Cadenas de texto definidas en un archivo de
+        traducciones (\texttt{translations.ts}) y servidas mediante un Context de React.
+  \item \textbf{Traducciones dinámicas:} Contenido generado dinámicamente se traduce en tiempo
+        real mediante la API de DeepL, con caché en MongoDB para evitar traducciones repetidas.
+\end{enumerate}
+
+\section{SEO Técnico en SPAs}
+
+Las aplicaciones SPA presentan desafíos para el SEO porque el contenido se renderiza en
+JavaScript, no en HTML estático. FABRIC resuelve esto mediante:
+
+\begin{itemize}
+  \item \textbf{Meta tags dinámicos:} El componente \texttt{SeoManager} inyecta
+        \texttt{<title>}, \texttt{<meta>}, OpenGraph y Twitter Cards por ruta.
+  \item \textbf{JSON-LD:} Datos estructurados en formato Schema.org para que los motores de
+        búsqueda comprendan la jerarquía del contenido.
+  \item \textbf{Sitemap XML:} Archivo \texttt{/sitemap.xml} con las 46~URLs públicas del
+        sitio, prioridades y frecuencias de actualización.
+  \item \textbf{Robots.txt:} Control de indexación que bloquea rutas administrativas y de
+        autenticación.
+\end{itemize}
+
+\section{Google Calendar API y Agendamiento}
+
+La integración con \textbf{Google Calendar API v3} mediante autenticación por cuenta de
+servicio (\textit{Service Account}) permite que el sistema cree, lea y elimine eventos en el
+calendario del director de forma programática, sin requerir autorización interactiva del
+usuario en cada operación. Los slots de disponibilidad se calculan considerando tanto los
+eventos existentes en el calendario como las reservaciones almacenadas en MongoDB.
+
+\section{Inteligencia Artificial Conversacional}
+
+El sistema integra la \textbf{API de OpenAI} para proveer un agente conversacional
+especializado en diagnósticos Oracle. El agente mantiene contexto de conversación mediante
+el historial almacenado en MongoDB, responde con \textit{streaming} para reducir la latencia
+percibida y puede ser configurado y monitoreado desde el panel administrativo.
+
+%% ============================================================
+%%  CAPÍTULO 3 — ANÁLISIS DEL SISTEMA
+%% ============================================================
+\clearpage
+\chapter{Análisis del Sistema}
+
+\section{Requerimientos Funcionales}
+
+\begin{center}
+\begin{longtable}{C{1.4cm} L{3.5cm} L{8.5cm}}
+  \toprule
+  \textbf{ID} & \textbf{Módulo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  RF-01 & Landing pública & Presentar la propuesta de valor con secciones animadas, métricas en tiempo real y casos de estudio \\[4pt]
+  RF-02 & Formulario de aplicación & Recibir solicitudes con validación, scoring automático y email de confirmación \\[4pt]
+  RF-03 & Scoring de leads & Calcular la puntuación de cada prospecto según industria, ingresos, urgencia e iniciativa \\[4pt]
+  RF-04 & Gestión de capacidad & Mostrar slots disponibles/activos/reservados; controlar apertura de admisión \\[4pt]
+  RF-05 & Office Hours & Permitir reservar sesiones de 30~min con integración a Google Calendar \\[4pt]
+  RF-06 & Diagnóstico Oracle & Autoevaluación de infraestructura Oracle con reporte de riesgo \\[4pt]
+  RF-07 & Rescue Assessment & Cuestionario para proyectos Oracle en estado crítico \\[4pt]
+  RF-08 & OCI Cost Optimizer & Herramienta de estimación de costos OCI \\[4pt]
+  RF-09 & Roadmap Generator & Generador de plan de migración a OCI \\[4pt]
+  RF-10 & Cloud Comparator & Comparativo de costos entre Oracle Cloud y competidores \\[4pt]
+  RF-11 & Papers de investigación & Catálogo con control de acceso y registro de descargas \\[4pt]
+  RF-12 & Research Letters & Suscripción a boletín de investigación técnica \\[4pt]
+  RF-13 & Casos de estudio & Páginas detalladas de proyectos con audit trail público \\[4pt]
+  RF-14 & Transparencia operativa & Métricas públicas con versionado \\[4pt]
+  RF-15 & Gestión NDA & Rastreo de solicitudes de acuerdos de confidencialidad \\[4pt]
+  RF-16 & Agente de IA & Chat conversacional especializado con historial persistente \\[4pt]
+  RF-17 & Autenticación y roles & Registro, login y control de acceso por roles \\[4pt]
+  RF-18 & Panel de administración & Dashboard con 20+~vistas para gestionar todos los módulos \\[4pt]
+  RF-19 & Internacionalización & Cambio dinámico ES/EN con persistencia en localStorage \\[4pt]
+  RF-20 & SEO automático & Gestión dinámica de meta tags, OpenGraph y JSON-LD por ruta \\
+  \bottomrule
+  \caption{Requerimientos funcionales del sistema}
+\end{longtable}
+\end{center}
+
+\section{Requerimientos No Funcionales}
+
+\begin{center}
+\begin{longtable}{C{1.4cm} L{3cm} L{9cm}}
+  \toprule
+  \textbf{ID} & \textbf{Categoría} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  RNF-01 & Rendimiento      & Tiempo de carga inicial \(<\)~3~s en conexión de banda ancha \\[4pt]
+  RNF-02 & Seguridad        & Autenticación JWT firmada; rutas administrativas protegidas \\[4pt]
+  RNF-03 & Disponibilidad   & Despliegue en Vercel con CDN global y 99.9\,\% de \textit{uptime} \\[4pt]
+  RNF-04 & Escalabilidad    & Arquitectura \textit{stateless}; MongoDB Atlas con replicación automática \\[4pt]
+  RNF-05 & Mantenibilidad   & Código TypeScript tipado; separación en componentes y controladores \\[4pt]
+  RNF-06 & i18n             & Soporte completo ES/EN con detección automática de idioma \\[4pt]
+  RNF-07 & SEO              & Sitemap, robots.txt, structured data y meta tags para todas las rutas públicas \\[4pt]
+  RNF-08 & Compatibilidad   & Soporte para navegadores modernos (Chrome, Firefox, Edge, Safari — últimas 2~versiones) \\[4pt]
+  RNF-09 & Responsividad    & Diseño adaptable a móviles, tabletas y escritorio \\[4pt]
+  RNF-10 & Auditoría        & Registro de logs para todas las acciones críticas \\
+  \bottomrule
+  \caption{Requerimientos no funcionales del sistema}
+\end{longtable}
+\end{center}
+
+\section{Actores del Sistema}
+
+\begin{center}
+\begin{tabular}{L{3.5cm} L{9.5cm}}
+  \toprule
+  \textbf{Actor} & \textbf{Descripción} \\
+  \midrule
+  Visitante anónimo    & Accede a la landing, herramientas públicas y formulario de aplicación sin necesidad de autenticación \\[6pt]
+  Prospecto            & Visitante que ha enviado una solicitud a través del formulario de aplicación \\[6pt]
+  Administrador        & Usuario autenticado con rol \texttt{admin} con acceso completo al panel de control \\[6pt]
+  Sistema externo      & Clerk (auth), Google Calendar, Resend (email), OpenAI, DeepL \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Casos de Uso Principales}
+
+\subsection*{CU-01: Aplicar como cliente}
+
+\textbf{Actor:} Visitante anónimo \quad
+\textbf{Precondición:} El período de admisión está abierto
+
+\textbf{Flujo principal:}
+\begin{enumerate}
+  \item El visitante navega a \texttt{/aplicar}.
+  \item Completa el formulario con datos de empresa, industria, ingresos anuales y descripción
+        de la iniciativa Oracle.
+  \item El sistema valida que el email sea corporativo (rechaza Gmail, Yahoo, Hotmail, etc.).
+  \item El sistema calcula el \textit{score} del prospecto (0--95 puntos) basándose en
+        industria, ingresos, urgencia y descripción.
+  \item Si la industria es calificada, el lead recibe estado \textit{Nuevo}; de lo contrario,
+        \textit{WaitList}.
+  \item El sistema envía un email de confirmación al prospecto.
+  \item El prospecto queda registrado en el panel de administración.
+\end{enumerate}
+
+\textbf{Flujo alternativo:} Si el email es de dominio público, se muestra error de validación.
+
+\subsection*{CU-02: Reservar Office Hours}
+
+\textbf{Actor:} Visitante / Prospecto \quad
+\textbf{Precondición:} Existen slots disponibles en el calendario
+
+\textbf{Flujo principal:}
+\begin{enumerate}
+  \item El visitante accede a \texttt{/office-hours}.
+  \item El calendario muestra los días disponibles del mes (consultando Google Calendar~+ DB).
+  \item El visitante selecciona un día; el sistema muestra los slots de 30~min (09:00--16:00).
+  \item El visitante ingresa nombre, empresa y email; confirma la reservación.
+  \item El sistema crea el evento en Google Calendar y registra la reservación en MongoDB.
+  \item Se envía email de confirmación al visitante.
+\end{enumerate}
+
+\subsection*{CU-03: Realizar diagnóstico Oracle}
+
+\textbf{Actor:} Visitante / Prospecto
+
+\textbf{Flujo principal:}
+\begin{enumerate}
+  \item El visitante accede al módulo de diagnóstico.
+  \item Responde el cuestionario modular sobre su infraestructura Oracle.
+  \item El sistema calcula un índice de riesgo y genera un reporte visual.
+  \item El reporte incluye recomendaciones de migración y acción prioritaria.
+\end{enumerate}
+
+\subsection*{CU-04: Gestionar leads (admin)}
+
+\textbf{Actor:} Administrador \quad
+\textbf{Precondición:} Sesión autenticada con rol \texttt{admin}
+
+\textbf{Flujo principal:}
+\begin{enumerate}
+  \item El administrador accede a \texttt{/admin/leads}.
+  \item Visualiza todos los leads con su estado, \textit{score}, empresa e industria.
+  \item Cambia el estado del lead (Nuevo $\to$ En revisión $\to$ Aceptado / Rechazado).
+  \item Agrega notas internas; el historial se registra automáticamente con \textit{timestamp}
+        y autor.
+\end{enumerate}
+
+\section{Modelo de Datos Conceptual}
+
+El sistema maneja las siguientes entidades principales y sus relaciones:
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+Usuario (Clerk + MongoDB)
+  |-- tiene muchos --> Lead
+  |-- tiene muchos --> OfficeHoursBooking
+  +-- tiene muchos --> ConversacionIA
+
+Lead
+  |-- pertenece a  --> Usuario
+  +-- tiene historial --> HistorialCambios[]
+
+OfficeHoursBooking
+  +-- sincronizado con --> GoogleCalendarEvent
+
+DiagnosticoOracle
+  +-- genera --> ReporteDeRiesgo
+
+RescueAssessment
+  +-- compuesto de --> ConjuntoPreguntas[]
+
+PaperCatalog
+  +-- tiene muchos --> PaperAccess (descargas)
+
+Transparencia
+  +-- tiene muchas --> MetricasPublicas (versionadas)
+
+AgenteIA
+  +-- tiene muchas --> ConversacionesIA
+        +-- tiene muchos --> Mensajes[]
+\end{verbatim}
+\end{tcolorbox}
+
+%% ============================================================
+%%  CAPÍTULO 4 — DISEÑO DEL SISTEMA
+%% ============================================================
+\clearpage
+\chapter{Diseño del Sistema}
+
+\section{Arquitectura General}
+
+El sistema FABRIC sigue una arquitectura \textbf{cliente--servidor desacoplada} (arquitectura
+de dos capas con API REST). Los dos subsistemas principales se despliegan de forma independiente
+y se comunican exclusivamente a través de HTTP/JSON.
+
+%% ── IMAGEN 1: Diagrama de Arquitectura ──────────────────────
+\begin{figure}[H]
+  \centering
+  % ---------------------------------------------------------
+  % INSTRUCCIONES PARA INSERTAR EL DIAGRAMA DE ARQUITECTURA:
+  %
+  \includegraphics[width=0.97\linewidth]{images/diagrama_arquitectura}
+  \caption{Diagrama de arquitectura general del sistema FABRIC}
+  \label{fig:arquitectura}
+\end{figure}
+
+\section{Estructura del Repositorio}
+
+El proyecto es un \textbf{monorepo gestionado con pnpm workspaces}, donde frontend y backend
+conviven en el mismo repositorio pero se despliegan de forma independiente.
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+FabriSoft/
+|-- src/                    Frontend -- React + TypeScript
+|   |-- auth/               Logica de proteccion de rutas
+|   |-- components/         Componentes reutilizables
+|   |   +-- ui/             Componentes de interfaz base
+|   |-- config/             Configuracion de axios y API
+|   |-- hooks/              Custom React Hooks
+|   |-- i18n/               Internacionalizacion
+|   |-- layouts/            Layouts (publico / admin)
+|   |-- pages/
+|   |   |-- admin/          Panel admin (20+ paginas)
+|   |   +-- public/         Paginas publicas
+|   |-- seo/                Gestion dinamica de meta tags
+|   |-- store/              Estado global (Context API)
+|   +-- App.tsx             Raiz: Providers + Router
+|
+|-- Backend/                Backend -- Node.js + Express
+|   |-- components/         Routers de cada modulo
+|   |-- config/             DB, validacion de env
+|   |-- controllers/        Logica de negocio (19)
+|   |-- models/             Esquemas Mongoose (23)
+|   |-- routers/            Router principal
+|   |-- services/           Email, calendario
+|   +-- utils/              Utilidades (tracking UTM)
+|
+|-- public/                 Assets estaticos
+|-- docs/                   Documentacion
+|-- index.html              Entry point HTML
+|-- vite.config.ts          Configuracion Vite
+|-- vercel.json             Config despliegue frontend
++-- pnpm-workspace.yaml     Definicion del monorepo
+\end{verbatim}
+\end{tcolorbox}
+
+\section{Diseño del Frontend}
+
+\subsection{Sistema de Rutas}
+
+El enrutamiento se gestiona con \textbf{React Router DOM v7}. Las rutas se dividen en tres
+grupos protegidos:
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+App Router
+|-- PublicRouteProtector (bloquea si ya autenticado)
+|   |-- /                      Home
+|   |-- /casos/:slug           Caso de estudio
+|   |-- /aplicar               Formulario de aplicacion
+|   |-- /office-hours          Agenda de consultoria
+|   |-- /optimizador-oci       Optimizador OCI
+|   |-- /roadmap               Generador de roadmap
+|   |-- /readiness             Evaluacion de madurez
+|   |-- /research-letters      Publicaciones
+|   |-- /investigacion/paper/:num  Papers
+|   +-- ... (19 rutas publicas)
+|
+|-- Rutas Clerk
+|   |-- /acceso                Inicio de sesion
+|   +-- /crear-cuenta          Registro
+|
++-- ProtectorRoles (requiere rol 'admin')
+    |-- /admin                 Dashboard principal
+    |-- /admin/leads           Gestion de leads
+    |-- /admin/papers          Gestion de papers
+    |-- /admin/capacidad       Slots de capacidad
+    |-- /admin/office-hours    Gestion de agenda
+    |-- /admin/agente-ia       Config. agente IA
+    |-- /admin/diagnosticos-oracle
+    +-- ... (17 rutas admin)
+\end{verbatim}
+\end{tcolorbox}
+
+\subsection{Gestión de Estado Global}
+
+El estado compartido se gestiona con \textbf{React Context API} con patrón reducer.
+El \texttt{FabricContext} centraliza cuatro dominios de datos:
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[language=Java, numbers=none]
+interface FabricState {
+  capacidad:   CapacidadState;      // Slots de proyectos
+  metricas:    MetricaPublica[];    // Metricas publicas
+  leads:       Lead[];              // Prospectos (admin)
+  officeHours: OfficeHoursSlot[];  // Slots de agenda
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Flujo de Autenticación}
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+1. Usuario visita /acceso
+2. Clerk muestra formulario de login (tema oscuro)
+3. Clerk emite JWT -> redirige a /verificar-acceso
+4. VerificarAcceso.tsx llama POST /api/auth/login
+5. Backend valida token con Clerk SDK, consulta MongoDB
+6. Sincroniza rol en Clerk publicMetadata
+7. rol='admin' -> /admin  |  otro rol -> /
+8. Cada request: useAuthApi() inyecta Bearer token
+\end{verbatim}
+\end{tcolorbox}
+
+\subsection{Sistema de Internacionalización}
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+Cambio de idioma
+      |
+      v
+I18nProvider (Context)
+      |-- actualiza localStorage ('fabric_lang')
+      |-- re-renderiza componentes con useI18n()
+      |
+      v
+PageTranslator.tsx (MutationObserver)
+      |-- detecta nuevos nodos de texto en el DOM
+      |-- omite data-no-translate y textos protegidos
+      |-- consulta cache local (WeakMap)
+      |-- si no: POST /api/i18n/translate (120ms debounce)
+      +-- backend: DeepL API -> cache MongoDB
+\end{verbatim}
+\end{tcolorbox}
+
+\section{Diseño del Backend}
+
+\subsection{Arquitectura de la API}
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+HTTP Request
+      |
+      v
+index.js (Server Entry)
+      |-- CORS middleware
+      |-- Raw body parser (solo /webhook)
+      |-- JSON body parser
+      |
+      v
+app.routers.js (Router principal)
+      |-- /api/auth/*         auth.component.js
+      |-- /api/leads/*        leads.component.js
+      |-- /api/office-hours/* officeHours.component.js
+      |-- /api/i18n/*         i18n.component.js
+      |-- ... (19 componentes)
+      |
+      v
+Controller (logica de negocio)
+      |-- Valida datos de entrada
+      |-- Consulta/actualiza modelos Mongoose
+      |-- Llama servicios externos
+      |-- Registra log en MongoDB
+      +-- Responde JSON al cliente
+
+      v
+Model (Mongoose Schema)
+      +-- Interactua con MongoDB Atlas
+\end{verbatim}
+\end{tcolorbox}
+
+\subsection{Manejo de Autenticación en el Backend}
+
+Para rutas públicas no se requiere token. Para rutas administrativas, el middleware
+\texttt{ClerkExpressRequireAuth()} verifica el token Bearer y rechaza con HTTP~401 si
+es inválido.
+
+El webhook de Clerk se procesa \textbf{antes} que el JSON middleware porque requiere el
+cuerpo crudo para verificar la firma Svix:
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=bash, numbers=none]
+// index.js -- orden correcto de middleware
+app.post('/api/auth/webhook',
+  express.raw({ type: 'application/json' }),
+  webhookHandler);
+app.use(express.json()); // Despues del webhook
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Diseño de la Base de Datos}
+
+%% ── IMAGEN 2: Diagrama ER / Clases ──────────────────────────
+\begin{figure}[H]
+  \centering
+  % ---------------------------------------------------------
+  % INSTRUCCIONES PARA INSERTAR EL DIAGRAMA ER / CLASES:
+  %
+  \includegraphics[width=0.97\linewidth]{images/diagrama_bd}
+  \caption{Diagrama entidad-relación de la base de datos (MongoDB Atlas)}
+  \label{fig:diagrama_bd}
+\end{figure}
+
+A continuación se describen las colecciones principales de la base de datos:
+
+\subsection*{Colección \texttt{users}}
+\begin{center}
+\begin{tabular}{L{3cm} L{3.5cm} L{6.5cm}}
+  \toprule
+  \textbf{Campo} & \textbf{Tipo} & \textbf{Descripción} \\
+  \midrule
+  clerkId     & String (único) & Identificador de Clerk \\
+  email       & String         & Correo electrónico \\
+  firstName   & String         & Nombre \\
+  lastName    & String         & Apellido \\
+  photoUrl    & String         & URL de foto de perfil \\
+  rol         & String         & Rol: \texttt{admin} / \texttt{user} \\
+  status      & String         & \texttt{activo} / \texttt{bloqueado} / \texttt{desactivado} \\
+  createdAt   & Date           & Fecha de registro \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Colección \texttt{leads}}
+\begin{center}
+\begin{tabular}{L{3cm} L{3.5cm} L{6.5cm}}
+  \toprule
+  \textbf{Campo} & \textbf{Tipo} & \textbf{Descripción} \\
+  \midrule
+  nombre      & String  & Nombre del prospecto \\
+  cargo       & String  & Cargo en la empresa \\
+  empresa     & String  & Nombre de la empresa \\
+  email       & String  & Email corporativo \\
+  industria   & String  & Sector de la empresa \\
+  ingresos    & Number  & Ingresos anuales (referencia) \\
+  iniciativa  & String  & Descripción de la iniciativa Oracle \\
+  plazo       & String  & Urgencia de decisión \\
+  score       & Number  & Puntuación calculada (0--95) \\
+  status      & String  & Estado en el proceso \\
+  source      & String  & Canal de origen \\
+  notas       & String  & Notas internas \\
+  historial   & Array   & Historial de cambios de estado \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Colección \texttt{officeHoursbookings}}
+\begin{center}
+\begin{tabular}{L{3.5cm} L{3cm} L{6.5cm}}
+  \toprule
+  \textbf{Campo} & \textbf{Tipo} & \textbf{Descripción} \\
+  \midrule
+  fecha           & Date    & Fecha del slot \\
+  horaInicio      & String  & Hora de inicio (HH:MM) \\
+  disponible      & Boolean & Si el slot está libre \\
+  reservadoPor    & String  & Nombre del reservante \\
+  empresa         & String  & Empresa del reservante \\
+  email           & String  & Email de contacto \\
+  confirmado      & Boolean & Si fue confirmado \\
+  googleEventId   & String  & ID del evento en Google Calendar \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Colección \texttt{diagnosticooracles}}
+\begin{center}
+\begin{tabular}{L{3cm} L{3.5cm} L{6.5cm}}
+  \toprule
+  \textbf{Campo} & \textbf{Tipo} & \textbf{Descripción} \\
+  \midrule
+  empresa     & String  & Empresa que realiza el diagnóstico \\
+  modulos     & Array   & Módulos Oracle evaluados \\
+  riskScore   & Number  & Índice de riesgo calculado \\
+  reporte     & Object  & Reporte con recomendaciones \\
+  createdAt   & Date    & Fecha del diagnóstico \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Diseño de Interfaz de Usuario}
+
+\subsection{Sistema de Diseño}
+
+FABRIC utiliza un sistema de diseño minimalista \textit{dark-first}:
+
+\begin{center}
+\begin{tabular}{L{4cm} L{3.5cm} L{6cm}}
+  \toprule
+  \textbf{Token} & \textbf{Valor} & \textbf{Uso} \\
+  \midrule
+  Color de fondo         & \texttt{\#050203} & Fondo base de toda la aplicación \\
+  Color de acento (gold) & \texttt{\#C9A96E} & Botones, bordes destacados, títulares \\
+  Color de texto         & \texttt{\#FFFFFF} & Texto principal \\
+  Texto secundario       & \texttt{rgba(255,255,255,0.6)} & Texto descriptivo \\
+  Fuente principal       & Inter / sistema   & Texto corrido \\
+  Radio de bordes        & 4--8\,px          & Bordes de tarjetas \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Componentes de Animación}
+
+\begin{itemize}
+  \item \textbf{Framer Motion:} Transiciones de entrada de secciones (fade-in, slide-up),
+        animaciones de estado en botones y hover de tarjetas.
+  \item \textbf{Spline 3D:} Modelos 3D interactivos embebidos en secciones clave del hero.
+  \item \textbf{tsParticles:} Efectos de partículas en el fondo del hero.
+  \item \textbf{Scroll Reveal:} Hook \texttt{useInViewOnce} con IntersectionObserver para
+        activar animaciones al llegar al viewport.
+\end{itemize}
+
+%% ============================================================
+%%  CAPÍTULO 5 — COSTOS
+%% ============================================================
+\clearpage
+\chapter{Costos}
+
+\section{Costos de Desarrollo}
+
+El sistema fue desarrollado por el \textbf{Equipo~A} como participación en el concurso
+FabriSoft 2026. La estimación de horas se basa en el trabajo efectivo registrado durante
+el período de desarrollo.
+
+\begin{center}
+\begin{longtable}{L{7.5cm} C{2cm} L{4cm}}
+  \toprule
+  \textbf{Módulo} & \textbf{Horas} & \textbf{Descripción breve} \\
+  \midrule
+  \endhead
+  Arquitectura base (monorepo, Vite, Express, MongoDB) & 12 h & Config.\ inicial, estructura, pipelines \\[3pt]
+  Sistema de autenticación (Clerk + roles + webhooks) & 16 h & Login, registro, rutas, sync DB \\[3pt]
+  Landing page y secciones animadas (S01--S15) & 40 h & Hero, secciones, animaciones, mobile \\[3pt]
+  Formulario de aplicación y scoring de leads & 10 h & Validación, cálculo de score, email \\[3pt]
+  Panel de administración (20+~páginas) & 35 h & Dashboard, leads, métricas, capacidad \\[3pt]
+  Office Hours (frontend + backend + Google Calendar) & 14 h & Calendario, reservas, Calendar API \\[3pt]
+  Diagnóstico Oracle y Rescue Assessment & 18 h & Formularios, scoring, reportes \\[3pt]
+  Herramientas OCI (Optimizer, Roadmap, Comparator, TCO) & 20 h & Calculadoras y generadores \\[3pt]
+  Agente IA (frontend chat + backend streaming) & 16 h & Chat, historial, OpenAI \\[3pt]
+  Internacionalización ES/EN & 10 h & Context i18n, PageTranslator, DeepL \\[3pt]
+  SEO (SeoManager, sitemap, robots, JSON-LD) & 6 h & Meta dinámicos, structured data \\[3pt]
+  Casos de estudio y audit trail & 8 h & Páginas de proyectos \\[3pt]
+  Papers, Research Letters, NDA, Referencias & 10 h & Gestión de contenido \\[3pt]
+  Transparencia y métricas versionadas & 6 h & Historial de métricas públicas \\[3pt]
+  Email service (templates Resend) & 8 h & Emails transaccionales \\[3pt]
+  Estado global (FabricContext + store) & 6 h & Context API, reducers, hooks \\[3pt]
+  Testing, depuración y ajustes finales & 20 h & QA, bugs, optimización \\
+  \midrule
+  \textbf{Total} & \textbf{255 h} & \\
+  \bottomrule
+  \caption{Estimación de horas de desarrollo por módulo}
+\end{longtable}
+\end{center}
+
+\section{Costos de Infraestructura (Operación Mensual)}
+
+\begin{center}
+\begin{tabular}{L{4cm} C{2.5cm} C{2.5cm} L{4cm}}
+  \toprule
+  \textbf{Servicio} & \textbf{Plan} & \textbf{Costo/mes} & \textbf{Notas} \\
+  \midrule
+  Vercel (Frontend)    & Hobby  & \$0 USD  & Hasta 100\,GB ancho de banda \\
+  Vercel (Backend)     & Hobby  & \$0 USD  & Hasta 100\,GB ancho de banda \\
+  MongoDB Atlas        & M0 Free& \$0 USD  & 512\,MB de almacenamiento \\
+  Clerk                & Free   & \$0 USD  & 10,000 usuarios activos/mes \\
+  Resend               & Free   & \$0 USD  & 100 emails/día, 3,000/mes \\
+  Google Calendar API  & Free   & \$0 USD  & Sin límite práctico \\
+  OpenAI API           & Pay-per-use & \$5--15 USD & Según uso del agente IA \\
+  DeepL API            & Free   & \$0 USD  & 500,000 caracteres/mes \\
+  \midrule
+  \textbf{Total mínimo} & & \textbf{\$0--15 USD} & \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Costos en Producción (Estimado Escalado)}
+
+\begin{center}
+\begin{tabular}{L{4.5cm} L{3.5cm} C{3cm}}
+  \toprule
+  \textbf{Servicio} & \textbf{Plan recomendado} & \textbf{Costo/mes} \\
+  \midrule
+  Vercel          & Pro        & \$20 USD \\
+  MongoDB Atlas   & M10 Shared & \$57 USD \\
+  Clerk           & Pro        & \$25 USD \\
+  Resend          & Pro        & \$20 USD \\
+  OpenAI          & Pay-per-use& \$50--200 USD \\
+  Dominio + SSL   & Registrador& \$15 USD/año \\
+  \midrule
+  \textbf{Total estimado} & & \textbf{\$175--320 USD} \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Costo de Licencias de Software}
+
+Todas las tecnologías usadas son de código abierto o tienen licencias gratuitas para proyectos
+comerciales:
+
+\begin{center}
+\begin{tabular}{L{4cm} L{3cm} C{2cm}}
+  \toprule
+  \textbf{Tecnología} & \textbf{Licencia} & \textbf{Costo} \\
+  \midrule
+  React~19        & MIT        & \$0 \\
+  Vite~6          & MIT        & \$0 \\
+  TypeScript      & Apache~2.0 & \$0 \\
+  Express~5       & MIT        & \$0 \\
+  Mongoose        & MIT        & \$0 \\
+  Tailwind CSS~4  & MIT        & \$0 \\
+  Framer Motion   & MIT        & \$0 \\
+  Lucide React    & ISC        & \$0 \\
+  \midrule
+  \textbf{Total} & & \textbf{\$0} \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+%% ============================================================
+%%  CAPÍTULO 6 — IMPLEMENTACIÓN DEL SISTEMA
+%% ============================================================
+\clearpage
+\chapter{Implementación del Sistema}
+
+\section{Tecnologías Utilizadas}
+
+\subsection*{Stack Frontend}
+\begin{center}
+\begin{tabular}{L{4.5cm} C{2.5cm} L{6cm}}
+  \toprule
+  \textbf{Tecnología} & \textbf{Versión} & \textbf{Rol en el sistema} \\
+  \midrule
+  React                    & 19.2.6   & Framework de UI \\
+  TypeScript               & 6.0.2    & Tipado estático \\
+  Vite                     & 6.3.5    & Build tool y dev server \\
+  React Router DOM         & 7.15.1   & Enrutamiento SPA \\
+  Tailwind CSS             & 4.3.0    & Estilos utilitarios \\
+  Framer Motion            & 12.39.0  & Animaciones y transiciones \\
+  @clerk/clerk-react       & 5.61.6   & Autenticación frontend \\
+  Axios                    & 1.16.1   & Cliente HTTP \\
+  @splinetool/react-spline & 4.1.0    & Modelos 3D interactivos \\
+  @tsparticles/react       & 4.0.4    & Efectos de partículas \\
+  Lucide React             & 1.16.0   & Íconos SVG \\
+  Sonner                   & 2.0.7    & Notificaciones toast \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Stack Backend}
+\begin{center}
+\begin{tabular}{L{4.5cm} C{2.5cm} L{6cm}}
+  \toprule
+  \textbf{Tecnología} & \textbf{Versión} & \textbf{Rol en el sistema} \\
+  \midrule
+  Node.js                & \(\geq\)18 LTS & Runtime del servidor \\
+  Express                & 5.2.1    & Framework web \\
+  MongoDB Atlas          & Cloud    & Base de datos \\
+  Mongoose               & 9.6.2    & ODM para MongoDB \\
+  @clerk/clerk-sdk-node  & 4.13.23  & Verificación de tokens \\
+  svix                   & 1.94.0   & Verificación de webhooks \\
+  googleapis             & 172.0.0  & Google Calendar API \\
+  Resend                 & 6.12.3   & Servicio de email \\
+  xlsx                   & 0.18.5   & Exportación a Excel \\
+  luxon                  & 3.7.2    & Zonas horarias \\
+  multer                 & 2.1.1    & Subida de archivos \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Módulos Implementados}
+
+\subsection{Módulo de Scoring de Leads}
+
+Implementado en \texttt{leads.controller.js}. La puntuación máxima es de 95~puntos,
+distribuida en cuatro componentes:
+
+\begin{center}
+\begin{tabular}{L{6cm} C{2cm} L{5.5cm}}
+  \toprule
+  \textbf{Componente} & \textbf{Pts máx.} & \textbf{Criterio} \\
+  \midrule
+  Ingresos anuales  & 35 & \(\geq\)\$500M~MXN~=~35; \(\geq\)\$200M~=~25; \(\geq\)\$50M~=~15; \(<\)\$50M~=~10 \\[4pt]
+  Industria calificada & 25 & Financiero, Inmobiliario, Logística, Manufactura, Gobierno, Healthcare \\[4pt]
+  Urgencia de decisión & 25 & \(<\)1~mes~=~25; 1--3~m~=~20; 3--6~m~=~15; 6--12~m~=~10; \(>\)12~m~=~5 \\[4pt]
+  Descripción de iniciativa & 10 & \(\geq\)200~chars~=~10; \(\geq\)100~=~7; \(<\)100~=~5 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Módulo de Traducción Dinámica}
+
+El \texttt{PageTranslator} observa el DOM en tiempo real mediante \texttt{MutationObserver}
+y traduce el contenido al cambiar de idioma:
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+1. Clic en LanguageToggle
+2. I18nContext.setLanguage('en') -> localStorage
+3. MutationObserver detecta cambio de lang
+4. Por cada nodo de texto en el DOM:
+   a. Cache local (WeakMap) existe -> aplica
+   b. Sino: batch (debounce 120ms)
+5. POST /api/i18n/translate
+6. Backend: cache MongoDB -> DeepL API -> guarda
+7. Frontend aplica y actualiza cache local
+\end{verbatim}
+\end{tcolorbox}
+
+\subsection{Módulo de Office Hours}
+
+Usa \textit{Service Account} de Google Cloud (autenticación server-to-server):
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+Flujo de consulta de disponibilidad:
+  GET /api/office-hours/mes?year=YYYY&month=MM
+  -> Google Calendar: listEvents (timeMin/timeMax)
+  -> MongoDB: bookings del mes
+  -> Combina y devuelve slots libres
+
+Flujo de reservacion:
+  POST /api/office-hours/reservar
+  -> Crea GoogleCalendarEvent
+  -> Inserta en MongoDB officeHoursbookings
+  -> Envia email de confirmacion (Resend)
+\end{verbatim}
+\end{tcolorbox}
+
+\subsection{Módulo de Agente IA}
+
+\begin{tcolorbox}[codebox]
+\begin{verbatim}
+- Conversaciones en MongoDB (coleccion agenteIA)
+- Cada conv.: id, empresa, historial[], contexto
+- Mensajes con historial completo (contexto persistente)
+- Respuesta en streaming (Server-Sent Events)
+- Admin gestiona desde /admin/conversaciones-ia
+\end{verbatim}
+\end{tcolorbox}
+
+\subsection{Seguridad del Sistema}
+
+\begin{center}
+\begin{tabular}{L{4.5cm} L{9cm}}
+  \toprule
+  \textbf{Mecanismo} & \textbf{Implementación} \\
+  \midrule
+  Autenticación de usuarios  & JWT firmado por Clerk, verificado en cada request \\
+  Verificación de webhooks   & Firma Svix (HMAC) verificada antes de procesar eventos \\
+  Protección de rutas        & HOC \texttt{ProtectorRoles} con verificación de publicMetadata \\
+  Email corporativo          & Regex que rechaza dominios públicos (gmail, yahoo, hotmail) \\
+  CORS                       & Lista blanca de orígenes permitidos (no comodín \texttt{*}) \\
+  Variables de entorno       & Nunca expuestas al cliente; validadas al arrancar el servidor \\
+  Rutas admin sin indexar    & \texttt{noindex} en SeoManager + \texttt{Disallow: /admin} en robots.txt \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Configuración de Variables de Entorno}
+
+\subsection*{Frontend (\texttt{.env})}
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=env, numbers=none]
+VITE_CLERK_PUBLISHABLE_KEY=pk_...
+VITE_API_URL=http://localhost:4000/api
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection*{Backend (\texttt{Backend/.env})}
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=env, numbers=none]
+# Base de datos
+MONGO_URI=mongodb+srv://...
+
+# Autenticacion
+CLERK_SECRET_KEY=sk_...
+CLERK_WEBHOOK_SECRET=whsec_...
+
+# Email
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@tudominio.com
+
+# IA
+OPENAI_API_KEY=sk-proj-...
+
+# Traduccion
+DEEPL_API_KEY=...
+
+# Google Calendar
+GOOGLE_CALENDAR_ID=...@google.com
+GOOGLE_SERVICE_ACCOUNT_EMAIL=...@iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
+
+# Sistema
+PORT=4000
+FRONTEND_URL=https://tudominio.com
+ADMIN_API_KEY=clave-segura-aleatoria
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Build y Despliegue}
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=bash, numbers=none]
+# Build de produccion del frontend
+pnpm install
+pnpm run build        # Genera /dist con assets optimizados
+\end{lstlisting}
+\end{tcolorbox}
+
+Vite aplica \textit{tree-shaking}, \textit{code splitting} por ruta, compresión de assets y
+elimina sourcemaps en producción.
+
+La configuración de Vercel reescribe todas las rutas al \texttt{index.html}, permitiendo que
+React Router maneje el enrutamiento del lado del cliente.
+
+%% ============================================================
+%%  CAPÍTULO 7 — PRUEBAS
+%% ============================================================
+\clearpage
+\chapter{Pruebas}
+
+\section{Estrategia de Pruebas}
+
+Durante el desarrollo de FABRIC se aplicaron pruebas funcionales manuales organizadas por
+módulos. Al tratarse de un proyecto de concurso con plazos ajustados, la estrategia priorizó
+la cobertura de rutas críticas y escenarios de uso principales sobre la automatización de
+pruebas unitarias.
+
+\section{Pruebas Funcionales}
+
+\subsection*{PF-01 — Autenticación y Control de Acceso}
+\begin{center}
+\begin{tabular}{C{1.5cm} L{5.5cm} L{4.5cm} C{1.5cm}}
+  \toprule
+  \textbf{Caso} & \textbf{Descripción} & \textbf{Resultado esperado} & \textbf{Estado} \\
+  \midrule
+  PF-01-A & Inicio de sesión con credenciales válidas     & Redirige a /admin        & \cmark \\
+  PF-01-B & Inicio de sesión con credenciales inválidas   & Error de Clerk visible   & \cmark \\
+  PF-01-C & Acceso a /admin sin autenticar                & Redirige a /acceso       & \cmark \\
+  PF-01-D & Usuario rol user intenta acceder a /admin     & Redirige a /             & \cmark \\
+  PF-01-E & Token expirado en request a API               & Backend responde 401     & \cmark \\
+  PF-01-F & Webhook de Clerk crea usuario en MongoDB      & Documento creado auto    & \cmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{PF-02 — Formulario de Aplicación}
+\begin{center}
+\begin{tabular}{C{1.5cm} L{5.5cm} L{4.5cm} C{1.5cm}}
+  \toprule
+  \textbf{Caso} & \textbf{Descripción} & \textbf{Resultado esperado} & \textbf{Estado} \\
+  \midrule
+  PF-02-A & Email de Gmail en formulario            & Error: email corporativo requerido & \cmark \\
+  PF-02-B & Sector financiero, ingresos altos       & Score alto, status Nuevo           & \cmark \\
+  PF-02-C & Sector no calificado                    & Status WaitList                    & \cmark \\
+  PF-02-D & Envío exitoso                           & Email de confirmación recibido     & \cmark \\
+  PF-02-E & Lead aparece en /admin/leads            & Lead visible con datos correctos   & \cmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{PF-03 — Office Hours}
+\begin{center}
+\begin{tabular}{C{1.5cm} L{5.5cm} L{4.5cm} C{1.5cm}}
+  \toprule
+  \textbf{Caso} & \textbf{Descripción} & \textbf{Resultado esperado} & \textbf{Estado} \\
+  \midrule
+  PF-03-A & Consultar disponibilidad del mes          & Calendario con días disponibles    & \cmark \\
+  PF-03-B & Seleccionar día con slots libres          & Lista de horarios disponibles      & \cmark \\
+  PF-03-C & Reservar un slot                         & Evento en Google Calendar + email  & \cmark \\
+  PF-03-D & Cancelar reservación desde admin         & Evento eliminado de Google Calendar & \cmark \\
+  PF-03-E & Slot reservado                           & Slot marcado como ocupado          & \cmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{PF-04 — Internacionalización}
+\begin{center}
+\begin{tabular}{C{1.5cm} L{5.5cm} L{4.5cm} C{1.5cm}}
+  \toprule
+  \textbf{Caso} & \textbf{Descripción} & \textbf{Resultado esperado} & \textbf{Estado} \\
+  \midrule
+  PF-04-A & Cambiar idioma a inglés         & Textos del navbar en inglés   & \cmark \\
+  PF-04-B & Recargar la página en inglés    & Idioma se mantiene            & \cmark \\
+  PF-04-C & Texto con data-no-translate     & No se traduce                 & \cmark \\
+  PF-04-D & Nombre propio protegido         & No se modifica                & \cmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{PF-05 — SEO y Meta Tags}
+\begin{center}
+\begin{tabular}{C{1.5cm} L{5.5cm} L{4.5cm} C{1.5cm}}
+  \toprule
+  \textbf{Caso} & \textbf{Descripción} & \textbf{Resultado esperado} & \textbf{Estado} \\
+  \midrule
+  PF-05-A & Inspeccionar \texttt{<head>} en /    & Title, description, og:image      & \cmark \\
+  PF-05-B & Inspeccionar \texttt{<head>} en /admin & noindex presente                & \cmark \\
+  PF-05-C & Acceder a /sitemap.xml               & XML con 46~URLs                   & \cmark \\
+  PF-05-D & Acceder a /robots.txt                & Disallow: /admin visible          & \cmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{PF-06 — Panel de Administración}
+\begin{center}
+\begin{tabular}{C{1.5cm} L{5.5cm} L{4.5cm} C{1.5cm}}
+  \toprule
+  \textbf{Caso} & \textbf{Descripción} & \textbf{Resultado esperado} & \textbf{Estado} \\
+  \midrule
+  PF-06-A & Cambiar estado de un lead    & Estado actualizado + historial  & \cmark \\
+  PF-06-B & Ciclar slot de capacidad     & Activo$\to$Reservado$\to$Libre$\to$Activo   & \cmark \\
+  PF-06-C & Actualizar métrica pública   & Valor actualizado con versión   & \cmark \\
+  PF-06-D & Ver logs del sistema         & Lista de acciones recientes     & \cmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Pruebas de Seguridad}
+
+\begin{center}
+\begin{tabular}{C{1.5cm} L{5.5cm} L{4.5cm} C{1.5cm}}
+  \toprule
+  \textbf{Caso} & \textbf{Descripción} & \textbf{Resultado esperado} & \textbf{Estado} \\
+  \midrule
+  PS-01 & Request a /api/leads sin token              & HTTP 401 Unauthorized   & \cmark \\
+  PS-02 & Webhook con firma inválida                  & HTTP 400 / rechazado    & \cmark \\
+  PS-03 & Request desde origen no permitido           & CORS rechaza            & \cmark \\
+  PS-04 & /admin desde URL directa sin sesión         & Redirige a /acceso      & \cmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Pruebas de Rendimiento}
+
+Métricas medidas con Chrome DevTools Lighthouse en entorno de producción (Vercel):
+
+\begin{center}
+\begin{tabular}{L{5.5cm} C{3cm} C{2.5cm}}
+  \toprule
+  \textbf{Métrica} & \textbf{Valor obtenido} & \textbf{Objetivo} \\
+  \midrule
+  First Contentful Paint (FCP)     & $\sim$1.2 s & $<$2 s   \\
+  Largest Contentful Paint (LCP)   & $\sim$2.4 s & $<$3 s   \\
+  Total Blocking Time (TBT)        & $\sim$80 ms & $<$300 ms \\
+  Cumulative Layout Shift (CLS)    & $\sim$0.02  & $<$0.1   \\
+  Lighthouse Performance Score     & $\sim$78    & $>$70    \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{tcolorbox}[notebox]
+  Los modelos 3D de Spline afectan el LCP y el \textit{performance score} en la primera carga.
+  Se aplica \textit{lazy loading} para mitigar el impacto.
+\end{tcolorbox}
+
+\section{Pruebas de Compatibilidad}
+
+\begin{center}
+\begin{tabular}{L{6cm} C{3cm}}
+  \toprule
+  \textbf{Navegador / Dispositivo} & \textbf{Resultado} \\
+  \midrule
+  Chrome 124 (Windows)        & \cmark{} Funcional \\
+  Firefox 125 (Windows)       & \cmark{} Funcional \\
+  Safari 17 (macOS)           & \cmark{} Funcional \\
+  Edge 124 (Windows)          & \cmark{} Funcional \\
+  Chrome Mobile (Android 13)  & \cmark{} Funcional \\
+  Safari Mobile (iOS 17)      & \cmark{} Funcional \\
+  Pantalla 375px (mobile)     & \cmark{} Layout responsivo \\
+  Pantalla 768px (tablet)     & \cmark{} Layout responsivo \\
+  Pantalla 1440px (desktop)   & \cmark{} Layout completo \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Observaciones y Áreas de Mejora}
+
+\begin{enumerate}
+  \item \textbf{Pruebas automatizadas:} El proyecto no cuenta con suite de pruebas unitarias
+        o de integración automatizadas (Jest, Vitest, Playwright). Es una deuda técnica que
+        debe abordarse antes de escalar a producción con múltiples colaboradores.
+
+  \item \textbf{Manejo de errores offline:} Si el backend no está disponible, algunas
+        herramientas muestran errores genéricos; se recomienda mejorar los mensajes de error
+        de cara al usuario.
+
+  \item \textbf{Carga de modelos 3D:} El componente Spline en el hero aumenta el tiempo de
+        carga inicial; se recomienda implementar un \textit{placeholder} hasta que el modelo
+        termine de cargar.
+
+  \item \textbf{Internacionalización parcial:} Algunas secciones de la landing no están
+        completamente traducidas; el sistema está preparado pero algunas cadenas siguen solo
+        en español.
+\end{enumerate}
+
+%% ============================================================
+%%  ANEXO A — MANUAL DE USUARIO
+%% ============================================================
+\appendix
+\clearpage
+\chapter{Manual de Usuario}
+
+\section{Para el Visitante Público}
+
+\subsection{Navegar por la Landing Page}
+
+Al ingresar a \texttt{https://fabricsoft.com.mx} encontrará:
+
+\begin{itemize}
+  \item \textbf{Hero:} Presentación principal con propuesta de valor y estadísticas de
+        operación.
+  \item \textbf{Secciones de servicio:} Descripción de metodología, casos de uso y modelos
+        de engagement.
+  \item \textbf{Métricas en tiempo real:} Indicadores de capacidad y proyectos activos.
+  \item \textbf{Footer:} Contacto, enlaces a términos y políticas.
+\end{itemize}
+
+Use la barra de navegación superior para moverse entre secciones. El botón de cambio de
+idioma (ES/EN) se encuentra en la esquina superior derecha.
+
+\subsection{Enviar una Solicitud de Aplicación}
+
+\begin{enumerate}
+  \item Haga clic en el botón \textbf{``Aplicar''} o navegue a \texttt{/aplicar}.
+  \item Complete el formulario con: nombre completo, cargo, email corporativo (no se aceptan
+        Gmail, Yahoo, Hotmail ni proveedores públicos), empresa, industria, ingresos anuales
+        aproximados, descripción de la iniciativa Oracle (mínimo 100~caracteres) y urgencia
+        de decisión.
+  \item Haga clic en \textbf{``Enviar solicitud''}.
+  \item Recibirá un email de confirmación.
+  \item El equipo revisará su solicitud y se pondrá en contacto en 5~días hábiles.
+\end{enumerate}
+
+\begin{tcolorbox}[notebox]
+  Si su industria no está en la lista de sectores calificados, su solicitud pasará a lista
+  de espera. Esto no implica un rechazo definitivo.
+\end{tcolorbox}
+
+\subsection{Reservar una Sesión de Office Hours}
+
+\begin{enumerate}
+  \item Navegue a \texttt{/office-hours}.
+  \item El calendario mostrará los días con disponibilidad del mes actual.
+  \item Haga clic en un día disponible.
+  \item Seleccione un horario de 30~minutos (09:00--16:00, zona horaria Ciudad de México).
+  \item Ingrese nombre, empresa y email de contacto; confirme la reservación.
+  \item Recibirá un email con los detalles de la sesión.
+\end{enumerate}
+
+\subsection{Acceder a Herramientas de Diagnóstico}
+
+\begin{itemize}
+  \item \textbf{Optimizador OCI} (\texttt{/optimizador-oci}): Estime costos Oracle Cloud
+        según su carga de trabajo.
+  \item \textbf{Roadmap Generator} (\texttt{/roadmap}): Obtenga un plan de migración
+        personalizado.
+  \item \textbf{Readiness Score} (\texttt{/readiness}): Evalúe la madurez de su organización
+        para migrar a OCI.
+  \item \textbf{Diagnóstico Oracle} (desde la landing): Cuestionario modular con reporte de
+        riesgo.
+\end{itemize}
+
+\subsection{Cambiar Idioma}
+
+Haga clic en el selector de idioma en la barra de navegación. La página se traducirá
+automáticamente. La preferencia se guarda en su navegador para futuras visitas.
+
+\section{Para el Administrador del Sistema}
+
+\subsection{Acceso al Panel de Administración}
+
+\begin{enumerate}
+  \item Navegue a \texttt{/acceso}.
+  \item Ingrese con su email y contraseña de administrador.
+  \item Será redirigido automáticamente a \texttt{/admin}.
+\end{enumerate}
+
+\begin{tcolorbox}[warnbox]
+  Solo los usuarios con rol \texttt{admin} pueden acceder al panel. Si recibe un error de
+  permisos, contacte al administrador principal para verificar su rol.
+\end{tcolorbox}
+
+\subsection{Gestión de Leads}
+
+Navegue a \texttt{/admin/leads}. Acciones disponibles:
+
+\begin{itemize}
+  \item \textbf{Cambiar estado:} El cambio queda registrado en el historial con
+        \textit{timestamp} y nombre del administrador.
+  \item \textbf{Agregar notas:} Comentarios internos no visibles para el prospecto.
+  \item \textbf{Ver historial:} Registro completo de cambios de estado.
+\end{itemize}
+
+\subsection{Gestión de Capacidad}
+
+En \texttt{/admin/capacidad}: haga clic en cualquier slot para ciclar su estado entre
+\textit{Activo}, \textit{Reservado} y \textit{Libre}. Use el toggle para abrir o cerrar
+el período de admisión.
+
+\subsection{Gestión de Office Hours}
+
+En \texttt{/admin/office-hours}: confirme reservaciones pendientes (envía email al
+prospecto), libere slots (elimina el evento de Google Calendar) y consulte el historial
+de sesiones.
+
+\subsection{Gestión de Métricas Públicas}
+
+En \texttt{/admin/metricas}: actualice valores y visibilidad. Cada actualización incrementa
+automáticamente la versión de la métrica. Las métricas públicas se muestran en la landing
+en tiempo real.
+
+\subsection{Visualización de Logs}
+
+En \texttt{/admin/logs}: registro de todas las acciones del sistema con acción, categoría,
+estado (OK/WARN/ERROR), detalle y \textit{timestamp}.
+
+\subsection{Gestión del Agente IA}
+
+En \texttt{/admin/agente-ia}: configure el agente. En \texttt{/admin/conversaciones-ia}:
+consulte el historial de mensajes de todas las sesiones.
+
+%% ============================================================
+%%  ANEXO B — MANUAL DE INSTALACIÓN Y DESPLIEGUE
+%% ============================================================
+\clearpage
+\chapter{Manual de Instalación y Despliegue}
+
+\section{Requisitos del Sistema}
+
+\begin{center}
+\begin{tabular}{L{4.5cm} C{3cm} C{3.5cm}}
+  \toprule
+  \textbf{Herramienta} & \textbf{Versión mínima} & \textbf{Recomendada} \\
+  \midrule
+  Node.js          & 18.0.0 & 20.x LTS \\
+  pnpm             & 8.0.0  & 9.x \\
+  Git              & 2.30   & Última \\
+  MongoDB Atlas    & ---    & M0 Free o superior \\
+  Clerk            & ---    & Free o Pro \\
+  Resend           & ---    & Free o Pro \\
+  Google Cloud     & ---    & Calendar API habilitada \\
+  Vercel           & ---    & Para despliegue \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Instalación en Entorno Local}
+
+\subsection*{Paso 1: Clonar el repositorio}
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=bash, numbers=none]
+git clone https://github.com/[org]/fabricsoft.git
+cd fabricsoft
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection*{Paso 2: Instalar dependencias}
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=bash, numbers=none]
+pnpm install          # Frontend y monorepo
+cd Backend && pnpm install && cd ..   # Backend
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection*{Paso 3: Configurar variables de entorno del frontend}
+
+Cree el archivo \texttt{.env} en la raíz:
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=env, numbers=none]
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_XXXXXXXXXXXXXXX
+VITE_API_URL=http://localhost:4000/api
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection*{Paso 4: Configurar variables de entorno del backend}
+
+Cree \texttt{Backend/.env} con todas las variables del apartado~6.3.
+
+\subsection*{Paso 5: Iniciar los servidores de desarrollo}
+
+Abra dos terminales:
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=bash, numbers=none]
+# Terminal 1 -- Frontend
+pnpm run dev                 # http://localhost:5173
+
+# Terminal 2 -- Backend
+cd Backend && pnpm run dev   # http://localhost:4000
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection*{Paso 6: Verificar la instalación}
+
+\begin{enumerate}
+  \item Abra \texttt{http://localhost:5173} --- debe ver la landing page.
+  \item Abra \texttt{http://localhost:4000/health} --- debe ver
+        \texttt{\{"status":"ok","db":"connected"\}}.
+  \item Navegue a \texttt{/admin} --- debe redirigir a \texttt{/acceso}.
+\end{enumerate}
+
+\section{Configuración de Servicios Externos}
+
+\subsection*{MongoDB Atlas}
+\begin{enumerate}
+  \item Cree un clúster M0 Free en \texttt{mongodb.com/atlas}.
+  \item \textbf{Database Access}: usuario con permisos \texttt{readWriteAnyDatabase}.
+  \item \textbf{Network Access}: agregue su IP (o \texttt{0.0.0.0/0} en desarrollo).
+  \item Copie el URI de conexión en \texttt{MONGO\_URI}.
+\end{enumerate}
+
+\subsection*{Clerk}
+\begin{enumerate}
+  \item Cree una aplicación en \texttt{clerk.com}.
+  \item Configure tema oscuro con colores \texttt{\#C9A96E} y \texttt{\#111111}.
+  \item Copie \textit{Publishable Key} y \textit{Secret Key}.
+  \item Cree un webhook hacia \texttt{https://tu-backend.vercel.app/api/auth/webhook}
+        con eventos \texttt{user.created}, \texttt{user.updated}, \texttt{user.deleted}.
+  \item Copie el \textit{Signing Secret} en \texttt{CLERK\_WEBHOOK\_SECRET}.
+\end{enumerate}
+
+\subsection*{Resend (Email)}
+\begin{enumerate}
+  \item Cree una cuenta en \texttt{resend.com}.
+  \item Cree una API Key y cópiela en \texttt{RESEND\_API\_KEY}.
+  \item Verifique su dominio para enviar emails con su propio dominio.
+\end{enumerate}
+
+\subsection*{Google Calendar API}
+\begin{enumerate}
+  \item Habilite Google Calendar API en Google Cloud Console.
+  \item Cree una cuenta de servicio y descargue el JSON de credenciales.
+  \item Copie \texttt{client\_email} y \texttt{private\_key} en las variables de entorno.
+  \item En Google Calendar, comparta el calendario con el email de la cuenta de servicio
+        (permisos ``Hacer cambios en eventos'').
+  \item Copie el ID del calendario en \texttt{GOOGLE\_CALENDAR\_ID}.
+\end{enumerate}
+
+\subsection*{OpenAI}
+\begin{enumerate}
+  \item Cree una clave en \texttt{platform.openai.com} y cópiela en
+        \texttt{OPENAI\_API\_KEY}.
+\end{enumerate}
+
+\section{Despliegue en Producción (Vercel)}
+
+\begin{enumerate}
+  \item Instale Vercel CLI: \texttt{pnpm install -g vercel}.
+  \item Desde la raíz: \texttt{vercel} (siga el asistente para el frontend).
+  \item Desde \texttt{Backend/}: \texttt{vercel} (siga el asistente para el backend).
+  \item Agregue todas las variables de entorno en el dashboard de Vercel de cada proyecto.
+  \item Actualice el webhook de Clerk con la URL definitiva del backend.
+  \item En MongoDB Atlas, configure \textbf{Network Access} con \texttt{0.0.0.0/0}
+        (Vercel usa IPs dinámicas).
+\end{enumerate}
+
+\section{Comandos de Referencia}
+
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[style=bash, numbers=none]
+# Desarrollo local
+pnpm run dev                    # Frontend: http://localhost:5173
+cd Backend && pnpm run dev      # Backend:  http://localhost:4000
+
+# Build de produccion
+pnpm run build                  # Genera /dist optimizado
+pnpm run preview                # Previsualiza el build
+
+# Linting
+pnpm run lint                   # Verifica con ESLint
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Solución de Problemas Comunes}
+
+\begin{center}
+\begin{longtable}{L{4.5cm} L{4cm} L{5cm}}
+  \toprule
+  \textbf{Problema} & \textbf{Causa probable} & \textbf{Solución} \\
+  \midrule
+  \endhead
+  Backend no conecta a MongoDB     & MONGO\_URI inválido o IP no permitida        & Verificar URI y agregar IP en Atlas Network Access \\[4pt]
+  Webhook de Clerk no llega        & URL incorrecta o secret mal copiado          & Verificar URL en Clerk dashboard y el secret \\[4pt]
+  Google Calendar no crea eventos  & Service account sin permisos en el calendario & Verificar que el email esté compartido en el calendario \\[4pt]
+  Emails no se envían              & API key inválida o dominio no verificado      & Verificar key y estado del dominio en Resend \\[4pt]
+  Error CORS                       & FRONTEND\_URL no coincide con el origen       & Actualizar FRONTEND\_URL y re-desplegar \\[4pt]
+  /admin redirige a /acceso        & Clerk key de desarrollo en producción         & Usar la clave \texttt{pk\_live\_...} en Vercel \\[4pt]
+  Traducción no funciona           & DEEPL\_API\_KEY no configurada                & Configurar clave o aceptar que la traducción dinámica no estará disponible \\
+  \bottomrule
+  \caption{Problemas comunes y sus soluciones}
+\end{longtable}
+\end{center}
+
+\vfill
+\begin{center}
+  {\color{fabricgold}\rule{0.5\linewidth}{0.6pt}}\\[0.4em]
+  {\small\color{fabricgray}
+    Documento elaborado por el Equipo~A --- Concurso FabriSoft 2026\\
+    Versión~1.0 --- Mayo 2026
+  }
+\end{center}
+
+\end{document}
