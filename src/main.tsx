@@ -11,7 +11,8 @@ import './index.css'
 import { FabricProvider } from './store/FabricContext.tsx'
 
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const DUMMY_CLERK_KEY = 'pk_test_Y2hhcm1lZC1idW5ueS0xMy5jbGVyay5hY2NvdW50cy5kZXYk'
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || DUMMY_CLERK_KEY
 
 
 const app = (
@@ -26,7 +27,7 @@ const app = (
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ClerkProvider
-      publishableKey={PUBLISHABLE_KEY || 'pk_test_dummy_key_for_clerk_provider'}
+      publishableKey={PUBLISHABLE_KEY}
       localization={esES}
       appearance={{
         baseTheme: dark,
