@@ -117,8 +117,8 @@ export default function Header() {
 
   const startLink = (
     <Link
-      to="/#fabric-ai"
-      onClick={(event) => handleSectionNavigation(event, 'fabric-ai')}
+      to="/#radar-admision"
+      onClick={(event) => handleSectionNavigation(event, 'radar-admision')}
       className="hidden sm:inline-flex items-center gap-2 relative group font-mono font-semibold text-[10px] tracking-[0.22em] uppercase px-0 py-2 transition-colors duration-300 active:scale-[0.98]"
       style={{ color: 'var(--accent)' }}
     >
@@ -259,8 +259,8 @@ export default function Header() {
             <ThemeToggle mobile />
           </div>
           <Link
-            to="/#fabric-ai"
-            onClick={(event) => handleSectionNavigation(event, 'fabric-ai')}
+            to="/#radar-admision"
+            onClick={(event) => handleSectionNavigation(event, 'radar-admision')}
             className="flex items-center justify-center gap-3 w-full py-3.5 relative overflow-hidden group bg-transparent border border-[#C9A96E]/30 hover:border-[#C9A96E] hover:bg-[#C9A96E]/5 text-[#C9A96E] font-mono font-bold text-[10px] tracking-[0.2em] uppercase rounded-full transition-all duration-500 active:scale-[0.98]"
           >
             <span className="relative">{t('cta.start')}</span>

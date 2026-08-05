@@ -878,7 +878,19 @@ export default function S01Hero() {
               }`}
           >
             <Link
-              to="/#fabric-ai"
+              to="/#radar-admision"
+              onClick={(e) => {
+                if (window.location.pathname === '/') {
+                  e.preventDefault();
+                  const target = document.getElementById('radar-admision');
+                  if (target) {
+                    const header = document.querySelector<HTMLElement>('header[data-no-translate]');
+                    const headerOffset = (header?.offsetHeight ?? 0) + 12;
+                    const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                  }
+                }
+              }}
               className="relative inline-flex min-w-[250px] items-center justify-center overflow-hidden border border-[#C9A96E]/45 bg-[#C9A96E]/[0.06] px-8 py-4 font-mono text-[11px] font-black uppercase tracking-[0.24em] text-[#F5F5F5] transition-all duration-300 hover:-translate-y-1 hover:border-[#C9A96E] hover:bg-[#C9A96E]/[0.12] hover:text-[#C9A96E] hover:shadow-[0_0_28px_rgba(201,169,110,0.18)] max-sm:min-w-0 max-sm:w-full max-sm:px-5 max-sm:text-[9px]"
             >
               <span className="relative z-10">{t("cta.start")}</span>

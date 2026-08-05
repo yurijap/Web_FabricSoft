@@ -138,13 +138,135 @@ function ErpTcoInteractiveWidget() {
   );
 }
 
+interface Workload {
+  id: string;
+  name: string;
+  provider: 'OCI' | 'AWS' | 'Azure' | 'GCP';
+  compute: number;
+  storage: number;
+  database: number;
+  egress: number;
+  features: string[];
+  notes: string;
+}
+
+const DEMO_WORKLOADS: Record<string, Workload> = {
+  'OCI-FIN-993': {
+    id: 'OCI-FIN-993',
+    name: 'Core ERP Financiero (Large-scale)',
+    provider: 'OCI',
+    compute: 25000,
+    storage: 12000,
+    database: 35000,
+    egress: 1000,
+    features: [
+      'Exadata Cloud Service nativo habilitado',
+      'Soporte de base de datos Oracle RAC (Active-Active clustering)',
+      'Conectividad FastConnect dedicada',
+      'Latencias de base de datos ultra bajas (< 1ms)',
+      '10 TB de transferencia saliente mensual incluida sin costo extra'
+    ],
+    notes: 'Despliegue de misión crítica que requiere alto rendimiento transaccional y disponibilidad continua para el cierre contable.'
+  },
+  'AWS-RTL-442': {
+    id: 'AWS-RTL-442',
+    name: 'Portal de Retail E-Commerce (Medium-High traffic)',
+    provider: 'AWS',
+    compute: 30000,
+    storage: 18000,
+    database: 25000,
+    egress: 15000,
+    features: [
+      'Autoscaling EC2 detrás de Application Load Balancer',
+      'Amazon Aurora Serverless v2 con réplicas de lectura',
+      'Alta dependencia de AWS CloudFront CDN',
+      'Egress excesivo debido a descargas de assets de imágenes y APIs',
+      'Alta disponibilidad multi-zona (Multi-AZ)'
+    ],
+    notes: 'Workload con picos de tráfico estacionales. El costo de egress representa un porcentaje desproporcionado del gasto total de red.'
+  },
+  'AZR-HLT-105': {
+    id: 'AZR-HLT-105',
+    name: 'Sistema de Salud e Historial Clínico (EMR)',
+    provider: 'Azure',
+    compute: 18000,
+    storage: 22000,
+    database: 20000,
+    egress: 8000,
+    features: [
+      'Despliegue en zona de cumplimiento estricto (HIPAA/HITRUST)',
+      'Alto volumen de imágenes médicas (PACS) almacenadas en Blob Storage',
+      'Base de datos SQL Managed Instance de misión crítica',
+      'Conexión ExpressRoute de respaldo a data centers locales',
+      'Replicación geo-redundante para desastres (GRS)'
+    ],
+    notes: 'Entorno highly seguro y enfocado en compliance con gran peso en almacenamiento de archivos binarios grandes.'
+  },
+  'GCP-DAT-881': {
+    id: 'GCP-DAT-881',
+    name: 'Framework de Analítica y Big Data',
+    provider: 'GCP',
+    compute: 40000,
+    storage: 35000,
+    database: 15000,
+    egress: 25000,
+    features: [
+      'Cientos de nodos de Kubernetes auto-escalables en GKE',
+      'BigQuery para consultas masivas de datos semi-estructurados',
+      'Transmisión continua (Ingest) con Cloud Pub/Sub',
+      'Enorme tráfico de red de salida (Egress) para reportes y APIs externas',
+      'Procesamiento distribuido masivo de logs y telemetría'
+    ],
+    notes: 'Workload analítico enfocado en ingesta de millones de eventos por segundo y exportaciones a sistemas BI externos.'
+  }
+};
+
+const MULTIPLIERS = {
+  OCI: { compute: 1.0, storage: 1.0, database: 1.0, egress: 1.0 },
+  AWS: { compute: 1.43, storage: 1.66, database: 2.0, egress: 10.0 },
+  Azure: { compute: 1.35, storage: 1.50, database: 1.8, egress: 9.0 },
+  GCP: { compute: 1.30, storage: 1.40, database: 1.6, egress: 8.5 }
+};
+
+const PROVIDER_TECH_HIGHS: Record<string, string[]> = {
+  OCI: [
+    'Exadata Database Cloud Service con RAC (Active-Active)',
+    'FastConnect privado con egress extremadamente económico (10TB free)',
+    'Performance garantizada con SLAs respaldados por contratos'
+  ],
+  AWS: [
+    'Amazon Aurora Serverless con réplicas multizona',
+    'Amplio ecosistema de add-ons de terceros en AWS Marketplace',
+    'Egress tarificado a $0.09 USD/GB tras primer umbral'
+  ],
+  Azure: [
+    'Azure SQL Managed Instance con compatibilidad nativa SQL Server',
+    'Integración directa con Directorio Activo (Entra ID)',
+    'ExpressRoute privado para entornos híbridos'
+  ],
+  GCP: [
+    'GKE (Google Kubernetes Engine) para orquestación de contenedores',
+    'BigQuery para analítica masiva serverless de alta velocidad',
+    'Interconexión de red global de baja latencia'
+  ]
+};
+
 function CloudCostInteractiveWidget() {
+  const [activeTab, setActiveTab] = useState<'general' | 'id'>('general');
+
+  // Tab 1: General Slider States
   const [provider, setProvider] = useState<'AWS' | 'Azure' | 'GCP'>('AWS');
   const [computeCost, setComputeCost] = useState(5000);
   const [storageCost, setStorageCost] = useState(3000);
   const [databaseCost, setDatabaseCost] = useState(6000);
   const [egressCost, setEgressCost] = useState(2500);
 
+  // Tab 2: ID Search States
+  const [searchId, setSearchId] = useState('');
+  const [matchedWorkload, setMatchedWorkload] = useState<Workload | null>(null);
+  const [compareProvider, setCompareProvider] = useState<'OCI' | 'AWS' | 'Azure' | 'GCP' | null>(null);
+
+  // Tab 1 calculations
   const currentMonthlyTotal = computeCost + storageCost + databaseCost + egressCost;
   const ociCompute = Math.round(computeCost * 0.7);
   const ociStorage = Math.round(storageCost * 0.6);
@@ -154,131 +276,449 @@ function CloudCostInteractiveWidget() {
   const monthlySavings = currentMonthlyTotal - ociMonthlyTotal;
   const annualSavings = monthlySavings * 12;
 
+  // Handle Search ID input change
+  const handleIdSearch = (id: string) => {
+    setSearchId(id);
+    const cleaned = id.trim().toUpperCase();
+    if (DEMO_WORKLOADS[cleaned]) {
+      const wk = DEMO_WORKLOADS[cleaned];
+      setMatchedWorkload(wk);
+      setCompareProvider(wk.provider === 'OCI' ? 'AWS' : 'OCI');
+    } else {
+      setMatchedWorkload(null);
+      setCompareProvider(null);
+    }
+  };
+
+  // Tab 2 calculations helper
+  const calculateEquivalent = (
+    value: number,
+    category: 'compute' | 'storage' | 'database' | 'egress',
+    from: 'OCI' | 'AWS' | 'Azure' | 'GCP',
+    to: 'OCI' | 'AWS' | 'Azure' | 'GCP'
+  ) => {
+    const ociBase = value / MULTIPLIERS[from][category];
+    return Math.round(ociBase * MULTIPLIERS[to][category]);
+  };
+
   return (
     <div className="space-y-8 font-mono text-xs">
-      <div>
+      {/* Header */}
+      <div id="infra-cost-simulator" className="scroll-mt-24 md:scroll-mt-28">
         <span className="fabric-badge-premium mb-2 inline-block">COSTOS DE INFRAESTRUCTURA</span>
         <h3 className="text-2xl font-serif text-white font-light">Cloud Cost Comparator</h3>
         <p className="text-zinc-500 text-xs mt-1">Calcula y compara los costos y arquitecturas de tu infraestructura cloud.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <div className="md:col-span-7 space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs text-zinc-500 block">Proveedor Actual:</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['AWS', 'Azure', 'GCP'] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setProvider(p)}
-                  className={`p-2.5 border text-center transition-colors cursor-pointer rounded ${
-                    provider === p ? 'border-[#C9A96E] text-[#C9A96E] bg-[#C9A96E]/10 font-bold' : 'border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <label htmlFor="cloud-compute" className="text-zinc-400">Compute / Instancias Virtuales (USD/mes)</label>
-              <span className="text-white font-bold">${computeCost.toLocaleString('en-US')}</span>
-            </div>
-            <input
-              id="cloud-compute"
-              type="range"
-              min="500"
-              max="50000"
-              step="500"
-              value={computeCost}
-              onChange={(e) => setComputeCost(Number(e.target.value))}
-              className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <label htmlFor="cloud-storage" className="text-zinc-400">Almacenamiento / SSD / Backup (USD/mes)</label>
-              <span className="text-white font-bold">${storageCost.toLocaleString('en-US')}</span>
-            </div>
-            <input
-              id="cloud-storage"
-              type="range"
-              min="300"
-              max="30000"
-              step="300"
-              value={storageCost}
-              onChange={(e) => setStorageCost(Number(e.target.value))}
-              className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <label htmlFor="cloud-db" className="text-zinc-400">Database PaaS (RDS / Managed SQL)</label>
-              <span className="text-white font-bold">${databaseCost.toLocaleString('en-US')}</span>
-            </div>
-            <input
-              id="cloud-db"
-              type="range"
-              min="500"
-              max="50000"
-              step="500"
-              value={databaseCost}
-              onChange={(e) => setDatabaseCost(Number(e.target.value))}
-              className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <label htmlFor="cloud-egress" className="text-zinc-400">Red / Egress / Ancho de Banda Saliente (USD/mes)</label>
-              <span className="text-white font-bold">${egressCost.toLocaleString('en-US')}</span>
-            </div>
-            <input
-              id="cloud-egress"
-              type="range"
-              min="100"
-              max="20000"
-              step="100"
-              value={egressCost}
-              onChange={(e) => setEgressCost(Number(e.target.value))}
-              className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
-            />
-          </div>
-        </div>
-
-        <div className="md:col-span-5 space-y-6">
-          <div className="border border-[#C9A96E]/20 p-5 bg-[#C9A96E]/5 space-y-4 rounded-lg">
-            <div>
-              <span className="text-[10px] text-zinc-500 block uppercase">Costo Mensual {provider}</span>
-              <span className="text-xl text-zinc-400 font-light">${currentMonthlyTotal.toLocaleString('en-US')} USD</span>
-            </div>
-            <div>
-              <span className="text-[10px] text-zinc-500 block uppercase">Costo Mensual OCI Equiv.</span>
-              <span className="text-xl text-[#C9A96E] font-light">${ociMonthlyTotal.toLocaleString('en-US')} USD</span>
-            </div>
-            <div className="border-t border-[#C9A96E]/20 pt-3">
-              <span className="text-[10px] text-zinc-500 block uppercase">Ahorro Mensual Neto</span>
-              <span className="text-2xl text-emerald-500 font-bold">${monthlySavings.toLocaleString('en-US')} USD/mes</span>
-            </div>
-          </div>
-
-          <div className="space-y-1 text-[11px] text-zinc-400">
-            <div className="flex justify-between border-b border-zinc-900 pb-2">
-              <span>Ahorro Anual Proyectado</span>
-              <span className="text-emerald-500 font-bold">${annualSavings.toLocaleString('en-US')} USD</span>
-            </div>
-            <div className="flex justify-between pt-2">
-              <span>Eficiencia OCI Estimada</span>
-              <span className="text-[#C9A96E] font-bold">~{Math.round((monthlySavings / currentMonthlyTotal) * 100)}% menos</span>
-            </div>
-          </div>
-        </div>
+      {/* Tabs Selector */}
+      <div className="flex border-b border-zinc-800">
+        <button
+          type="button"
+          onClick={() => setActiveTab('general')}
+          className={`px-4 sm:px-6 py-3 border-b-2 text-center cursor-pointer transition-all duration-300 font-bold uppercase tracking-wider ${
+            activeTab === 'general'
+              ? 'border-[#C9A96E] text-[#C9A96E] bg-[#C9A96E]/10'
+              : 'border-transparent text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          [ DÓNDE ESTAMOS VIENDO ]
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('id')}
+          className={`px-4 sm:px-6 py-3 border-b-2 text-center cursor-pointer transition-all duration-300 font-bold uppercase tracking-wider ${
+            activeTab === 'id'
+              ? 'border-[#C9A96E] text-[#C9A96E] bg-[#C9A96E]/10'
+              : 'border-transparent text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          [ COMPARAR CON ID ]
+        </button>
       </div>
+
+      {/* General Tab View */}
+      {activeTab === 'general' && (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          {/* Left panel: sliders */}
+          <div className="md:col-span-7 space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs text-zinc-500 block">Proveedor Actual:</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['AWS', 'Azure', 'GCP'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setProvider(p)}
+                    className={`p-2.5 border text-center transition-colors cursor-pointer rounded ${
+                      provider === p ? 'border-[#C9A96E] text-[#C9A96E] bg-[#C9A96E]/10 font-bold' : 'border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <label htmlFor="cloud-compute" className="text-zinc-400">Compute / Instancias Virtuales (USD/mes)</label>
+                <span className="text-white font-bold">${computeCost.toLocaleString('en-US')}</span>
+              </div>
+              <input
+                id="cloud-compute"
+                type="range"
+                min="500"
+                max="50000"
+                step="500"
+                value={computeCost}
+                onChange={(e) => setComputeCost(Number(e.target.value))}
+                className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <label htmlFor="cloud-storage" className="text-zinc-400">Almacenamiento / SSD / Backup (USD/mes)</label>
+                <span className="text-white font-bold">${storageCost.toLocaleString('en-US')}</span>
+              </div>
+              <input
+                id="cloud-storage"
+                type="range"
+                min="300"
+                max="30000"
+                step="300"
+                value={storageCost}
+                onChange={(e) => setStorageCost(Number(e.target.value))}
+                className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <label htmlFor="cloud-db" className="text-zinc-400">Database PaaS (RDS / Managed SQL)</label>
+                <span className="text-white font-bold">${databaseCost.toLocaleString('en-US')}</span>
+              </div>
+              <input
+                id="cloud-db"
+                type="range"
+                min="500"
+                max="50000"
+                step="500"
+                value={databaseCost}
+                onChange={(e) => setDatabaseCost(Number(e.target.value))}
+                className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <label htmlFor="cloud-egress" className="text-zinc-400">Red / Egress / Ancho de Banda Saliente (USD/mes)</label>
+                <span className="text-white font-bold">${egressCost.toLocaleString('en-US')}</span>
+              </div>
+              <input
+                id="cloud-egress"
+                type="range"
+                min="100"
+                max="20000"
+                step="100"
+                value={egressCost}
+                onChange={(e) => setEgressCost(Number(e.target.value))}
+                className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Right panel: results */}
+          <div className="md:col-span-5 space-y-6">
+            <div className="border border-[#C9A96E]/20 p-5 bg-[#C9A96E]/5 space-y-4 rounded-lg">
+              <div>
+                <span className="text-[10px] text-zinc-500 block uppercase">Costo Mensual {provider}</span>
+                <span className="text-xl text-zinc-400 font-light">${currentMonthlyTotal.toLocaleString('en-US')} USD</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-zinc-500 block uppercase">Costo Mensual OCI Equiv.</span>
+                <span className="text-xl text-[#C9A96E] font-light">${ociMonthlyTotal.toLocaleString('en-US')} USD</span>
+              </div>
+              <div className="border-t border-[#C9A96E]/20 pt-3">
+                <span className="text-[10px] text-zinc-500 block uppercase">Ahorro Mensual Neto</span>
+                <span className="text-2xl text-emerald-500 font-bold">${monthlySavings.toLocaleString('en-US')} USD/mes</span>
+              </div>
+            </div>
+
+            <div className="space-y-1 text-[11px] text-zinc-400">
+              <div className="flex justify-between border-b border-zinc-900 pb-2">
+                <span>Ahorro Anual Proyectado</span>
+                <span className="text-emerald-500 font-bold">${annualSavings.toLocaleString('en-US')} USD</span>
+              </div>
+              <div className="flex justify-between pt-2">
+                <span>Eficiencia OCI Estimada</span>
+                <span className="text-[#C9A96E] font-bold">~{Math.round((monthlySavings / currentMonthlyTotal) * 100)}% menos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ID Tab View */}
+      {activeTab === 'id' && (
+        <div className="space-y-6">
+          {/* Search bar */}
+          <div className="bg-black border border-[#C9A96E]/30 p-5 rounded-lg space-y-4 shadow-[0_0_15px_rgba(201,169,110,0.05)]">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div className="space-y-1.5 flex-1">
+                <label className="text-[9px] text-[#C9A96E] font-bold uppercase tracking-wider block">// SIMULATOR DATABASE SEARCH</label>
+                <div className="relative">
+                  <input
+                    aria-label="Buscar base de datos de simulación por ID"
+                    type="text"
+                    value={searchId}
+                    onChange={(e) => handleIdSearch(e.target.value)}
+                    placeholder="Ingrese ID (ej. AWS-RTL-442 o OCI-FIN-993)"
+                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-[#C9A96E] text-white pl-4 pr-4 py-2.5 outline-none font-mono text-xs placeholder:text-zinc-700 rounded transition-all"
+                  />
+                </div>
+              </div>
+              
+              <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-lg lg:w-[380px] space-y-2">
+                <div className="flex items-center gap-1.5 text-[9px] text-[#C9A96E] font-bold uppercase tracking-wide">
+                  <span>ℹ IDs Disponibles en Sistema</span>
+                </div>
+                <p className="text-[10px] text-zinc-500 leading-normal font-sans">
+                  Utilice uno de los siguientes identificadores preestablecidos para cargar la telemetría correspondiente:
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {Object.keys(DEMO_WORKLOADS).map(id => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => handleIdSearch(id)}
+                      className={`px-2.5 py-1 text-[9px] font-mono border rounded cursor-pointer transition-all duration-300 ${
+                        searchId.trim().toUpperCase() === id
+                          ? "border-[#C9A96E] bg-[#C9A96E]/20 text-white shadow-[0_0_8px_rgba(201,169,110,0.25)]"
+                          : "border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 bg-transparent"
+                      }`}
+                    >
+                      {id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Result content */}
+          {!matchedWorkload ? (
+            <div className="border border-dashed border-zinc-800 p-12 text-center text-zinc-600 rounded-lg">
+              <p>Esperando ID de nube demo válido para iniciar comparación...</p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {Object.keys(DEMO_WORKLOADS).map(id => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => handleIdSearch(id)}
+                    className="px-2.5 py-1 text-[10px] border border-zinc-800 hover:border-[#C9A96E] text-zinc-400 hover:text-[#C9A96E] cursor-pointer transition-colors bg-transparent rounded"
+                  >
+                    {id} ({DEMO_WORKLOADS[id].provider})
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Workload Info */}
+              <div className="lg:col-span-4 border border-[#C9A96E]/30 p-5 bg-zinc-950/80 rounded-lg space-y-4 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-[2px] h-full bg-[#C9A96E]" />
+                
+                <div>
+                  <span className="text-[8px] font-mono text-[#C9A96E] bg-[#C9A96E]/10 border border-[#C9A96E]/30 px-1.5 py-0.5 rounded tracking-wider uppercase font-semibold">
+                    REGISTRO DETECTADO
+                  </span>
+                  <h4 className="text-sm font-bold text-white font-serif mt-2.5">{matchedWorkload.name}</h4>
+                  <p className="text-zinc-500 text-[10px] mt-1 font-mono">// ID RESIDENTE: {matchedWorkload.id}</p>
+                </div>
+
+                <div className="border-t border-zinc-900/60 pt-3.5 space-y-2.5">
+                  <div className="flex justify-between text-[11px] font-mono">
+                    <span className="text-zinc-500">PROVEEDOR ORIGINAL:</span>
+                    <span className="text-[#C9A96E] font-bold tracking-wide">{matchedWorkload.provider}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono">
+                    <span className="text-zinc-500">COSTO MENSUAL BASE:</span>
+                    <span className="text-white font-bold">${(matchedWorkload.compute + matchedWorkload.storage + matchedWorkload.database + matchedWorkload.egress).toLocaleString('en-US')} USD</span>
+                  </div>
+                </div>
+
+                <div className="border-t border-zinc-900/60 pt-3.5 space-y-2">
+                  <span className="text-[9px] text-[#C9A96E] font-bold uppercase tracking-wider block">// ARQUITECTURA DE ORIGEN:</span>
+                  <ul className="space-y-2 text-[10px] text-zinc-400 font-sans">
+                    {matchedWorkload.features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-[#C9A96E] shrink-0 font-bold">▪</span>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Right Column: Comparative Grid */}
+              <div className="lg:col-span-8 space-y-6">
+                {/* Select target cloud */}
+                <div className="space-y-2.5">
+                  <label className="text-[9px] text-[#C9A96E] font-bold uppercase tracking-wider block">// SELECCIONE NUBE PARA COMPARATIVA DE COSTOS</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(['OCI', 'AWS', 'Azure', 'GCP'] as const).map(p => {
+                      const isDisabled = p === matchedWorkload.provider;
+                      const isSelected = compareProvider === p;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => setCompareProvider(p)}
+                          className={`p-2.5 border text-center transition-all duration-300 font-bold rounded ${
+                            isDisabled
+                              ? 'border-zinc-900/30 text-zinc-800 cursor-not-allowed bg-transparent font-light'
+                              : isSelected
+                              ? 'border-[#C9A96E] text-[#C9A96E] bg-[#C9A96E]/10 cursor-pointer'
+                              : 'border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 cursor-pointer bg-zinc-950/20'
+                          }`}
+                        >
+                          {p} {isDisabled ? '(ORIGINAL)' : ''}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {compareProvider && (
+                  <div className="space-y-6">
+                    {/* Comparative Table */}
+                    <div className="border border-[#C9A96E]/30 rounded-lg overflow-hidden bg-black">
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-[#C9A96E]/25 bg-zinc-900/30 font-mono text-[10px] uppercase text-zinc-400">
+                              <th className="p-3.5">CONCEPTO</th>
+                              <th className="p-3.5 text-right">{matchedWorkload.provider} (ORIGINAL)</th>
+                              <th className="p-3.5 text-[#C9A96E] text-right">{compareProvider} (SIMULADO)</th>
+                              <th className="p-3.5 text-right">DESVIACIÓN / AHORRO</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#C9A96E]/15 font-mono">
+                            {(['compute', 'storage', 'database', 'egress'] as const).map(cat => {
+                              const origVal = matchedWorkload[cat];
+                              const compVal = calculateEquivalent(origVal, cat, matchedWorkload.provider, compareProvider);
+                              const diff = compVal - origVal;
+                              const diffPct = Math.round((diff / origVal) * 100);
+                              return (
+                                <tr key={cat} className="hover:bg-zinc-900/10 text-[11px] transition-colors">
+                                  <td className="p-3.5 text-zinc-300 font-bold capitalize">{cat === 'compute' ? 'Compute / VMs' : cat === 'storage' ? 'Almacenamiento' : cat === 'database' ? 'Base de Datos' : 'Red / Egress'}</td>
+                                  <td className="p-3.5 text-right text-zinc-400">${origVal.toLocaleString('en-US')}</td>
+                                  <td className="p-3.5 text-right text-white font-bold">${compVal.toLocaleString('en-US')}</td>
+                                  <td className={`p-3.5 text-right font-bold ${diff < 0 ? 'text-emerald-500' : diff > 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                                    {diff < 0 ? '-' : diff > 0 ? '+' : ''}${Math.abs(diff).toLocaleString('en-US')} ({diffPct > 0 ? '+' : ''}{diffPct}%)
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            
+                            {/* Totals */}
+                            {(() => {
+                              const origTotal = matchedWorkload.compute + matchedWorkload.storage + matchedWorkload.database + matchedWorkload.egress;
+                              const compTotal =
+                                calculateEquivalent(matchedWorkload.compute, 'compute', matchedWorkload.provider, compareProvider) +
+                                calculateEquivalent(matchedWorkload.storage, 'storage', matchedWorkload.provider, compareProvider) +
+                                calculateEquivalent(matchedWorkload.database, 'database', matchedWorkload.provider, compareProvider) +
+                                calculateEquivalent(matchedWorkload.egress, 'egress', matchedWorkload.provider, compareProvider);
+                              const totalDiff = compTotal - origTotal;
+                              const totalDiffPct = Math.round((totalDiff / origTotal) * 100);
+                              
+                              return (
+                                <>
+                                  <tr className="border-t-2 border-[#C9A96E]/30 bg-zinc-950 font-bold text-xs">
+                                    <td className="p-3.5 text-zinc-200">Costo Mensual Total</td>
+                                    <td className="p-3.5 text-right text-zinc-400">${origTotal.toLocaleString('en-US')}</td>
+                                    <td className="p-3.5 text-right text-[#C9A96E] font-bold">${compTotal.toLocaleString('en-US')}</td>
+                                    <td className={`p-3.5 text-right ${totalDiff < 0 ? 'text-emerald-500 font-extrabold' : totalDiff > 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                                      {totalDiff < 0 ? '-' : totalDiff > 0 ? '+' : ''}${Math.abs(totalDiff).toLocaleString('en-US')} ({totalDiffPct > 0 ? '+' : ''}{totalDiffPct}%)
+                                    </td>
+                                  </tr>
+                                  <tr className="bg-zinc-950/60 text-[11px]">
+                                    <td className="p-3.5 text-zinc-500">Costo Anual Proyectado</td>
+                                    <td className="p-3.5 text-right text-zinc-600">${(origTotal * 12).toLocaleString('en-US')}</td>
+                                    <td className="p-3.5 text-right text-zinc-300 font-bold">${(compTotal * 12).toLocaleString('en-US')}</td>
+                                    <td className={`p-3.5 text-right font-extrabold ${totalDiff < 0 ? 'text-emerald-500' : totalDiff > 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                                      {totalDiff < 0 ? 'Ahorro' : 'Premium'}: ${Math.abs(totalDiff * 12).toLocaleString('en-US')} USD/año
+                                    </td>
+                                  </tr>
+                                </>
+                              );
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Technical Comparison Block */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Left: Original Provider Technical notes */}
+                      <div className="border border-zinc-800 p-4 bg-zinc-950/30 rounded-lg">
+                        <h4 className="text-[10px] text-zinc-500 uppercase font-bold mb-2 flex items-center gap-1 font-mono">
+                          ⚠ Consideraciones en {matchedWorkload.provider}
+                        </h4>
+                        <ul className="space-y-2 text-[10px] text-zinc-400 font-sans">
+                          {PROVIDER_TECH_HIGHS[matchedWorkload.provider]?.map((h, i) => (
+                            <li key={i} className="flex items-start gap-1">
+                              <span className="text-zinc-600 shrink-0">▪</span>
+                              <span>{h}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Right: Target Provider Technical notes */}
+                      <div className="border border-[#C9A96E]/20 p-4 bg-[#C9A96E]/5 rounded-lg">
+                        <h4 className="text-[10px] text-[#C9A96E] uppercase font-bold mb-2 flex items-center gap-1 font-mono">
+                          ✓ Cambios de Arquitectura en {compareProvider}
+                        </h4>
+                        <ul className="space-y-2 text-[10px] text-zinc-300 font-sans">
+                          {PROVIDER_TECH_HIGHS[compareProvider]?.map((h, i) => (
+                            <li key={i} className="flex items-start gap-1">
+                              <span className="text-[#C9A96E] shrink-0">▪</span>
+                              <span>{h}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Analytical Insight */}
+                    <div className="p-4 bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-400 leading-relaxed font-sans rounded-lg">
+                      <span className="font-bold text-[#C9A96E] block mb-1 font-mono">FABRIC OS INSIGHT:</span>
+                      {compareProvider === 'OCI' && (
+                        <span>
+                          Al migrar esta carga de trabajo de {matchedWorkload.provider} a OCI, la mayor reducción de costos se da en Base de Datos (-50%) debido al uso de Exadata Cloud Service y en Red / Egress (-90%) gracias al esquema de red de Oracle. Esto elimina la penalización por crecimiento de datos típica en otras nubes.
+                        </span>
+                      )}
+                      {compareProvider !== 'OCI' && matchedWorkload.provider === 'OCI' && (
+                        <span>
+                          Migrar esta carga optimizada de OCI a {compareProvider} representa una prima de costo de aproximadamente el {Math.round((calculateEquivalent(matchedWorkload.database, 'database', 'OCI', compareProvider) - matchedWorkload.database) / matchedWorkload.database * 100)}% en base de datos al perder las eficiencias de Exadata y RAC. Adicionalmente, los costos de egress saliente aumentarán sustancialmente ({compareProvider === 'AWS' ? '10x' : compareProvider === 'Azure' ? '9x' : '8.5x'}).
+                        </span>
+                      )}
+                      {matchedWorkload.provider !== 'OCI' && compareProvider !== 'OCI' && (
+                        <span>
+                          La comparación entre {matchedWorkload.provider} y {compareProvider} muestra diferencias marginales en compute y storage, pero los modelos de licenciamiento de base de datos y tasas de transferencia saliente siguen siendo las áreas críticas donde el gasto de hosting se desborda en ambos proveedores tradicionales.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -617,174 +1057,6 @@ function AuditTrailInteractiveWidget() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function FsoEngineInteractiveWidget() {
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
-
-  const fsos = [
-    {
-      id: "FSO-01",
-      status: "Available",
-      statusClass: "text-emerald-500 border-emerald-500/30 bg-emerald-950/20",
-      name: "Rapid GL Close",
-      desc: "Cierre contable acelerado · 10-15 días → 3-5 días",
-      validation: "Validado · APE Plazas",
-      version: "v1.2",
-      tiempo: "4 semanas",
-      costo: "USD 35K"
-    },
-    {
-      id: "FSO-02",
-      status: "Available",
-      statusClass: "text-emerald-500 border-emerald-500/30 bg-emerald-950/20",
-      name: "Multi-Entity Retail Ops",
-      desc: "Operación multi-plaza · Consolidación multi-entidad",
-      validation: "Validado · APE Plazas",
-      version: "v1.0",
-      tiempo: "6 semanas",
-      costo: "USD 45K"
-    },
-    {
-      id: "FSO-03",
-      status: "Building",
-      statusClass: "text-amber-500 border-amber-500/30 bg-amber-950/20",
-      name: "Fintech Controls Pack",
-      desc: "Compliance regulatorio · CNBV / CONDUSEF",
-      validation: "Aplicado · Aplazo",
-      version: "v0.9 beta",
-      tiempo: "8 semanas",
-      costo: "USD 55K"
-    },
-    {
-      id: "FSO-04",
-      status: "Building",
-      statusClass: "text-amber-500 border-amber-500/30 bg-amber-950/20",
-      name: "Legacy Migration Engine",
-      desc: "Migración SAP / EBS / JDE / PS · Zero-downtime",
-      validation: "En desarrollo",
-      version: "v0.7 beta",
-      tiempo: "12 semanas",
-      costo: "USD 85K"
-    },
-    {
-      id: "FSO-05",
-      status: "Concept",
-      statusClass: "text-zinc-400 border-zinc-700 bg-zinc-900/40",
-      name: "Logistics Multi-CD Ops",
-      desc: "Operación multi-CD multi-país · Trazabilidad fiscal",
-      validation: "Diseño · Q3 2026",
-      version: "spec",
-      tiempo: "10 semanas",
-      costo: "USD 75K"
-    },
-    {
-      id: "FSO-06",
-      status: "Concept",
-      statusClass: "text-zinc-400 border-zinc-700 bg-zinc-900/40",
-      name: "DR & Business Continuity",
-      desc: "Disaster Recovery · RPO/RTO contractuales",
-      validation: "Diseño · Q4 2026",
-      version: "spec",
-      tiempo: "6 semanas",
-      costo: "USD 40K"
-    }
-  ];
-
-  const filteredFsos = activeFilter
-    ? fsos.filter((fso) => fso.status === activeFilter)
-    : fsos;
-
-  return (
-    <div className="space-y-8 font-mono text-xs">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <span className="fabric-badge-premium mb-3 inline-block">FSO Engine · Soluciones paquetizadas</span>
-          <h2 className="text-3xl md:text-5xl font-serif text-white font-light leading-tight">
-            IP nombrada y reutilizable. <em className="text-[#C9A96E] font-serif italic">Cada FSO, validable.</em>
-          </h2>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveFilter(null)}
-            className={`px-3 py-1.5 border text-[10px] uppercase tracking-wider rounded transition-all cursor-pointer ${
-              activeFilter === null ? 'border-[#C9A96E] bg-[#C9A96E]/10 text-[#C9A96E] font-bold' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'
-            }`}
-          >
-            Todos
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveFilter('Available')}
-            className={`px-3 py-1.5 border text-[10px] uppercase tracking-wider rounded transition-all cursor-pointer ${
-              activeFilter === 'Available' ? 'border-emerald-500 bg-emerald-950/20 text-emerald-500 font-bold' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'
-            }`}
-          >
-            Available
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveFilter('Building')}
-            className={`px-3 py-1.5 border text-[10px] uppercase tracking-wider rounded transition-all cursor-pointer ${
-              activeFilter === 'Building' ? 'border-amber-500 bg-amber-950/20 text-amber-500 font-bold' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'
-            }`}
-          >
-            Building
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveFilter('Concept')}
-            className={`px-3 py-1.5 border text-[10px] uppercase tracking-wider rounded transition-all cursor-pointer ${
-              activeFilter === 'Concept' ? 'border-zinc-500 bg-zinc-900/40 text-zinc-300 font-bold' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'
-            }`}
-          >
-            Concept
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-        {filteredFsos.map((fso) => (
-          <div
-            key={fso.id}
-            className="p-6 rounded-xl border border-zinc-800 bg-zinc-950/60 flex flex-col justify-between h-full relative overflow-hidden group hover:border-[#C9A96E]/40 transition-all duration-300"
-          >
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-mono text-sm text-[#C9A96E] font-bold">{fso.id}</span>
-                <span className={`px-2 py-0.5 border text-[9px] uppercase font-bold tracking-wider rounded ${fso.statusClass}`}>
-                  {fso.status}
-                </span>
-              </div>
-              <h3 className="text-xl font-serif text-white font-light mb-2">{fso.name}</h3>
-              <p className="text-zinc-400 text-xs leading-relaxed mb-6 font-sans">{fso.desc}</p>
-            </div>
-
-            <div>
-              <div className="grid grid-cols-2 gap-4 border-t border-zinc-900 pt-4 mb-4 font-mono text-[10px]">
-                <div>
-                  <span className="text-zinc-600 block uppercase">PLAZO</span>
-                  <span className="text-zinc-300 font-bold">{fso.tiempo}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-600 block uppercase">COSTO</span>
-                  <span className="text-[#C9A96E] font-bold">{fso.costo}</span>
-                </div>
-              </div>
-
-              <div className="border-t border-dashed border-zinc-800 pt-3 flex justify-between items-center text-[10px] text-zinc-500 font-mono">
-                <span>{fso.validation}</span>
-                <span className="text-zinc-600">{fso.version}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -2021,6 +2293,7 @@ const insights = [
 export default function S02bPuente() {
   const [ref, isInView] = useInViewOnce<HTMLElement>();
   const [activeIndex, setActiveIndex] = useState(1);
+  const [isOfficeHoursOpen, setIsOfficeHoursOpen] = useState(false);
 
   const active = insights[activeIndex];
 
@@ -2152,7 +2425,7 @@ export default function S02bPuente() {
         </div>
 
         {/* RADAR DE ADMISIÓN CRÍTICA & MESA TÉCNICA 1-ON-1 */}
-        <div style={{ marginTop: 'clamp(48px, 6vw, 80px)' }}>
+        <div id="radar-admision" style={{ marginTop: 'clamp(48px, 6vw, 80px)' }}>
           {/* FOMO System Status Alert Banner */}
           <div className="fabric-radar-banner">
             {/* Esquinas consola */}
@@ -2195,12 +2468,13 @@ export default function S02bPuente() {
                 <div>WAITLIST: <span className="text-white font-bold">7 COMPAÑÍAS</span></div>
                 <div>PRÓXIMA APERTURA: <span className="text-[#C9A96E] font-bold">Q4 2026</span></div>
               </div>
-              <a 
-                href="#office-hours" 
-                className="fabric-btn-accent text-[10px] uppercase font-mono w-full sm:w-auto text-center"
+              <button 
+                type="button"
+                onClick={() => setIsOfficeHoursOpen(true)} 
+                className="fabric-btn-accent text-[10px] tracking-wider uppercase font-bold py-2 px-4 font-mono w-full sm:w-auto text-center cursor-pointer whitespace-nowrap"
               >
                 [ APLICAR A WAITLIST ]
-              </a>
+              </button>
             </div>
           </div>
 
@@ -2216,9 +2490,9 @@ export default function S02bPuente() {
                 Conversa directamente con un Ingeniero Principal de FABRIC. Evaluamos los riesgos reales, cuellos de botella de integraciones y arquitectura de tu proyecto Oracle Fusion. Sin rodeos comerciales, sin presentaciones de ventas corporativas.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 font-mono text-zinc-500 pt-2">
-                <div className="flex items-start gap-3">
-                  <svg className="w-4 h-4 text-[#C9A96E] shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-zinc-500 pt-4">
+                <div className="flex items-start gap-2.5">
+                  <svg className="w-4 h-4 text-[#C9A96E] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                     <line x1="16" y1="2" x2="16" y2="6" />
                     <line x1="8" y1="2" x2="8" y2="6" />
@@ -2226,17 +2500,17 @@ export default function S02bPuente() {
                   </svg>
                   <div>
                     <h4 className="text-zinc-300 text-xs font-bold uppercase">Disponibilidad Dinámica</h4>
-                    <p className="text-[10px] text-zinc-500 mt-1 leading-normal">Elige un día y horario en tiempo real de los bloques abiertos por administración.</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">Elige un día y horario en tiempo real de los bloques abiertos por administración.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <svg className="w-4 h-4 text-[#C9A96E] shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="flex items-start gap-2.5">
+                  <svg className="w-4 h-4 text-[#C9A96E] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                   <div>
                     <h4 className="text-zinc-300 text-xs font-bold uppercase">Sesión Privada de 30 Min</h4>
-                    <p className="text-[10px] text-zinc-500 mt-1 leading-normal">Análisis técnico preliminar, revisión de NDA y asignación de cola de admisión.</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">Análisis técnico preliminar, revisión de NDA y asignación de cola de admisión.</p>
                   </div>
                 </div>
               </div>
@@ -2244,7 +2518,7 @@ export default function S02bPuente() {
 
             {/* Right Column: CTA Block */}
             <div className="lg:col-span-5">
-              <div className="p-8 border border-zinc-800 bg-zinc-950/60 rounded-2xl relative space-y-6 text-center shadow-[0_0_20px_rgba(201,169,110,0.03)]">
+              <div className="p-6 md:p-8 border border-zinc-800 bg-zinc-950/40 rounded-2xl relative space-y-6 text-center shadow-[0_0_20px_rgba(201,169,110,0.02)]">
                 {/* Esquinas decorativas consola */}
                 <div className="fabric-corner top-left" />
                 <div className="fabric-corner top-right" />
@@ -2267,15 +2541,16 @@ export default function S02bPuente() {
                   </p>
                 </div>
 
-                <a
-                  href="#office-hours"
-                  className="fabric-btn-accent w-full justify-center gap-2 text-[10px] uppercase font-bold py-3 mt-2 font-mono flex items-center"
+                <button
+                  type="button"
+                  onClick={() => setIsOfficeHoursOpen(true)}
+                  className="fabric-btn-accent w-full justify-center gap-2 text-[10px] tracking-wider uppercase font-bold py-2.5 px-4 mt-2 font-mono flex items-center cursor-pointer whitespace-nowrap"
                 >
                   [ AGENDAR CITA DE INGENIERÍA ]
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -2328,12 +2603,13 @@ export default function S02bPuente() {
 
           {/* Herramienta 2: Cloud Cost Comparator */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="p-6 md:p-8 rounded-xl border border-zinc-800 bg-zinc-950/80 overflow-x-auto lg:order-1 order-2">
+            <div className="card-premium p-6 md:p-8 overflow-x-auto lg:order-1 order-2">
               <CloudCostInteractiveWidget />
             </div>
 
-            <div className="lg:order-2 order-1 lg:sticky lg:top-28 lg:z-[5] lg:self-start">
-              <div className="p-6 md:p-8 rounded-xl border border-zinc-800 bg-zinc-950/60">
+            {/* Wrapper sin hover-transform: evita conflictos con position:sticky en el hijo */}
+            <div className="lg:order-2 order-1 lg:sticky lg:top-28 lg:z-[5] lg:self-start lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-0.5">
+              <div className="card-premium p-6 md:p-8">
                 <span className="fabric-badge-premium mb-4 inline-block">Comparador de costos</span>
                 <h3 className="text-3xl md:text-4xl font-serif text-[#C9A96E] font-light leading-tight mb-4">
                   Cloud Cost Comparator
@@ -2650,11 +2926,6 @@ export default function S02bPuente() {
           </div>
         </div>
 
-        {/* FSO ENGINE SECTION */}
-        <div id="fso-engine-section" style={{ marginTop: 'clamp(64px, 8vw, 110px)', paddingTop: 'clamp(48px, 6vw, 80px)', borderTop: '1px solid rgba(201, 169, 110, 0.15)' }}>
-          <FsoEngineInteractiveWidget />
-        </div>
-
         {/* ORACLE FUSION RESCUE ASSESSMENT SECTION */}
         <div id="rescue-assessment-section" style={{ marginTop: 'clamp(64px, 8vw, 110px)', paddingTop: 'clamp(48px, 6vw, 80px)', borderTop: '1px solid rgba(201, 169, 110, 0.15)' }}>
           <RescueAssessmentInteractiveWidget />
@@ -2690,6 +2961,122 @@ export default function S02bPuente() {
           <WaitlistInteractiveWidget />
         </div>
       </div>
+
+      {/* OFFICE HOURS / MESA TÉCNICA MODAL OVERLAY */}
+      {isOfficeHoursOpen && (
+        <div className="fixed inset-0 z-[1500] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-950 border border-[#C9A96E]/30 p-6 md:p-8 max-w-4xl w-full relative rounded-xl font-mono text-xs shadow-[0_0_50px_rgba(201,169,110,0.15)] my-8">
+            <button
+              type="button"
+              onClick={() => setIsOfficeHoursOpen(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-[#C9A96E] font-mono text-[10px] border border-zinc-800 px-3 py-1.5 bg-black rounded cursor-pointer transition-colors"
+            >
+              [ CERRAR X ]
+            </button>
+
+            <div className="space-y-6">
+              <div>
+                <span className="fabric-badge-premium mb-2 inline-block">ENGINEERING DIRECT ACCESS</span>
+                <h2 className="text-2xl md:text-3xl font-serif text-white font-light">Office Hours de Ingeniería</h2>
+                <p className="text-zinc-400 text-xs mt-1 font-sans">Reserva una sesión técnica privada de 30 minutos con un Ingeniero Principal de FABRIC.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start pt-2">
+                {/* Available Days and Slots */}
+                <div className="md:col-span-7 space-y-4">
+                  <div className="space-y-2">
+                    <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-widest block font-bold">Días Disponibles · Mayo 2026</span>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      {[
+                        { day: 'Lun', num: '11', month: 'Mayo' },
+                        { day: 'Mié', num: '13', month: 'Mayo' },
+                        { day: 'Vie', num: '15', month: 'Mayo' },
+                        { day: 'Mar', num: '19', month: 'Mayo' },
+                      ].map((d, i) => (
+                        <div key={i} className={`p-2.5 border rounded cursor-pointer transition-all ${i === 0 ? 'border-[#C9A96E] bg-[#C9A96E]/10 text-white' : 'border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}>
+                          <span className="text-[9px] text-[#C9A96E] block font-bold uppercase">{d.day}</span>
+                          <span className="text-base font-serif font-bold text-white block">{d.num}</span>
+                          <span className="text-[8px] text-zinc-500 block">{d.month}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-widest block font-bold">Horarios Disponibles (CST)</span>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {['09:00 AM', '11:30 AM', '03:00 PM', '04:30 PM'].map((slot, i) => (
+                        <div key={i} className={`p-2.5 border rounded cursor-pointer transition-all ${i === 0 ? 'border-[#C9A96E] bg-[#C9A96E]/10 text-[#C9A96E] font-bold' : 'border-zinc-800 text-zinc-300 hover:border-zinc-700'}`}>
+                          {slot}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-l-2 border-[#C9A96E] pl-3 py-2 bg-[#C9A96E]/5 text-[11px] text-zinc-400 font-sans italic rounded-r">
+                    Todas las sesiones cuentan con compromiso explícito de confidencialidad y revisión bajo NDA.
+                  </div>
+                </div>
+
+                {/* Form fields */}
+                <div className="md:col-span-5 space-y-3 font-mono">
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase tracking-wider block mb-1">Nombre Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Roberto Martínez"
+                      className="w-full bg-black border border-zinc-800 text-white p-2.5 rounded text-xs outline-none focus:border-[#C9A96E]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase tracking-wider block mb-1">Correo Corporativo *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="roberto@empresa.com"
+                      className="w-full bg-black border border-zinc-800 text-white p-2.5 rounded text-xs outline-none focus:border-[#C9A96E]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-zinc-400 uppercase tracking-wider block mb-1">Empresa *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Holding S.A."
+                        className="w-full bg-black border border-zinc-800 text-white p-2.5 rounded text-xs outline-none focus:border-[#C9A96E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-zinc-400 uppercase tracking-wider block mb-1">Cargo *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="CIO / CFO"
+                        className="w-full bg-black border border-zinc-800 text-white p-2.5 rounded text-xs outline-none focus:border-[#C9A96E]"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert('¡Solicitud de sesión técnica agendada exitosamente! Recibirás los detalles en tu correo corporativo.');
+                      setIsOfficeHoursOpen(false);
+                    }}
+                    className="fabric-btn-accent w-full justify-center text-center font-mono text-xs py-3 mt-3 uppercase font-bold tracking-wider cursor-pointer"
+                  >
+                    Confirmar Agenda →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .fabric-puente-grid {
