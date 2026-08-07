@@ -15,29 +15,25 @@ const showComingSoon = () => {
 const footerLinks: Record<string, FooterLink[]> = {
   sitio: [
     { label: 'Inicio',            path: '/#inicio' },
-    { label: 'Doctrina',          path: '/#doctrina' },
-    { label: 'Industrias',        path: '/#industrias' },
-    { label: 'FABRIC OS',         path: '/#fabric-os' },
+    { label: 'Doctrina',          path: '/#doctrina-operativa' },
+    { label: 'Industrias',        path: '/#industrias-focales' },
     { label: 'Transparencia',     path: '/transparencia' },
-    { label: 'Investigación',     path: '/#investigacion' },
-    { label: 'Modelos',         path: '/modelos' },
+    { label: 'Investigación',     path: '/#investigacion-section' },
+    { label: 'Modelos',           path: '/modelos' },
     { label: 'Aplicar',           path: '/aplicar' },
   ],
   casos: [
-    { label: 'Historial de casos',        path: '/#casos' },
+    { label: 'Historial de casos',        path: '/#casos-ancla' },
     { label: 'APE Plazas',               path: '/casos/ape-plazas' },
     { label: 'Aplazo',                   path: '/casos/aplazo' },
     { label: 'Referencias',              path: '/#referencias' },
-    { label: 'Criterios de admisión',    path: '/#criterios' },
-    { label: 'Rescue Assessment',        path: '/#rescue-assessment' },
+    { label: 'Rescue Assessment',        path: '/#rescue-assessment-section' },
     { label: 'Apply Reverse',             path: '/rechazados' },
   ],
   herramientas: [
-    { label: 'FABRIC AI Diagnostic',     path: '/#fabric-ai' },
     { label: 'Optimizador OCI',          path: '/optimizador-oci' },
-    { label: 'ERP TCO Comparator',       path: '/#tco' },
-    { label: 'Cloud Cost Comparator',    path: '/#cloud-tco' },
-    { label: 'Doctrine Generator',     path: '/#doctrina' },
+    { label: 'ERP TCO Comparator',       path: '/#comparadores' },
+    { label: 'Cloud Cost Comparator',    path: '/#infra-cost-simulator' },
     { label: 'Migration Roadmap',      path: '/roadmap' },
     { label: 'Readiness Score',        path: '/readiness' },
     { label: 'RFP Template',           path: '/rfp-template' },
@@ -45,11 +41,11 @@ const footerLinks: Record<string, FooterLink[]> = {
   ],
   engagement: [
     { label: 'Aplicar',                  path: '/aplicar' },
-    { label: 'Founder · Wait List',      path: '/#founder-wait-list' },
+    { label: 'Founder · Wait List',      path: '/#waitlist-section' },
     { label: 'Office Hours',             path: '/office-hours' },
-    { label: 'Post-Mortem Privado',    path: '/post-mortem' },
-    { label: 'Confidential Roundtable', path: '/roundtable' },
-    { label: 'Research Letters',        path: '/research-letters' },
+    { label: 'Post-Mortem Privado',      path: '/post-mortem' },
+    { label: 'Confidential Roundtable',   path: '/roundtable' },
+    { label: 'Research Letters',          path: '/research-letters' },
   ],
   recursos: [
     { label: 'Paper 01 — Go-live failures',         path: '/investigacion/paper/01' },
@@ -88,9 +84,19 @@ function FooterNavItem({ link }: { link: FooterLink }) {
 }
 
 const SocialIcons = {
-  LinkedIn: () => (
+  Facebook: () => (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" />
+      <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z"/>
+    </svg>
+  ),
+  YouTube: () => (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M23.498 6.163a3.003 3.003 0 00-2.11-2.11C19.518 3.545 12 3.545 12 3.545s-7.518 0-9.388.507a3.003 3.003 0 00-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 002.11 2.11c1.87.507 9.388.507 9.388.507s7.518 0 9.388-.507a3.003 3.003 0 002.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  ),
+  Instagram: () => (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
     </svg>
   ),
   Twitter: () => (
@@ -98,9 +104,9 @@ const SocialIcons = {
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.004 3.974H5.078z" />
     </svg>
   ),
-  GitHub: () => (
+  TikTok: () => (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.06-2.89-.53-4.09-1.37-.76-.53-1.39-1.27-1.77-2.11-.07-.15-.12-.3-.17-.46-.01 1.93-.01 3.86-.01 5.79 0 2.22-.38 4.49-1.57 6.36-1.44 2.34-4.11 3.86-6.9 3.82-3.15-.05-6.13-2.13-7.14-5.11-1.16-3.32-.21-7.29 2.45-9.61 2.05-1.84 5.01-2.42 7.64-1.52.01 1.34.01 2.68.01 4.02-1.44-.48-3.08-.22-4.24.71-.97.77-1.4 2.05-1.16 3.27.2 1.15.99 2.14 2.06 2.58 1.25.53 2.76.24 3.73-.67.7-.65 1.07-1.63 1.07-2.58.02-3.52.01-7.05.02-10.57z"/>
     </svg>
   ),
 };
@@ -130,26 +136,28 @@ export default function Footer() {
 
             <div className="space-y-3 font-mono text-sm mb-8 text-[#F5F5F5]/80 break-words">
               <p>Ciudad de México · México</p>
-              <a href="mailto:contacto@fabricsoft.com.mx" className="block text-[#C9A96E] hover:text-[#C9A96E]/80 transition-colors duration-300">
-                contacto@fabricsoft.com.mx
-              </a>
-              <a href="mailto:julio@fabricsoft.com.mx" className="block text-[#C9A96E] hover:text-[#C9A96E]/80 transition-colors duration-300">
-                julio@fabricsoft.com.mx
-              </a>
             </div>
 
             <div className="flex items-center gap-6 mb-10">
-              <a href="#" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
-                <span className="sr-only">LinkedIn</span>
-                <SocialIcons.LinkedIn />
+              <a href="https://www.facebook.com/profile.php?id=61586919775724" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
+                <span className="sr-only">Facebook</span>
+                <SocialIcons.Facebook />
               </a>
-              <a href="#" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
+              <a href="https://www.youtube.com/@FabricSoft-1" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
+                <span className="sr-only">YouTube</span>
+                <SocialIcons.YouTube />
+              </a>
+              <a href="https://www.instagram.com/fabricsoft_mexico/" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
+                <span className="sr-only">Instagram</span>
+                <SocialIcons.Instagram />
+              </a>
+              <a href="https://x.com/FabriSoft01" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
                 <span className="sr-only">Twitter / X</span>
                 <SocialIcons.Twitter />
               </a>
-              <a href="#" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
-                <span className="sr-only">GitHub</span>
-                <SocialIcons.GitHub />
+              <a href="https://www.tiktok.com/@fabricsoft_" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
+                <span className="sr-only">TikTok</span>
+                <SocialIcons.TikTok />
               </a>
             </div>
 

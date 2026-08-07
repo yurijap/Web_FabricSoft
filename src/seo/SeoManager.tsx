@@ -206,7 +206,6 @@ function buildJsonLd(seo: SeoConfig, canonicalUrl: string) {
         name: 'FABRIC SOFT MEXICO SA DE CV',
         url: SITE_URL,
         logo: `${SITE_URL}/favicon.svg`,
-        email: 'contacto@fabricsoft.com.mx',
         address: {
           '@type': 'PostalAddress',
           addressLocality: 'Ciudad de Mexico',

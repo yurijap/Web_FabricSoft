@@ -23,8 +23,8 @@ export default function PrivacidadPage() {
           { titulo: '2. Datos personales recabados', cuerpo: 'Podemos solicitar nombre, cargo, empresa, correo corporativo, teléfono, industria, contexto del proyecto Oracle y datos necesarios para evaluar una solicitud calificada.' },
           { titulo: '3. Finalidades del tratamiento', cuerpo: 'Usamos la información para responder solicitudes, evaluar admisión, coordinar sesiones privadas, compartir materiales bajo NDA y mantener comunicación profesional sobre servicios FABRIC.' },
           { titulo: '4. Transferencias de datos', cuerpo: 'FABRIC no vende datos personales. La información puede compartirse únicamente con proveedores operativos necesarios para atender la solicitud o cuando exista obligación legal.' },
-          { titulo: '5. Derechos ARCO', cuerpo: 'Para ejercer derechos de Acceso, Rectificación, Cancelación u Oposición, escribe a contacto@fabricsoft.com.mx. Atenderemos la solicitud conforme a la legislación aplicable.' },
-          { titulo: '6. Contacto', cuerpo: 'Consultas sobre privacidad: contacto@fabricsoft.com.mx · FABRIC SOFT MEXICO SA DE CV · Ciudad de México, México.' },
+          { titulo: '5. Derechos ARCO', cuerpo: 'Para ejercer derechos de Acceso, Rectificación, Cancelación u Oposición, puedes contactar a nuestro equipo legal de FABRIC. Atenderemos la solicitud conforme a la legislación aplicable.' },
+          { titulo: '6. Contacto', cuerpo: 'Consultas sobre privacidad: FABRIC SOFT MEXICO SA DE CV · Ciudad de México, México.' },
         ].map((s, i) => (
           <div key={i} style={{ paddingBottom: 48, marginBottom: 48, borderBottom: '1px solid var(--border)' }}>
             <h2 style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', marginBottom: 16 }}>{s.titulo}</h2>

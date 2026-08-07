@@ -23,7 +23,7 @@ export default function TerminosPage() {
           { titulo: '2. Información no vinculante', cuerpo: 'Los contenidos publicados no constituyen una propuesta contractual, garantía de resultado ni asesoría técnica, financiera o legal. Cada iniciativa requiere evaluación específica y alcance por escrito.' },
           { titulo: '3. Acceso a materiales privados', cuerpo: 'Casos, papers, documentos operativos y evidencia de proyecto pueden requerir correo corporativo, validación de perfil y NDA mutuo antes de compartirse.' },
           { titulo: '4. Propiedad intelectual', cuerpo: 'La doctrina, textos, modelos, herramientas, diagramas, frameworks y materiales de FABRIC son propiedad de FABRIC SOFT MEXICO SA DE CV o se usan bajo autorización correspondiente.' },
-          { titulo: '5. Contacto legal', cuerpo: 'Para consultas relacionadas con estos términos: contacto@fabricsoft.com.mx · FABRIC SOFT MEXICO SA DE CV · Ciudad de México, México.' },
+          { titulo: '5. Contacto legal', cuerpo: 'Para consultas relacionadas con estos términos: FABRIC SOFT MEXICO SA DE CV · Ciudad de México, México.' },
         ].map((s, i) => (
           <div key={i} style={{ paddingBottom: 48, marginBottom: 48, borderBottom: '1px solid var(--border)' }}>
             <h2 style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', marginBottom: 16 }}>{s.titulo}</h2>
