@@ -46,49 +46,18 @@ const NAV_GROUPS: NavGroup[] = [
     group: 'Principal',
     defaultOpen: true,
     items: [
-      { path: '/admin',       label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/admin/leads', label: 'Leads',     icon: UsersRound },
-    ],
-  },
-  {
-    group: 'IA & Diagnóstico',
-    defaultOpen: true,
-    items: [
-      { path: '/admin/agente-ia',           label: 'Agente IA',           badge: 'Beta', icon: Bot },
-      { path: '/admin/conversaciones-ia',   label: 'Conversaciones',      badge: 'Nuevo', icon: MessageSquareText },
-      { path: '/admin/diagnosticos-oracle', label: 'Diagnósticos Oracle',                icon: ClipboardList },
-      { path: '/admin/rescue-assessment',   label: 'Rescue Assessment',                  icon: Activity },
-      { path: '/admin/oci-audit',           label: 'OCI Cost Audit',                     icon: BarChart3 },
-      { path: '/admin/migration-roadmap',   label: 'Migration Roadmap',                  icon: GitBranch },
-      { path: '/admin/readiness-score',     label: 'Readiness Score',                    icon: Gauge },
-    ],
-  },
-  {
-    group: 'Captación',
-    defaultOpen: false,
-    items: [
-      { path: '/admin/office-hours', label: 'Office Hours', icon: CalendarClock },
-      { path: '/admin/capacidad',    label: 'Capacidad',    icon: Gauge },
-      { path: '/admin/cloud-comparator', label: 'Cloud Comparator', icon: Cloud },
-      { path: '/admin/referencias',  label: 'Referencias',  icon: Link2 },
-    ],
-  },
-  {
-    group: 'Contenido',
-    defaultOpen: false,
-    items: [
-      { path: '/admin/papers',           label: 'Papers',          icon: FileText },
-      { path: '/admin/nda',              label: 'NDA',             icon: ShieldCheck },
-      { path: '/admin/research-letters', label: 'Research Letters', icon: Mail },
-      { path: '/admin/transparencia',    label: 'Transparencia',   icon: Eye },
+      { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/admin/leads', label: 'Leads', icon: UsersRound },
+      { path: '/admin/office-hours', label: 'Generar Citas', icon: CalendarClock },
+      { path: '/admin/documentos', label: 'Solicitudes de Documentos', icon: FileText },
+      { path: '/admin/validacion-directa', label: 'VALIDACIÓN DIRECTA', icon: ShieldCheck },
     ],
   },
   {
     group: 'Sistema',
     defaultOpen: false,
     items: [
-      { path: '/admin/metricas', label: 'Métricas', icon: BarChart3 },
-      { path: '/admin/logs',     label: 'Logs',     badge: '∞', icon: Activity },
+      { path: '/admin/logs', label: 'Logs', badge: '∞', icon: Activity },
     ],
   },
 ];
@@ -161,10 +130,9 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          background:
-            'linear-gradient(180deg, rgba(15,15,14,0.98) 0%, rgba(5,5,5,0.98) 52%, rgba(10,8,5,0.98) 100%)',
-          borderRight: '1px solid rgba(201,169,110,0.12)',
-          boxShadow: '12px 0 60px rgba(0,0,0,0.55)',
+          background: '#0E2747',
+          borderRight: '1px solid #1E3A5F',
+          boxShadow: '4px 0 24px rgba(0,0,0,0.25)',
         }}
       >
         {/* ── Logo ── */}
@@ -172,7 +140,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           className="fabric-admin-sidebar-brand"
           style={{
             padding: '18px 18px 16px',
-            borderBottom: '1px solid rgba(201,169,110,0.10)',
+            borderBottom: '1px solid #1E3A5F',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -180,25 +148,25 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Logo_FabricSoft.webp replacing monogram F */}
             <div
               className="fabric-admin-sidebar-logo"
               style={{
-                width: 60,
-                height: 60,
+                width: 52,
+                height: 52,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid rgba(201,169,110,0.28)',
-                background: 'rgba(201,169,110,0.02)',
+                border: '1px solid rgba(201,169,110,0.3)',
+                background: 'rgba(201,169,110,0.08)',
                 flexShrink: 0,
                 position: 'relative',
+                borderRadius: 8,
               }}
             >
-              <img 
-                src="/Logo_FabricSoft.webp" 
-                alt="F" 
-                style={{ width: '85%', height: '85%', objectFit: 'contain' }} 
+              <img
+                src="/Logo_FabricSoft.webp"
+                alt="F"
+                style={{ width: '85%', height: '85%', objectFit: 'contain' }}
               />
             </div>
 
@@ -206,10 +174,10 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               <div
                 style={{
                   fontFamily: 'var(--mono, monospace)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: '0.22em',
-                  color: '#E8E8E8',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: '0.18em',
+                  color: '#FFFFFF',
                   textTransform: 'uppercase',
                 }}
               >
@@ -219,8 +187,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                 style={{
                   fontFamily: 'var(--mono, monospace)',
                   fontSize: 9,
-                  letterSpacing: '0.18em',
-                  color: 'rgba(255,255,255,0.3)',
+                  letterSpacing: '0.12em',
+                  color: '#94A3B8',
                   textTransform: 'uppercase',
                   marginTop: 2,
                 }}
@@ -237,13 +205,14 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             style={{
               width: 32,
               height: 32,
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid #1E3A5F',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.4)',
+              color: '#94A3B8',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              borderRadius: 6,
             }}
             className="lg:hidden"
             aria-label="Cerrar"
@@ -261,7 +230,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             flex: 1,
             overflowY: 'auto',
             overflowX: 'hidden',
-            padding: '12px 12px 8px',
+            padding: '16px 12px 8px',
             scrollbarWidth: 'none',
           }}
         >
@@ -286,7 +255,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               return (
                 <div
                   key={group}
-                  style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? 4 : 0 }}
+                  style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? 8 : 0 }}
                 >
                   {/* ── Cabecera de grupo ── */}
                   <button
@@ -301,19 +270,18 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                       background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
-                      marginBottom: 2,
+                      marginBottom: 4,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {/* Línea decorativa izquierda */}
                       <span
                         style={{
                           display: 'block',
                           width: 12,
-                          height: 1,
+                          height: 1.5,
                           background: groupActive
-                            ? 'rgba(201,169,110,0.7)'
-                            : 'rgba(255,255,255,0.15)',
+                            ? '#C9A96E'
+                            : '#1E3A5F',
                           transition: 'background 200ms',
                           flexShrink: 0,
                         }}
@@ -321,13 +289,13 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                       <span
                         style={{
                           fontFamily: 'var(--mono, monospace)',
-                          fontSize: 9,
-                          fontWeight: 600,
-                          letterSpacing: '0.2em',
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          letterSpacing: '0.15em',
                           textTransform: 'uppercase',
                           color: groupActive
-                            ? 'rgba(201,169,110,0.85)'
-                            : 'rgba(255,255,255,0.28)',
+                            ? '#C9A96E'
+                            : '#64748b',
                           transition: 'color 200ms',
                           userSelect: 'none',
                         }}
@@ -340,8 +308,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                       strokeWidth={2}
                       style={{
                         color: groupActive
-                          ? 'rgba(201,169,110,0.6)'
-                          : 'rgba(255,255,255,0.2)',
+                          ? '#C9A96E'
+                          : '#64748b',
                         transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                         transition: 'transform 200ms ease, color 200ms',
                         flexShrink: 0,
@@ -355,10 +323,10 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 1,
+                        gap: 2,
                         paddingLeft: 8,
                         paddingBottom: 4,
-                        borderLeft: '1px solid rgba(255,255,255,0.06)',
+                        borderLeft: '1px solid #1E3A5F',
                         marginLeft: 10,
                       }}
                     >
@@ -377,57 +345,66 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                               gridTemplateColumns: '16px 1fr auto',
                               alignItems: 'center',
                               gap: 10,
-                              padding: '9px 11px',
+                              padding: '8px 11px',
                               textDecoration: 'none',
                               position: 'relative',
                               overflow: 'hidden',
                               borderRadius: 6,
                               background: active
-                                ? 'linear-gradient(90deg, rgba(201,169,110,0.13), rgba(201,169,110,0.035))'
+                                ? 'rgba(201,169,110,0.12)'
                                 : 'transparent',
                               borderLeft: active
-                                ? '2px solid rgba(201,169,110,0.7)'
+                                ? '2px solid #C9A96E'
                                 : '2px solid transparent',
                               transition: 'background 150ms, border-color 150ms',
                               animationDelay: `${ii * 30}ms`,
-                              boxShadow: active ? 'inset 0 0 0 1px rgba(201,169,110,0.08)' : 'none',
                             }}
                             onMouseEnter={(e) => {
                               if (!active) {
                                 (e.currentTarget as HTMLElement).style.background =
-                                  'rgba(255,255,255,0.04)';
+                                  '#123254';
+                                const labelSpan = e.currentTarget.querySelector('span[data-label]') as HTMLElement;
+                                if (labelSpan) labelSpan.style.color = '#FFFFFF';
+                                const iconSvg = e.currentTarget.querySelector('svg') as HTMLElement;
+                                if (iconSvg) iconSvg.style.color = '#C9A96E';
                               }
                             }}
                             onMouseLeave={(e) => {
                               if (!active) {
                                 (e.currentTarget as HTMLElement).style.background =
                                   'transparent';
+                                const labelSpan = e.currentTarget.querySelector('span[data-label]') as HTMLElement;
+                                if (labelSpan) labelSpan.style.color = '#94A3B8';
+                                const iconSvg = e.currentTarget.querySelector('svg') as HTMLElement;
+                                if (iconSvg) iconSvg.style.color = '#64748b';
                               }
                             }}
                           >
                             <Icon
                               size={14}
-                              strokeWidth={1.6}
+                              strokeWidth={1.8}
                               style={{
                                 color: active
                                   ? '#C9A96E'
-                                  : 'rgba(255,255,255,0.3)',
+                                  : '#64748b',
                                 transition: 'color 150ms',
                                 flexShrink: 0,
                               }}
                             />
                             <span
+                              data-label
                               style={{
                                 fontFamily: 'var(--mono, monospace)',
                                 fontSize: 11.5,
-                                letterSpacing: '0.04em',
+                                letterSpacing: '0.02em',
                                 color: active
-                                  ? '#E8DCC8'
-                                  : 'rgba(255,255,255,0.45)',
+                                  ? '#FFFFFF'
+                                  : '#94A3B8',
                                 transition: 'color 150ms',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
+                                fontWeight: active ? 600 : 500,
                               }}
                             >
                               {label}
@@ -441,13 +418,14 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                                   letterSpacing: '0.12em',
                                   textTransform: 'uppercase',
                                   padding: '2px 6px',
+                                  borderRadius: 4,
                                   border: active
                                     ? '1px solid rgba(201,169,110,0.4)'
-                                    : '1px solid rgba(255,255,255,0.12)',
+                                    : '1px solid #1E3A5F',
                                   color: active
                                     ? '#C9A96E'
-                                    : 'rgba(255,255,255,0.28)',
-                                  background: 'transparent',
+                                    : '#94A3B8',
+                                  background: active ? 'rgba(201,169,110,0.1)' : '#123254',
                                   flexShrink: 0,
                                   lineHeight: 1.6,
                                 }}
@@ -471,9 +449,9 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           className="fabric-admin-sidebar-user"
           style={{
             flexShrink: 0,
-            borderTop: '1px solid rgba(201,169,110,0.10)',
+            borderTop: '1px solid #1E3A5F',
             padding: '14px 16px',
-            background: 'rgba(0,0,0,0.18)',
+            background: '#07192F',
           }}
         >
           {/* Avatar + nombre */}
@@ -494,13 +472,14 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden',
-                border: '1px solid rgba(201,169,110,0.25)',
-                background: 'rgba(201,169,110,0.08)',
+                border: '1px solid rgba(201,169,110,0.3)',
+                background: 'rgba(201,169,110,0.12)',
                 fontFamily: 'var(--mono, monospace)',
                 fontSize: 11,
                 fontWeight: 700,
                 color: '#C9A96E',
                 letterSpacing: '0.05em',
+                borderRadius: '50%',
               }}
             >
               {user?.imageUrl ? (
@@ -519,8 +498,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   fontFamily: 'var(--mono, monospace)',
                   fontSize: 11,
                   fontWeight: 600,
-                  color: 'rgba(255,255,255,0.75)',
-                  letterSpacing: '0.04em',
+                  color: '#FFFFFF',
+                  letterSpacing: '0.02em',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -533,8 +512,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   style={{
                     fontFamily: 'var(--mono, monospace)',
                     fontSize: 9,
-                    color: 'rgba(255,255,255,0.22)',
-                    letterSpacing: '0.04em',
+                    color: '#94A3B8',
+                    letterSpacing: '0.02em',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -553,9 +532,10 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                 alignItems: 'center',
                 gap: 4,
                 padding: '3px 7px',
-                border: '1px solid rgba(52,211,153,0.2)',
-                background: 'rgba(52,211,153,0.05)',
+                border: '1px solid rgba(16,185,129,0.3)',
+                background: 'rgba(16,185,129,0.1)',
                 flexShrink: 0,
+                borderRadius: 4,
               }}
             >
               <span
@@ -563,8 +543,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   width: 5,
                   height: 5,
                   borderRadius: '50%',
-                  background: '#34D399',
-                  boxShadow: '0 0 6px rgba(52,211,153,0.7)',
+                  background: '#10B981',
+                  boxShadow: '0 0 6px rgba(16,185,129,0.6)',
                   flexShrink: 0,
                 }}
               />
@@ -573,8 +553,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   fontFamily: 'var(--mono, monospace)',
                   fontSize: 8,
                   fontWeight: 700,
-                  letterSpacing: '0.14em',
-                  color: 'rgba(52,211,153,0.7)',
+                  letterSpacing: '0.1em',
+                  color: '#10B981',
                   textTransform: 'uppercase',
                 }}
               >
@@ -595,29 +575,30 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               justifyContent: 'center',
               gap: 8,
               height: 34,
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'transparent',
-              color: isSigningOut ? 'rgba(201,169,110,0.6)' : 'rgba(255,255,255,0.28)',
+              border: '1px solid #1E3A5F',
+              background: '#0E2747',
+              color: isSigningOut ? 'rgba(201,169,110,0.6)' : '#94A3B8',
               fontFamily: 'var(--mono, monospace)',
               fontSize: 9,
               fontWeight: 700,
-              letterSpacing: '0.18em',
+              letterSpacing: '0.15em',
               textTransform: 'uppercase',
               cursor: isSigningOut ? 'wait' : 'pointer',
               transition: 'all 180ms',
+              borderRadius: 6,
             }}
             onMouseEnter={(e) => {
               if (!isSigningOut) {
-                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(185,85,80,0.4)';
-                (e.currentTarget as HTMLElement).style.color = 'rgba(185,85,80,0.8)';
-                (e.currentTarget as HTMLElement).style.background = 'rgba(185,85,80,0.05)';
+                (e.currentTarget as HTMLElement).style.borderColor = '#fca5a5';
+                (e.currentTarget as HTMLElement).style.color = '#ef4444';
+                (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)';
               }
             }}
             onMouseLeave={(e) => {
               if (!isSigningOut) {
-                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)';
-                (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.28)';
-                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                (e.currentTarget as HTMLElement).style.borderColor = '#1E3A5F';
+                (e.currentTarget as HTMLElement).style.color = '#94A3B8';
+                (e.currentTarget as HTMLElement).style.background = '#0E2747';
               }
             }}
           >
@@ -635,7 +616,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             ) : (
               <LogOut size={13} strokeWidth={1.6} />
             )}
-            {isSigningOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
+            {isSigningOut ? 'Cerrando...' : 'Cerrar sesión'}
           </button>
         </div>
       </aside>
@@ -647,7 +628,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
   return (
     <div
       className="fabric-admin-shell"
-      style={{ minHeight: '100vh', background: '#050505', color: '#E8E8E8' }}
+      style={{ minHeight: '100vh', background: '#0B1F3A', color: '#F5F5F5' }}
     >
       <style>{`
         @keyframes admin-content-in {
@@ -694,8 +675,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(0,0,0,0.65)',
-              backdropFilter: 'blur(2px)',
+              background: 'rgba(0,0,0,0.45)',
+              backdropFilter: 'blur(1.5px)',
               border: 'none',
               cursor: 'pointer',
             }}
@@ -722,25 +703,25 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             height: 56,
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
-            background: 'rgba(13,14,16,0.92)',
+            borderBottom: '1px solid #e2e8f0',
+            background: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(12px)',
             padding: '0 20px',
           }}
           className="flex lg:hidden"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img 
-              src="/Logo_FabricSoft.webp" 
-              alt="FABRIC" 
-              style={{ height: 38, width: 'auto', objectFit: 'contain' }} 
+            <img
+              src="/Logo_FabricSoft.webp"
+              alt="FABRIC"
+              style={{ height: 38, width: 'auto', objectFit: 'contain' }}
             />
             <div
               style={{
                 fontFamily: 'var(--mono, monospace)',
                 fontSize: 9,
                 letterSpacing: '0.12em',
-                color: 'rgba(255,255,255,0.4)',
+                color: '#64748b',
                 textTransform: 'uppercase',
               }}
             >
@@ -756,10 +737,11 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid #e2e8f0',
               background: 'transparent',
               color: '#C9A96E',
               cursor: 'pointer',
+              borderRadius: 6,
             }}
             aria-label="Abrir menú"
           >
@@ -780,7 +762,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               left: 0,
               right: 0,
               height: 1,
-              background: 'linear-gradient(90deg, rgba(201,169,110,0.8) 0%, rgba(201,169,110,0.3) 40%, transparent 70%)',
+              background: 'linear-gradient(90deg, rgba(201,169,110,0.4) 0%, rgba(201,169,110,0.15) 40%, transparent 70%)',
               pointerEvents: 'none',
             }}
           />
@@ -792,7 +774,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               right: 0,
               width: 420,
               height: 420,
-              background: 'radial-gradient(circle, rgba(201,169,110,0.07) 0%, transparent 68%)',
+              background: 'radial-gradient(circle, rgba(201,169,110,0.03) 0%, transparent 68%)',
               pointerEvents: 'none',
             }}
           />

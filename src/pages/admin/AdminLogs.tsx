@@ -87,19 +87,23 @@ export default function AdminLogs() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="fabric-admin-page">
+    <div className="min-h-screen bg-[#0B1F3A] text-white font-sans pb-12">
       {/* Header */}
-      <div className="fabric-admin-hero">
-        <div className="fabric-admin-hero-inner">
+      <div className="p-6 md:p-8 bg-[#0B1F3A] border-b border-[#1E3A5F]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="fabric-admin-eyebrow">FABRIC · ADMIN · LOGS</div>
-            <h1 className="fabric-admin-title">Bitácora inmutable</h1>
-            <div className="fabric-admin-subtitle">Registro no editable · {total} logs en el sistema. Autorefresco cada 30 segundos.</div>
+            <div className="mb-2 inline-flex items-center gap-2 border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-[#C9A96E] rounded-md">
+              FABRIC · ADMIN · LOGS
+            </div>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-white tracking-tight">Bitácora inmutable</h1>
+            <p className="text-xs md:text-sm text-[#94A3B8] mt-1 font-sans">
+              Registro no editable · {total} logs en el sistema. Autorefresco cada 30 segundos.
+            </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => cargar(filter, page)}
-              className="font-mono text-[9px] uppercase tracking-[0.18em] border border-[#252525] px-4 py-2 text-[#8A8A8A] hover:border-[#C9A96E] hover:text-[#C9A96E] transition rounded-sm cursor-pointer"
+              className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] border border-[#1E3A5F] bg-[#123254] px-4 py-2 text-[#94A3B8] hover:border-[#C9A96E] hover:text-white transition rounded-xl cursor-pointer"
             >
               Actualizar
             </button>
@@ -108,15 +112,15 @@ export default function AdminLogs() {
       </div>
 
       {/* Filtros */}
-      <div className="flex gap-2 flex-wrap border-b border-[#1a1a1a] p-4 px-6 md:px-9">
+      <div className="flex gap-2 flex-wrap border-b border-[#1E3A5F] bg-[#07192F] p-4 px-6 md:px-8">
         {CATS.map(c => (
           <button
             key={c}
             onClick={() => aplicarFiltro(c)}
-            className={`font-mono text-[9px] uppercase tracking-[0.16em] px-3.5 py-1.5 rounded-sm transition-all duration-300 cursor-pointer ${
+            className={`font-mono text-[10px] font-bold uppercase tracking-[0.16em] px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
               filter === c
-                ? 'border border-[#C9A96E] bg-[#C9A96E]/10 text-[#C9A96E]'
-                : 'border border-[#252525] bg-transparent text-[#5A5A5A] hover:border-[#C9A96E]/50 hover:text-[#C9A96E]/80'
+                ? 'border border-[#C9A96E] bg-[#C9A96E]/15 text-[#C9A96E]'
+                : 'border border-[#1E3A5F] bg-[#0E2747] text-[#94A3B8] hover:border-[#1E3A5F] hover:text-white'
             }`}
           >
             {c}
@@ -125,55 +129,55 @@ export default function AdminLogs() {
       </div>
 
       {/* Contenido */}
-      <div className="p-4 px-6 md:px-9 pb-9">
+      <div className="p-6 md:p-8">
         {loading ? (
-          <div style={{ ...S, fontSize: 10, color: '#3A3A3A', padding: '60px 0', textAlign: 'center' }}>Cargando...</div>
+          <div style={{ ...S, fontSize: 11, color: '#94A3B8', padding: '60px 0', textAlign: 'center' }}>Cargando logs...</div>
         ) : error ? (
-          <div style={{ ...S, fontSize: 10, color: '#E57373', padding: '60px 0', textAlign: 'center' }}>{error}</div>
+          <div style={{ ...S, fontSize: 11, color: '#B85450', padding: '60px 0', textAlign: 'center' }}>{error}</div>
         ) : logs.length === 0 ? (
-          <div style={{ ...S, fontSize: 10, color: '#3A3A3A', padding: '60px 0', textAlign: 'center' }}>
+          <div style={{ ...S, fontSize: 11, color: '#94A3B8', padding: '60px 0', textAlign: 'center' }} className="bg-[#0E2747] border border-[#1E3A5F] rounded-2xl p-8">
             Sin registros. Los logs aparecen cuando hay actividad en el sistema.
           </div>
         ) : (
           <>
-            <div className="admin-logs-table-wrap">
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#1E3A5F] bg-[#0E2747] shadow-lg">
               <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <tr style={{ borderBottom: '1px solid #1E3A5F', background: '#07192F' }}>
                     {['Timestamp', 'Acción', 'Detalle', 'Autor', 'Hash', 'Cat.', 'Estado'].map(h => (
-                      <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 7, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400, whiteSpace: 'nowrap' }}>
+                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, fontFamily: 'var(--mono)', letterSpacing: '0.2em', color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-[#1E3A5F]">
                   {logs.map(entry => (
-                    <tr key={entry._id} style={{ borderBottom: '1px solid #0e0e0e' }}>
-                      <td style={{ ...S, padding: '12px 14px', fontSize: 9, color: '#5A5A5A', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                    <tr key={entry._id} className="transition hover:bg-[#123254]/50">
+                      <td style={{ ...S, padding: '14px 16px', fontSize: 10, color: '#94A3B8', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                         {formatTs(entry.createdAt)}
                       </td>
-                      <td style={{ ...S, padding: '12px 14px', fontSize: 10, color: entry.status === 'ERR' ? '#B85450' : entry.status === 'WARN' ? '#fbbf24' : '#F5F5F5', maxWidth: 280 }}>
+                      <td style={{ ...S, padding: '14px 16px', fontSize: 11, fontWeight: 600, color: entry.status === 'ERR' ? '#B85450' : entry.status === 'WARN' ? '#fbbf24' : '#FFFFFF', maxWidth: 280 }}>
                         {entry.accion}
                       </td>
-                      <td style={{ ...S, padding: '12px 14px', fontSize: 9, color: '#5A5A5A', maxWidth: 200 }}>
+                      <td style={{ ...S, padding: '14px 16px', fontSize: 10, color: '#94A3B8', maxWidth: 200 }}>
                         {entry.detalle || '—'}
                       </td>
-                      <td style={{ ...S, padding: '12px 14px', fontSize: 9, color: '#8A8A8A', whiteSpace: 'nowrap' }}>
+                      <td style={{ ...S, padding: '14px 16px', fontSize: 10, color: '#94A3B8', whiteSpace: 'nowrap' }}>
                         {entry.autor}
                       </td>
-                      <td style={{ ...S, padding: '12px 14px', fontSize: 9, color: '#2A2A2A', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.06em' }}>
+                      <td style={{ ...S, padding: '14px 16px', fontSize: 10, color: '#94A3B8', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.06em' }}>
                         {shortId(entry._id)}
                       </td>
-                      <td style={{ ...S, padding: '12px 14px', fontSize: 8, color: '#5A5A5A', letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                      <td style={{ ...S, padding: '14px 16px', fontSize: 9, color: '#94A3B8', letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                         {entry.categoria}
                       </td>
-                      <td style={{ padding: '12px 14px' }}>
+                      <td style={{ padding: '14px 16px' }}>
                         <span style={{
-                          ...S, fontSize: 8, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '3px 8px',
+                          ...S, fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '4px 9px', borderRadius: 4,
                           color: STATUS_COLOR[entry.status] ?? '#4ade80',
-                          border: `1px solid ${STATUS_COLOR[entry.status] ?? '#4ade80'}33`,
-                          background: `${STATUS_COLOR[entry.status] ?? '#4ade80'}10`,
+                          border: `1px solid ${STATUS_COLOR[entry.status] ?? '#4ade80'}44`,
+                          background: `${STATUS_COLOR[entry.status] ?? '#4ade80'}15`,
                         }}>
                           {entry.status}
                         </span>
@@ -184,43 +188,43 @@ export default function AdminLogs() {
               </table>
             </div>
 
-            <div className="admin-logs-cards">
+            <div className="grid gap-3 md:hidden">
               {logs.map(entry => (
-                <div key={entry._id} className="admin-logs-card">
-                  <div className="admin-logs-card-header">
+                <div key={entry._id} className="rounded-xl border border-[#1E3A5F] bg-[#0E2747] p-4 shadow-md space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="admin-logs-card-date">{formatTs(entry.createdAt)}</span>
-                      <h3 className="admin-logs-card-action" style={{ color: entry.status === 'ERR' ? '#B85450' : entry.status === 'WARN' ? '#fbbf24' : '#F5F5F5' }}>
+                      <span style={{ ...S }} className="text-[10px] text-[#94A3B8] block mb-1">{formatTs(entry.createdAt)}</span>
+                      <h3 className="font-bold text-sm" style={{ ...S, color: entry.status === 'ERR' ? '#B85450' : entry.status === 'WARN' ? '#fbbf24' : '#FFFFFF' }}>
                         {entry.accion}
                       </h3>
-                      <p className="admin-logs-card-autor">Por: {entry.autor}</p>
+                      <p style={{ ...S }} className="text-xs text-[#94A3B8] mt-0.5">Por: {entry.autor}</p>
                     </div>
                     <span style={{
-                      ...S, fontSize: 8, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '3px 8px',
+                      ...S, fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4,
                       color: STATUS_COLOR[entry.status] ?? '#4ade80',
-                      border: `1px solid ${STATUS_COLOR[entry.status] ?? '#4ade80'}33`,
-                      background: `${STATUS_COLOR[entry.status] ?? '#4ade80'}10`,
+                      border: `1px solid ${STATUS_COLOR[entry.status] ?? '#4ade80'}44`,
+                      background: `${STATUS_COLOR[entry.status] ?? '#4ade80'}15`,
                       height: 'fit-content'
                     }}>
                       {entry.status}
                     </span>
                   </div>
 
-                  <div className="admin-logs-card-body">
-                    <p className="admin-logs-card-detail">{entry.detalle || 'Sin detalles'}</p>
+                  <div className="text-xs text-[#94A3B8] border-t border-[#1E3A5F] pt-2">
+                    <p style={{ ...S }}>{entry.detalle || 'Sin detalles'}</p>
                   </div>
 
-                  <div className="admin-logs-card-footer">
-                    <span className="admin-logs-card-hash">ID: {shortId(entry._id)}</span>
-                    <span className="admin-logs-card-cat">{entry.categoria}</span>
+                  <div className="flex items-center justify-between text-[10px] font-mono border-t border-[#1E3A5F] pt-2 text-[#94A3B8]">
+                    <span>ID: {shortId(entry._id)}</span>
+                    <span className="uppercase tracking-wider text-[#C9A96E]">{entry.categoria}</span>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Paginación */}
-            <div className="flex items-center justify-between border-t border-[#2A2A2A] bg-[#111] p-4 px-6 mt-4">
-              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#F5F5F5]/40">
+            <div className="flex items-center justify-between border border-[#1E3A5F] bg-[#0E2747] p-4 px-6 rounded-2xl mt-6 shadow-md">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#94A3B8]">
                 Página <span className="text-[#C9A96E] font-bold">{page}</span> de <span className="text-[#C9A96E] font-bold">{totalPages}</span>
               </span>
               <div className="flex gap-6">
@@ -231,7 +235,7 @@ export default function AdminLogs() {
                     setPage(next);
                     cargar(filter, next);
                   }}
-                  className="group flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#F5F5F5]/50 transition-colors hover:text-[#C9A96E] disabled:opacity-20 disabled:hover:text-[#F5F5F5]/50 disabled:cursor-not-allowed cursor-pointer"
+                  className="group flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#94A3B8] hover:text-[#C9A96E] disabled:opacity-30 disabled:hover:text-[#94A3B8] disabled:cursor-not-allowed cursor-pointer transition"
                 >
                   <span className="transition-transform duration-300 group-hover:-translate-x-0.5">←</span>
                   <span>Anterior</span>
@@ -243,7 +247,7 @@ export default function AdminLogs() {
                     setPage(next);
                     cargar(filter, next);
                   }}
-                  className="group flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#F5F5F5]/50 transition-colors hover:text-[#C9A96E] disabled:opacity-20 disabled:hover:text-[#F5F5F5]/50 disabled:cursor-not-allowed cursor-pointer"
+                  className="group flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#94A3B8] hover:text-[#C9A96E] disabled:opacity-30 disabled:hover:text-[#94A3B8] disabled:cursor-not-allowed cursor-pointer transition"
                 >
                   <span>Siguiente</span>
                   <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>

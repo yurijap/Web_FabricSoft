@@ -115,7 +115,7 @@ export default function OfficeHoursPage() {
     setLoadingSlots(true);
     api.get(`/office-hours/disponibilidad/dia?date=${selectedDay}`)
       .then(res => setSlots(applyOfficeHoursFomoToSlots(selectedDay, res.data.data ?? [])))
-      .catch(() => setSlots(applyOfficeHoursFomoToSlots(selectedDay, ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','16:00'].map(t => ({ time: t, taken: false })))))
+      .catch(() => setSlots([]))
       .finally(() => setLoadingSlots(false));
   }, [selectedDay]);
 
@@ -296,22 +296,19 @@ export default function OfficeHoursPage() {
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-tertiary)', letterSpacing: '0.12em' }}>Consultando agenda...</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {slots.length === 0 ? (
+                    {slots.filter(s => !s.taken).length === 0 ? (
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-tertiary)' }}>Sin horarios habilitados para este día.</div>
-                    ) : slots.map(s => (
+                    ) : slots.filter(s => !s.taken).map(s => (
                       <button
                         key={s.time}
-                        disabled={s.taken}
-                        onClick={() => setSelectedSlot(s.taken ? null : s.time)}
+                        onClick={() => setSelectedSlot(s.time)}
                         style={{
                           padding: '10px 16px',
                           border: selectedSlot === s.time ? '1px solid var(--accent)' : '1px solid var(--border)',
-                          background: s.taken ? 'transparent' : selectedSlot === s.time ? 'rgba(201,169,110,0.12)' : 'var(--bg-panel)',
-                          color: s.taken ? 'var(--text-quaternary)' : selectedSlot === s.time ? 'var(--accent)' : 'var(--text-secondary)',
+                          background: selectedSlot === s.time ? 'rgba(201,169,110,0.12)' : 'var(--bg-panel)',
+                          color: selectedSlot === s.time ? 'var(--accent)' : 'var(--text-secondary)',
                           fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.08em',
-                          cursor: s.taken ? 'not-allowed' : 'pointer',
-                          textDecoration: s.taken ? 'line-through' : 'none',
-                          opacity: s.taken ? 0.4 : 1,
+                          cursor: 'pointer',
                           transition: 'all 150ms',
                         }}
                       >

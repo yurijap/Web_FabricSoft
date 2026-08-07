@@ -3,7 +3,7 @@ import { api } from "../config/api";
 import { applyOfficeHoursFomoToMonth, applyOfficeHoursFomoToSlots, type MonthAvailability } from "../utils/officeHoursFomo";
 import { getInteractionTracking } from "../utils/tracking";
 
-type InteractionType = "proof" | "office-hours" | "reference" | "paper" | "waitlist" | "fabric-os" | "benchmark" | "nda-pdf" | null;
+type InteractionType = "proof" | "office-hours" | "reference" | "paper" | "waitlist" | "fabric-os" | "benchmark" | "nda-pdf" | "doctrina" | "case-ape" | "case-aplazo" | null;
 export type InteractionRequest = {
   type: Exclude<InteractionType, null>;
   date?: string | null;
@@ -63,8 +63,7 @@ function getWorkDaysUntilEndOfNextMonth(): string[] {
 }
 
 function localDateISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
 }
 const TODAY_ISO = localDateISO();
 const NOW_HH_MM = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -74,13 +73,19 @@ function formatDayLabel(iso: string): string {
   return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit' }).toUpperCase();
 }
 
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
 export default function InteractionManager({
   initialRequest,
 }: {
   initialRequest?: InteractionRequest | null;
 }) {
   const [active, setActive] = useState<InteractionType>(null);
-  const [selectedDay, setSelectedDay] = useState<string>(() => getWorkDaysUntilEndOfNextMonth()[0]);
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth() + 1);
+  const [monthDbData, setMonthDbData] = useState<Record<string, number>>({});
+  const [monthLoading, setMonthLoading] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [selectedPaper, setSelectedPaper] = useState(0);
   const [papersList, setPapersList] = useState<PaperCatalogItem[]>(FALLBACK_PAPERS);
@@ -113,23 +118,25 @@ export default function InteractionManager({
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
-  const [days] = useState<string[]>(() => getWorkDaysUntilEndOfNextMonth());
-  const [weekOffset, setWeekOffset] = useState(0);
   const [slots, setSlots] = useState<DaySlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [monthBooked, setMonthBooked] = useState<Record<string, number>>({}); // "YYYY-MM" → booked count
-  const [visibleMonthDays, setVisibleMonthDays] = useState<Record<string, MonthAvailability>>({});
   const tracking = (sourceSection: string, interactionType: string) => getInteractionTracking(sourceSection, interactionType);
-
-  const MONTHLY_LIMIT = 4;
 
   const openInteraction = useCallback((request: InteractionRequest) => {
     let type: InteractionType = request.type;
     if (!type) return;
     if (type === "nda-pdf") type = "proof";
+    if (type === "doctrina") type = "reference";
+    if (type === "benchmark") type = "reference";
+    if (type === "waitlist") type = "reference";
 
-    if (type === "office-hours") {
-      setSelectedDay(request.date || days[0]);
+    if (type === "office-hours" && request.date) {
+      const parts = request.date.split('-');
+      if (parts.length === 3) {
+        setCalYear(parseInt(parts[0], 10));
+        setCalMonth(parseInt(parts[1], 10));
+        setSelectedDay(request.date);
+      }
     }
 
     if (type === "paper" && request.paperIndex !== null && request.paperIndex !== undefined) {
@@ -142,67 +149,45 @@ export default function InteractionManager({
     setApiError("");
     setLoading(false);
     setPaperDownloadUrl("");
-  }, [days]);
+  }, []);
 
-  const getMonthKey = (dateISO: string) => dateISO.slice(0, 7);
-
-  const isMonthFull = (dateISO: string) => (monthBooked[getMonthKey(dateISO)] ?? 0) >= MONTHLY_LIMIT;
-
-  const fetchSlots = useCallback(async (dateISO: string) => {
-    setSlotsLoading(true);
-    const monthKey = getMonthKey(dateISO);
-    try {
-      let visibleDays = visibleMonthDays[monthKey];
-      // Consultar disponibilidad mensual si no la tenemos aún
-      if (monthBooked[monthKey] === undefined || visibleDays === undefined) {
-        const [year, month] = monthKey.split('-');
-        const mesRes = await api.get(`/office-hours/disponibilidad/mes?year=${year}&month=${month}`);
-        const booked = mesRes.data.booked ?? 0;
-        visibleDays = applyOfficeHoursFomoToMonth(Number(year), Number(month), mesRes.data.data ?? {});
-        setMonthBooked(prev => ({ ...prev, [monthKey]: booked }));
-        setVisibleMonthDays(prev => ({ ...prev, [monthKey]: visibleDays ?? {} }));
-        if (booked >= MONTHLY_LIMIT) {
+  // Cargar disponibilidad del mes desde la BD
+  useEffect(() => {
+    if (active !== 'office-hours') return;
+    setMonthLoading(true);
+    api.get(`/office-hours/disponibilidad/mes?year=${calYear}&month=${calMonth}`)
+      .then(res => {
+        const data: Record<string, number> = res.data.data ?? {};
+        setMonthDbData(data);
+        const availableDates = Object.keys(data).filter(d => (data[d] ?? 0) > 0 && d >= TODAY_ISO).sort();
+        if (availableDates.length > 0) {
+          setSelectedDay(prev => (prev && availableDates.includes(prev) ? prev : availableDates[0]));
+        } else {
+          setSelectedDay(null);
           setSlots([]);
-          setSlotsLoading(false);
-          return;
         }
-      } else if ((monthBooked[monthKey] ?? 0) >= MONTHLY_LIMIT) {
+      })
+      .catch(() => {
+        setMonthDbData({});
+        setSelectedDay(null);
         setSlots([]);
-        setSlotsLoading(false);
-        return;
-      }
-      if (!visibleDays?.[dateISO]) {
-        const nextVisibleDay = Object.keys(visibleDays ?? {}).find((date) => date >= TODAY_ISO);
-        if (nextVisibleDay && nextVisibleDay !== dateISO) {
-          setSelectedDay(nextVisibleDay);
-        }
+      })
+      .finally(() => setMonthLoading(false));
+  }, [active, calYear, calMonth]);
+
+  // Cargar slots del día seleccionado desde la BD
+  useEffect(() => {
+    if (active !== 'office-hours' || !selectedDay) return;
+    setSlotsLoading(true);
+    api.get(`/office-hours/disponibilidad/dia?date=${selectedDay}`)
+      .then(res => {
+        setSlots(res.data.data ?? []);
+      })
+      .catch(() => {
         setSlots([]);
-        setSlotsLoading(false);
-        return;
-      }
-      const res = await api.get(`/office-hours/disponibilidad/dia?date=${dateISO}`);
-      setSlots(applyOfficeHoursFomoToSlots(dateISO, res.data.data ?? []));
-    } catch {
-      setSlots(applyOfficeHoursFomoToSlots(dateISO, ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','16:00']
-        .map(time => ({ time, taken: false }))));
-    } finally {
-      setSlotsLoading(false);
-    }
-  }, [monthBooked, visibleMonthDays]);
-
-  useEffect(() => {
-    if (active === 'office-hours' && selectedDay) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchSlots(selectedDay);
-    }
-  }, [active, selectedDay, fetchSlots]);
-
-  // Cuando selectedDay cambia (ej. click desde el calendario s11), saltar a la semana correcta
-  useEffect(() => {
-    const idx = days.indexOf(selectedDay);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (idx !== -1) setWeekOffset(Math.floor(idx / 5));
-  }, [selectedDay, days]);
+      })
+      .finally(() => setSlotsLoading(false));
+  }, [active, selectedDay]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -381,32 +366,32 @@ export default function InteractionManager({
 
       {/* ── OFFICE HOURS / RESERVAR CONVERSACIÓN (I04) ── */}
       {active === "office-hours" && (
-        <div className="im-modal" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-strong)", maxWidth: 760, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+        <div className="im-modal" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-strong)", maxWidth: 780, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "24px 28px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, width: 2, height: 40, background: "var(--accent)" }} />
-            <div style={{ paddingLeft: 16 }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 6 }}>FABRIC Office Hours</div>
-              <div style={{ fontFamily: "var(--serif)", fontSize: 26 }}>Reservar <em style={{ color: "var(--accent)" }}>conversación.</em></div>
+            <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "var(--accent)" }} />
+            <div style={{ paddingLeft: 14 }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 4 }}>FABRIC Office Hours</div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 24 }}>Reservar <em style={{ color: "var(--accent)" }}>Conversación de Ingeniería.</em></div>
             </div>
             <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 18, cursor: "pointer" }}>×</button>
           </div>
 
           <div className="im-oh-body">
-            {/* Left panel */}
+            {/* Left panel info */}
             <div className="im-oh-left">
               <div className="im-oh-left-inner">
                 <div className="im-oh-left-avatar">
                   <div style={{ width: 48, height: 48, border: "1px solid var(--accent)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--serif)", fontSize: 24, color: "var(--accent)", fontStyle: "italic", flexShrink: 0 }}>J</div>
                   <div>
-                    <div style={{ fontFamily: "var(--serif)", fontSize: 18, marginBottom: 2 }}>Julio Álvarez</div>
+                    <div style={{ fontFamily: "var(--serif)", fontSize: 17, marginBottom: 2 }}>Julio Álvarez</div>
                     <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", letterSpacing: "0.1em" }}>Founder · FABRIC</div>
                   </div>
                 </div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.15em", textTransform: "uppercase", width: "100%", marginTop: 4 }}>30 min · Video call</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.15em", textTransform: "uppercase", width: "100%", marginTop: 4 }}>30 min · Video Call</div>
                 <div className="im-oh-left-criteria" style={{ marginBottom: 4 }}>
                   <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 10 }}>Criterios de acceso</div>
-                  {["USD 50M+ revenue anual", "CFO / CIO / CTO / Dir. Transformación", "Iniciativa Oracle activa o planeada", "Decisión en menos de 12 meses"].map(c => (
-                    <div key={c} style={{ display: "flex", gap: 8, marginBottom: 8, fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                  {["Lunes a Viernes (09:00 AM - 06:00 PM)", "USD 50M+ revenue anual", "CFO / CIO / CTO / Dir. Transformación", "Iniciativa Oracle activa o planeada"].map(c => (
+                    <div key={c} style={{ display: "flex", gap: 8, marginBottom: 8, fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.4 }}>
                       <span style={{ color: "var(--accent)", flexShrink: 0 }}>·</span>{c}
                     </div>
                   ))}
@@ -417,74 +402,153 @@ export default function InteractionManager({
               </div>
             </div>
 
-            {/* Right: slot picker */}
+            {/* Right panel: Selector de Fecha, Horario y Datos */}
             <div className="im-oh-right">
               {!selectedSlot ? (
                 <>
-                  {/* Navegación semanal */}
-                  <div className="im-oh-day-row" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                  {/* Navegación mensual */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
                     <button
-                      onClick={() => setWeekOffset(w => Math.max(0, w - 1))}
-                      disabled={weekOffset === 0}
-                      style={{ padding: "8px 10px", border: "1px solid var(--border)", background: "transparent", fontFamily: "var(--mono)", fontSize: 12, color: weekOffset === 0 ? "var(--text-quaternary)" : "var(--text-secondary)", cursor: weekOffset === 0 ? "default" : "pointer", opacity: weekOffset === 0 ? 0.3 : 1, flexShrink: 0 }}>
+                      type="button"
+                      onClick={() => {
+                        if (calMonth === 1) { setCalMonth(12); setCalYear(y => y - 1); }
+                        else { setCalMonth(m => m - 1); }
+                      }}
+                      style={{ padding: "6px 12px", border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 13, cursor: "pointer" }}
+                    >
                       ←
                     </button>
-                    <div style={{ display: "flex", gap: 6, flex: 1 }}>
-                      {days.slice(weekOffset * 5, weekOffset * 5 + 5).map((iso) => {
-                        const isPast = iso < TODAY_ISO;
-                        const visibleDays = visibleMonthDays[getMonthKey(iso)];
-                        const isFomoHidden = visibleDays !== undefined && !visibleDays[iso];
-                        const disabled = isPast || isFomoHidden || isMonthFull(iso);
-                        return (
-                          <button
-                            key={iso}
-                            disabled={disabled}
-                            className={`im-day-btn${selectedDay === iso ? " active" : ""}`}
-                            onClick={() => !disabled && setSelectedDay(iso)}
-                            style={{ flex: 1, padding: "8px 4px", border: "1px solid var(--border)", background: "transparent", fontFamily: "var(--mono)", fontSize: 10, color: disabled ? "var(--text-tertiary)" : selectedDay === iso ? "var(--accent)" : "var(--text-secondary)", cursor: disabled ? "not-allowed" : "pointer", transition: "all 200ms", letterSpacing: "0.08em", textDecoration: disabled ? "line-through" : "none", opacity: disabled ? 0.4 : 1, textAlign: "center" }}>
-                            {formatDayLabel(iso)}
-                          </button>
-                        );
-                      })}
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 600 }}>
+                      {MONTH_NAMES[calMonth - 1]} DE {calYear} · DÍAS HÁBILES
                     </div>
                     <button
-                      onClick={() => setWeekOffset(w => Math.min(Math.floor((days.length - 1) / 5), w + 1))}
-                      disabled={weekOffset >= Math.floor((days.length - 1) / 5)}
-                      style={{ padding: "8px 10px", border: "1px solid var(--border)", background: "transparent", fontFamily: "var(--mono)", fontSize: 12, color: weekOffset >= Math.floor((days.length - 1) / 5) ? "var(--text-quaternary)" : "var(--text-secondary)", cursor: weekOffset >= Math.floor((days.length - 1) / 5) ? "default" : "pointer", opacity: weekOffset >= Math.floor((days.length - 1) / 5) ? 0.3 : 1, flexShrink: 0 }}>
+                      type="button"
+                      onClick={() => {
+                        if (calMonth === 12) { setCalMonth(1); setCalYear(y => y + 1); }
+                        else { setCalMonth(m => m + 1); }
+                      }}
+                      style={{ padding: "6px 12px", border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 13, cursor: "pointer" }}
+                    >
                       →
                     </button>
                   </div>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>
-                    {selectedDay ? new Date(selectedDay + 'T12:00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).toUpperCase() : ''} · CDMX
-                  </div>
-                  {slotsLoading ? (
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.14em", padding: "20px 0" }}>
-                      Consultando disponibilidad...
-                    </div>
-                  ) : isMonthFull(selectedDay) ? (
-                    <div style={{ padding: "20px 0 10px" }}>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 8 }}>
-                        Mes completo
-                      </div>
-                      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.7, margin: 0 }}>
-                        Las 4 sesiones de este mes ya están reservadas.<br />
-                        Navega al mes siguiente para ver disponibilidad.
-                      </p>
+
+                  {monthLoading ? (
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", letterSpacing: "0.14em", padding: "24px 0", textAlign: "center" }}>
+                      Consultando disponibilidad en la base de datos...
                     </div>
                   ) : (
-                    <div className="im-oh-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-                      {slots.map((slot) => {
-                        const isPastSlot = selectedDay === TODAY_ISO && slot.time <= NOW_HH_MM;
-                        const disabled = slot.taken || isPastSlot;
+                    <>
+                      {/* Filtrar estrictamente solo DÍAS HÁBILES (Lunes = 1 .. Viernes = 5) */}
+                      {(() => {
+                        const availableWeekdayDates = Object.keys(monthDbData)
+                          .filter(d => {
+                            if (!d || d < TODAY_ISO) return false;
+                            const count = monthDbData[d] ?? 0;
+                            if (count <= 0) return false;
+                            const dow = new Date(d + 'T12:00:00').getDay();
+                            return dow >= 1 && dow <= 5; // Solo Lunes (1) a Viernes (5)
+                          })
+                          .sort();
+
+                        if (availableWeekdayDates.length === 0) {
+                          return (
+                            <div style={{ padding: "28px 20px", border: "1px dashed var(--border)", textAlign: "center", borderRadius: 4, background: "rgba(255,255,255,0.02)" }}>
+                              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 8 }}>
+                                Sin días hábiles abiertos en la BD para este mes
+                              </div>
+                              <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", lineHeight: 1.6 }}>
+                                No hay slots aperturados en la base de datos para días hábiles de {MONTH_NAMES[calMonth - 1]} de {calYear}.<br />
+                                Usa las flechas ← → para consultar otros meses.
+                              </div>
+                            </div>
+                          );
+                        }
+
                         return (
-                          <button key={slot.time} disabled={disabled} onClick={() => setSelectedSlot(slot.time)}
-                            className={`im-slot-btn${selectedSlot === slot.time ? " selected" : ""}`}
-                            style={{ padding: "12px 8px", border: disabled ? "1px solid rgba(255,255,255,0.06)" : "1px solid var(--border)", background: disabled ? "rgba(255,255,255,0.015)" : "transparent", fontFamily: "var(--mono)", fontSize: 12, color: disabled ? "var(--text-quaternary)" : "var(--text-secondary)", cursor: disabled ? "not-allowed" : "pointer", textDecoration: disabled ? "line-through" : "none", transition: "all 200ms", letterSpacing: "0.05em", opacity: disabled ? 0.35 : 1 }}>
-                            {slot.time}
-                          </button>
+                          <>
+                            <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "var(--text-tertiary)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 10 }}>
+                              1. Selecciona un Día Hábil Aperturado (Lunes a Viernes)
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+                              {availableWeekdayDates.map((iso) => {
+                                const count = monthDbData[iso] ?? 0;
+                                const isSelected = selectedDay === iso;
+                                const d = new Date(iso + 'T12:00:00');
+                                const label = d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit' }).toUpperCase();
+                                return (
+                                  <button
+                                    key={iso}
+                                    type="button"
+                                    onClick={() => setSelectedDay(iso)}
+                                    className={`im-day-btn${isSelected ? " active" : ""}`}
+                                    style={{
+                                      padding: "8px 12px",
+                                      border: isSelected ? "1px solid var(--accent)" : "1px solid var(--border)",
+                                      background: isSelected ? "rgba(201,169,110,0.15)" : "transparent",
+                                      color: isSelected ? "var(--accent)" : "var(--text-secondary)",
+                                      fontFamily: "var(--mono)",
+                                      fontSize: 11,
+                                      cursor: "pointer",
+                                      transition: "all 200ms",
+                                      letterSpacing: "0.08em",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 6
+                                    }}
+                                  >
+                                    <span>{label}</span>
+                                    <span style={{ fontSize: 9, padding: "2px 5px", background: "rgba(201,169,110,0.2)", color: "var(--accent)", borderRadius: 3 }}>
+                                      {count} {count === 1 ? 'slot' : 'slots'}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {selectedDay && (
+                              <div>
+                                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>
+                                  2. Selecciona Horario Disponibles (30 min) · {new Date(selectedDay + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                </div>
+                                {slotsLoading ? (
+                                  <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", padding: "16px 0" }}>
+                                    Cargando horarios de la base de datos...
+                                  </div>
+                                ) : (
+                                  <div className="im-oh-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                                    {slots.filter(slot => {
+                                      const isPastSlot = selectedDay === TODAY_ISO && slot.time <= NOW_HH_MM;
+                                      return !slot.taken && !isPastSlot;
+                                    }).length === 0 ? (
+                                      <div style={{ gridColumn: 'span 3', fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", padding: "16px 0" }}>
+                                        No hay horarios libres para esta fecha en la base de datos.
+                                      </div>
+                                    ) : (
+                                      slots
+                                        .filter(slot => {
+                                          const isPastSlot = selectedDay === TODAY_ISO && slot.time <= NOW_HH_MM;
+                                          return !slot.taken && !isPastSlot;
+                                        })
+                                        .map((slot) => (
+                                          <button
+                                            key={slot.time}
+                                            type="button"
+                                            onClick={() => setSelectedSlot(slot.time)}
+                                            className={`im-slot-btn${selectedSlot === slot.time ? " selected" : ""}`}
+                                            style={{ padding: "12px 8px", border: "1px solid var(--border)", background: selectedSlot === slot.time ? "rgba(201,169,110,0.15)" : "transparent", fontFamily: "var(--mono)", fontSize: 12, color: selectedSlot === slot.time ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", transition: "all 200ms", letterSpacing: "0.05em" }}>
+                                            {slot.time}
+                                          </button>
+                                        ))
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
                         );
-                      })}
-                    </div>
+                      })()}
+                    </>
                   )}
                 </>
               ) : (
@@ -492,19 +556,38 @@ export default function InteractionManager({
                   {!submitted ? (
                     <>
                       <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
-                        Slot seleccionado · {formatDayLabel(selectedDay)} · {selectedSlot}
+                        3. Ingresa tus datos para confirmar · {formatDayLabel(selectedDay)} · {selectedSlot}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        {(["nombre", "cargo", "empresa", "email"] as const).map((field) => (
-                          <div key={field}>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>{field === "email" ? "Email corporativo" : field}</div>
-                            <input type={field === "email" ? "email" : "text"} value={formData[field]} onChange={e => setFormData(p => ({ ...p, [field]: e.target.value }))}
-                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-                          </div>
-                        ))}
+                        <div>
+                          <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Nombre completo *</div>
+                          <input type="text" value={formData.nombre} onChange={e => setFormData(p => ({ ...p, nombre: e.target.value }))}
+                            style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                        </div>
+
                         <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Revenue</div>
+                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Empresa *</div>
+                            <input type="text" value={formData.empresa} onChange={e => setFormData(p => ({ ...p, empresa: e.target.value }))}
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                          </div>
+
+                          <div>
+                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Email Corporativo *</div>
+                            <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                          </div>
+                        </div>
+
+                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                          <div>
+                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Cargo / Puesto</div>
+                            <input type="text" placeholder="Ej. CFO / CTO" value={formData.cargo} onChange={e => setFormData(p => ({ ...p, cargo: e.target.value }))}
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                          </div>
+
+                          <div>
+                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Revenue Anual</div>
                             <select value={formData.revenue} onChange={e => setFormData(p => ({ ...p, revenue: e.target.value }))}
                               style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.revenue ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
                               <option value="">Seleccionar...</option>
@@ -513,8 +596,11 @@ export default function InteractionManager({
                               <option>Mas de USD 1B</option>
                             </select>
                           </div>
+                        </div>
+
+                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Plazo</div>
+                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Plazo Estimado</div>
                             <select value={formData.plazo} onChange={e => setFormData(p => ({ ...p, plazo: e.target.value }))}
                               style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.plazo ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
                               <option value="">Seleccionar...</option>
@@ -523,21 +609,24 @@ export default function InteractionManager({
                               <option>6-12 meses</option>
                             </select>
                           </div>
+
+                          <div>
+                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Iniciativa Oracle</div>
+                            <input placeholder="Ej. Migración Fusion ERP" value={formData.iniciativa} onChange={e => setFormData(p => ({ ...p, iniciativa: e.target.value }))}
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Iniciativa Oracle</div>
-                          <input value={formData.iniciativa} onChange={e => setFormData(p => ({ ...p, iniciativa: e.target.value }))}
-                            style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-                        </div>
+
                         {apiError && active === "office-hours" && (
                           <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#B85450", letterSpacing: "0.05em" }}>{apiError}</span>
                         )}
+
                         <button
                           disabled={loading}
                           onClick={async () => {
                             setApiError("");
                             if (!formData.nombre || !formData.empresa || !formData.email) {
-                              setApiError("Completa todos los campos.");
+                              setApiError("Completa Nombre, Empresa y Email corporativo.");
                               return;
                             }
                             setLoading(true);
@@ -562,23 +651,23 @@ export default function InteractionManager({
                               setLoading(false);
                             }
                           }}
-                          style={{ marginTop: 8, padding: "13px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
+                          style={{ marginTop: 8, padding: "14px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
                         >
-                          {loading ? "Confirmando..." : "Confirmar reserva →"}
+                          {loading ? "Confirmando en BD..." : "Confirmar Reserva y Guardar en BD →"}
                         </button>
                         <button onClick={() => setSelectedSlot(null)} style={{ padding: "10px", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.1em" }}>
-                          ← Cambiar horario
+                          ← Cambiar horario / fecha
                         </button>
                       </div>
                     </>
                   ) : (
                     <div style={{ textAlign: "center", padding: "32px 0" }}>
                       <div style={{ fontFamily: "var(--serif)", fontSize: 48, color: "var(--accent)", marginBottom: 16 }}>✓</div>
-                      <div style={{ fontFamily: "var(--serif)", fontSize: 24, marginBottom: 12 }}>Conversación <em>agendada.</em></div>
+                      <div style={{ fontFamily: "var(--serif)", fontSize: 24, marginBottom: 12 }}>Conversación <em>agendada exitosamente.</em></div>
                       <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.7 }}>
-                        Recibirás confirmación en {formData.email || "tu email"}.<br />
-                        Julio revisará tus criterios antes de la llamada.<br />
-                        NDA mutuo se enviará 24h antes.
+                        Tu cita se ha guardado directamente en la base de datos.<br />
+                        Recibirás confirmación en <strong style={{ color: "var(--accent)" }}>{formData.email}</strong>.<br />
+                        Julio revisará tus criterios y se enviará NDA mutuo 24h antes.
                       </div>
                       <button onClick={close} style={{ marginTop: 24, padding: "12px 24px", background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.2em", textTransform: "uppercase" }}>
                         Cerrar
@@ -591,8 +680,287 @@ export default function InteractionManager({
           </div>
 
           <div style={{ padding: "12px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.1em" }}>America/Mexico_City · 4 slots / mes</span>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.1em" }}>Confidencial · NDA</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.1em" }}>Solo Días Hábiles (Lunes a Viernes) · CDMX</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.1em" }}>Sincronizado con MongoDB Atlas</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── DOCTRINA OPERATIVA MODAL ── */}
+      {active === "doctrina" && (
+        <div className="im-modal" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-strong)", maxWidth: 760, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "24px 28px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, width: 2, height: 40, background: "var(--accent)" }} />
+            <div style={{ paddingLeft: 16 }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 6 }}>FABRIC OPERATING PRINCIPLES</div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 26 }}>Nuestra Doctrina de <em style={{ color: "var(--accent)" }}>Ingeniería Crítica.</em></div>
+            </div>
+            <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 18, cursor: "pointer" }}>×</button>
+          </div>
+
+          <div style={{ padding: "24px 28px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", letterSpacing: "0.08em" }}>
+              Garantías y compromisos no negociables respaldados legalmente por contrato.
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", fontWeight: "bold" }}>1.</span>
+                  <div style={{ fontFamily: "var(--serif)", fontSize: 17, color: "var(--text-primary)", fontWeight: 600 }}>Entrega en primer ciclo crítico</div>
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6, paddingLeft: 22 }}>
+                  El proyecto no se entrega en el go-live. Se entrega cuando tu primer cierre contable, primer ciclo operativo o primer ciclo regulatorio crítico opera en producción con estabilidad documentada.
+                </div>
+              </div>
+
+              <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", fontWeight: "bold" }}>2.</span>
+                  <div style={{ fontFamily: "var(--serif)", fontSize: 17, color: "var(--text-primary)", fontWeight: 600 }}>Solo seniors. Cero juniors facturables.</div>
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6, paddingLeft: 22 }}>
+                  Cada consultor de FABRIC tiene mínimo 8 años de experiencia real en Oracle. Sin excepciones.
+                </div>
+              </div>
+
+              <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", fontWeight: "bold" }}>3.</span>
+                  <div style={{ fontFamily: "var(--serif)", fontSize: 17, color: "var(--text-primary)", fontWeight: 600 }}>Fixed-Price por fase. Cero sorpresas.</div>
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6, paddingLeft: 22 }}>
+                  Operamos con presupuestos cerrados. Si nos atrasamos por nuestra causa, no facturamos las semanas adicionales.
+                </div>
+              </div>
+
+              <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", fontWeight: "bold" }}>4.</span>
+                  <div style={{ fontFamily: "var(--serif)", fontSize: 17, color: "var(--text-primary)", fontWeight: 600 }}>Cero reportes manuales post go-live.</div>
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6, paddingLeft: 22 }}>
+                  Al cierre del primer ciclo crítico, ningún reporte ejecutivo, financiero u operativo debe ejecutarse fuera del ERP. Si subsiste un reporte manual paralelo por causa atribuible a FABRIC, se resuelve sin costo adicional hasta su eliminación.
+                </div>
+              </div>
+
+              <div style={{ paddingBottom: 8 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", fontWeight: "bold" }}>5.</span>
+                  <div style={{ fontFamily: "var(--serif)", fontSize: 17, color: "var(--text-primary)", fontWeight: 600 }}>Transición formal con documentación viva.</div>
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6, paddingLeft: 22 }}>
+                  El cierre del proyecto se documenta con acta formal firmada por todos los stakeholders del cliente. El acta incluye: tablero de KPIs verificado, incidencias resueltas, adopción de usuarios clave medida, plan de soporte post-transición, y entrega de documentación viva (configuraciones, integraciones, runbooks, procedimientos de cierre, matrices de roles) auditable y actualizable por el cliente sin dependencia de FABRIC.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: "20px", background: "rgba(201,169,110,0.06)", border: "1px solid var(--accent)", borderRadius: 6, marginTop: 8 }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 8 }}>GARANTÍA CONTRACTUAL</div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--text-primary)", fontStyle: "italic", lineHeight: 1.5, marginBottom: 10 }}>
+                &quot;Si no logramos estabilizar tu primer cierre contable en producción en la fecha acordada por causas de nuestra ingeniería, no facturamos los servicios de estabilización hasta lograrlo.&quot;
+              </div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                — Cláusula 7.2 de Servicios
+              </div>
+            </div>
+
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", textAlign: "center", paddingTop: 8 }}>
+              Sólo trabajamos con clientes comprometidos con nuestra doctrina técnica de ingeniería.
+            </div>
+          </div>
+
+          <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button
+              onClick={() => {
+                close();
+                openInteraction({ type: "reference", nonce: Date.now() });
+              }}
+              style={{ padding: "10px 18px", background: "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer" }}
+            >
+              Iniciar Evaluación →
+            </button>
+            <button onClick={close} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.1em" }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CASO APE PLAZAS MODAL ── */}
+      {active === "case-ape" && (
+        <div className="im-modal" style={{ background: "rgb(10, 25, 47)", border: "1px solid rgba(201, 169, 110, 0.3)", maxWidth: 840, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", color: "#e6f1ff" }}>
+          {/* Header Bar */}
+          <div style={{ padding: "20px 28px 16px 28px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "4px 12px", border: "1px solid rgba(201, 169, 110, 0.5)", borderRadius: 12, background: "rgba(201, 169, 110, 0.1)", fontFamily: "var(--mono)", fontSize: 10, color: "#C9A96E", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              REAL CASE STUDY · MIGRATION
+            </div>
+            <button onClick={close} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#8892b0", fontFamily: "var(--mono)", fontSize: 11, padding: "4px 10px", cursor: "pointer", letterSpacing: "0.1em" }}>
+              [CERRAR X]
+            </button>
+          </div>
+
+          {/* Body content */}
+          <div style={{ padding: "28px", overflowY: "auto", flex: 1 }}>
+            <h2 style={{ fontFamily: "var(--serif)", fontSize: 28, color: "#ffffff", fontWeight: 400, marginBottom: 8, lineHeight: 1.2 }}>
+              Caso APE Plazas: Estabilización de Facturación Masiva
+            </h2>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#8892b0", marginBottom: 24 }}>
+              Óptima facturación de arrendamientos comerciales y timbrado SAT masivo sin middlewares.
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+              {/* Left Column: Text & Evidence */}
+              <div className="md:col-span-7 space-y-5" style={{ fontSize: 13, lineHeight: 1.7, color: "#a8b2d1", fontFamily: "var(--sans)" }}>
+                <p>
+                  APE Plazas, operador líder de centros comerciales con más de 1,200 locales activos en México, enfrentaba el colapso de su ciclo contable mensual debido a la lentitud en la facturación masiva. Su integrador anterior había dejado la configuración inconclusa, obligando a reconciliar el IVA y los folios fiscales del SAT en hojas de cálculo externas.
+                </p>
+
+                <blockquote style={{ borderLeft: "2px solid #C9A96E", paddingLeft: 16, margin: "16px 0", color: "#8892b0", fontStyle: "italic", fontFamily: "var(--mono)", fontSize: 11, lineHeight: 1.6 }}>
+                  &quot;El Go-Live técnico ya se había celebrado por la consultora anterior, pero en la práctica el equipo de finanzas tardaba 4 días en facturar e inundaba el SAT de folios erróneos.&quot;
+                </blockquote>
+
+                <p>
+                  FABRIC asumió el control del proyecto e inyectó conectores modularizados para el timbrado masivo SAT CFDI 4.0 directamente mediante bases de datos Oracle Fusion, bajando el tiempo total a solo 4 horas y con <strong style={{ color: "#e6f1ff" }}>cero incidencias críticas de severidad alta</strong> durante el primer cierre contable de abril de 2026.
+                </p>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", fontFamily: "var(--mono)", fontSize: 11, color: "#8892b0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>🗓️</span> 06 de Abril 2026
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>🗄️</span> Oracle Fusion Cloud
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Log Metrics Card */}
+              <div className="md:col-span-5" style={{ background: "rgba(16, 33, 60, 0.7)", border: "1px solid rgba(201, 169, 110, 0.2)", borderRadius: 8, padding: "20px" }}>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#C9A96E", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 16, fontWeight: 700 }}>
+                  MÉTRICAS DE LOG:
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, fontFamily: "var(--mono)", fontSize: 11 }}>
+                  <div>
+                    <div style={{ color: "#8892b0", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>TIEMPO CICLO:</div>
+                    <div style={{ color: "#ffffff", fontSize: 14, fontWeight: 700, marginTop: 2 }}>Reducido a 4 horas</div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: "#8892b0", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>CUMPLIMIENTO:</div>
+                    <div style={{ color: "#64ffda", fontSize: 14, fontWeight: 700, marginTop: 2 }}>✓ Cierre sin incidencias</div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: "#8892b0", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>TASA DE TIMBRADO:</div>
+                    <div style={{ color: "#ffffff", fontSize: 14, fontWeight: 700, marginTop: 2 }}>99.98% primer intento</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(10, 20, 38, 0.9)" }}>
+            <button
+              onClick={() => {
+                close();
+                openInteraction({ type: "paper", paperIndex: 0, nonce: Date.now() });
+              }}
+              style={{ width: "100%", padding: "16px 28px", background: "rgba(16, 33, 60, 0.9)", border: "none", color: "#C9A96E", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
+              <span>APLICAR PARA RESCATE DE PROYECTO →</span>
+              <span>📄</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CASO APLAZO MODAL ── */}
+      {active === "case-aplazo" && (
+        <div className="im-modal" style={{ background: "rgb(10, 25, 47)", border: "1px solid rgba(201, 169, 110, 0.3)", maxWidth: 840, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", color: "#e6f1ff" }}>
+          {/* Header Bar */}
+          <div style={{ padding: "20px 28px 16px 28px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "4px 12px", border: "1px solid rgba(201, 169, 110, 0.5)", borderRadius: 12, background: "rgba(201, 169, 110, 0.1)", fontFamily: "var(--mono)", fontSize: 10, color: "#C9A96E", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              REAL CASE STUDY · FINTECH STABILIZATION
+            </div>
+            <button onClick={close} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#8892b0", fontFamily: "var(--mono)", fontSize: 11, padding: "4px 10px", cursor: "pointer", letterSpacing: "0.1em" }}>
+              [CERRAR X]
+            </button>
+          </div>
+
+          {/* Body content */}
+          <div style={{ padding: "28px", overflowY: "auto", flex: 1 }}>
+            <h2 style={{ fontFamily: "var(--serif)", fontSize: 28, color: "#ffffff", fontWeight: 400, marginBottom: 8, lineHeight: 1.2 }}>
+              Caso Aplazo: Remediación de Cuentas por Cobrar (AR)
+            </h2>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#8892b0", marginBottom: 24 }}>
+              Estabilización y balanceo de subledgers con el Libro Mayor en un plazo récord de 8 semanas.
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+              {/* Left Column: Text & Evidence */}
+              <div className="md:col-span-7 space-y-5" style={{ fontSize: 13, lineHeight: 1.7, color: "#a8b2d1", fontFamily: "var(--sans)" }}>
+                <p>
+                  Aplazo, la plataforma BNPL líder en México, requería conciliar millones de cobros recurrentes mensuales sin generar inconsistencias de centavos en la contabilidad general de su ERP. Las discrepancias acumulaban descuadres que tardaban hasta 5 días hábiles en corregirse manualmente.
+                </p>
+
+                <blockquote style={{ borderLeft: "2px solid #C9A96E", paddingLeft: 16, margin: "16px 0", color: "#8892b0", fontStyle: "italic", fontFamily: "var(--mono)", fontSize: 11, lineHeight: 1.6 }}>
+                  &quot;Rediseñamos la capa de agregación del SLA (Subledger Accounting) Engine del ERP para agrupar transacciones en lotes coherentes directamente en la base de datos.&quot;
+                </blockquote>
+
+                <p>
+                  En solo 8 semanas, el equipo de FABRIC integró reglas customizadas que redujeron el ciclo de cierre contable a solo 4 horas y llevaron los descuadres a un absoluto <strong style={{ color: "#64ffda" }}>0.00%</strong>, logrando erradicar el uso de hojas Excel auxiliares para las conciliaciones de IVA.
+                </p>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", fontFamily: "var(--mono)", fontSize: 11, color: "#8892b0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>🗓️</span> 8 Semanas Totales
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>🗄️</span> Oracle SLA Custom
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Log Metrics Card */}
+              <div className="md:col-span-5" style={{ background: "rgba(16, 33, 60, 0.7)", border: "1px solid rgba(201, 169, 110, 0.2)", borderRadius: 8, padding: "20px" }}>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#C9A96E", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 16, fontWeight: 700 }}>
+                  MÉTRICAS DE LOG:
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, fontFamily: "var(--mono)", fontSize: 11 }}>
+                  <div>
+                    <div style={{ color: "#8892b0", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>PLAZO DE ENTREGA:</div>
+                    <div style={{ color: "#ffffff", fontSize: 14, fontWeight: 700, marginTop: 2 }}>8 Semanas Calendario</div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: "#8892b0", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>VOLUMEN ADMITIDO:</div>
+                    <div style={{ color: "#ffffff", fontSize: 14, fontWeight: 700, marginTop: 2 }}>$4.2B MXN mensuales</div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: "#8892b0", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>DESCUADRES AR vs GL:</div>
+                    <div style={{ color: "#64ffda", fontSize: 14, fontWeight: 700, marginTop: 2 }}>0.00% (Balanceado)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(10, 20, 38, 0.9)" }}>
+            <button
+              onClick={() => {
+                close();
+                openInteraction({ type: "paper", paperIndex: 1, nonce: Date.now() });
+              }}
+              style={{ width: "100%", padding: "16px 28px", background: "rgba(16, 33, 60, 0.9)", border: "none", color: "#C9A96E", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
+              <span>APLICAR PARA RESCATE DE PROYECTO →</span>
+              <span>📄</span>
+            </button>
           </div>
         </div>
       )}
@@ -609,119 +977,129 @@ export default function InteractionManager({
             <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 18, cursor: "pointer" }}>×</button>
           </div>
           <div style={{ padding: "24px 28px", overflowY: "auto", flex: 1 }}>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
-              Las referencias ejecutivas se facilitan únicamente durante el proceso de evaluación post-admisión. FABRIC valida ajuste antes de facilitar el contacto directo.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-
-              {/* Fila nombre + cargo */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {(["nombre", "cargo"] as const).map(field => (
-                  <div key={field}>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>{field}</div>
-                    {field === "cargo" ? (
-                      <select value={formData.cargo} onChange={e => setFormData(p => ({ ...p, cargo: e.target.value }))}
-                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.cargo ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
-                        <option value="">Seleccionar...</option>
-                        <option value="CFO">CFO</option>
-                        <option value="CTO">CTO</option>
-                        <option value="CIO">CIO</option>
-                        <option value="Director Transformación">Director Transformación</option>
-                        <option value="Otro">Otro</option>
-                      </select>
-                    ) : (
-                      <input type="text" value={formData.nombre} onChange={e => setFormData(p => ({ ...p, nombre: e.target.value }))}
-                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Empresa */}
-              <div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Empresa</div>
-                <input type="text" value={formData.empresa} onChange={e => setFormData(p => ({ ...p, empresa: e.target.value }))}
-                  style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-              </div>
-
-              {/* Fila email + revenue */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Email corporativo</div>
-                  <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
-                    style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Revenue anual</div>
-                  <select value={formData.revenue} onChange={e => setFormData(p => ({ ...p, revenue: e.target.value }))}
-                    style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.revenue ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
-                    <option value="">Seleccionar...</option>
-                    <option value="USD 50M–100M">USD 50M – 100M</option>
-                    <option value="USD 100M–500M">USD 100M – 500M</option>
-                    <option value="USD 500M+">USD 500M+</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Iniciativa Oracle */}
-              <div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Iniciativa Oracle actual o planeada</div>
-                <input type="text" value={formData.iniciativa} onChange={e => setFormData(p => ({ ...p, iniciativa: e.target.value }))}
-                  placeholder="Ej. implementación Fusion Cloud, migración OCI, soporte post go-live..."
-                  style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
-              </div>
-
-              <div style={{ padding: "12px 16px", background: "var(--bg-base)", border: "1px solid var(--border)", borderLeft: "2px solid var(--accent)", fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.7 }}>
-                Respuesta en 3 días hábiles · Proceso bajo NDA mutuo
-              </div>
-            </div>
-          </div>
-          <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", flexDirection: "column", gap: 8 }}>
             {!submitted ? (
               <>
-                {apiError && active === "reference" && (
-                  <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#B85450", letterSpacing: "0.05em" }}>{apiError}</span>
-                )}
-                <button
-                  disabled={loading}
-                  onClick={async () => {
-                    setApiError("");
-                    if (!formData.nombre || !formData.cargo || !formData.empresa || !formData.email || !formData.iniciativa) {
-                      setApiError("Completa todos los campos obligatorios.");
-                      return;
-                    }
-                    setLoading(true);
-                    try {
-                      await api.post("/leads/referencia", {
-                        nombre:     formData.nombre,
-                        cargo:      formData.cargo,
-                        empresa:    formData.empresa,
-                        email:      formData.email,
-                        revenue:    formData.revenue,
-                        iniciativa: formData.iniciativa,
-                        tracking:   tracking("S12", "reference"),
-                      });
-                      setSubmitted(true);
-                    } catch (err: unknown) {
-                      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-                      setApiError(msg ?? "Error al enviar. Intenta de nuevo.");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  style={{ alignSelf: "flex-end", padding: "13px 28px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
-                >
-                  {loading ? "Enviando..." : "Iniciar evaluación →"}
-                </button>
+                <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
+                  Las referencias ejecutivas se facilitan únicamente durante el proceso de evaluación post-admisión. FABRIC valida ajuste antes de facilitar el contacto directo.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {/* Fila nombre + cargo */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {(["nombre", "cargo"] as const).map(field => (
+                      <div key={field}>
+                        <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>{field === "nombre" ? "Nombre completo *" : "Cargo *"}</div>
+                        {field === "cargo" ? (
+                          <select value={formData.cargo} onChange={e => setFormData(p => ({ ...p, cargo: e.target.value }))}
+                            style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.cargo ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
+                            <option value="">Seleccionar...</option>
+                            <option value="CFO">CFO</option>
+                            <option value="CTO">CTO</option>
+                            <option value="CIO">CIO</option>
+                            <option value="Director Transformación">Director Transformación</option>
+                            <option value="Otro">Otro</option>
+                          </select>
+                        ) : (
+                          <input type="text" value={formData.nombre} onChange={e => setFormData(p => ({ ...p, nombre: e.target.value }))}
+                            style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Empresa */}
+                  <div>
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Empresa *</div>
+                    <input type="text" value={formData.empresa} onChange={e => setFormData(p => ({ ...p, empresa: e.target.value }))}
+                      style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                  </div>
+
+                  {/* Fila email + revenue */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Email corporativo *</div>
+                      <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Revenue anual</div>
+                      <select value={formData.revenue} onChange={e => setFormData(p => ({ ...p, revenue: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.revenue ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
+                        <option value="">Seleccionar...</option>
+                        <option value="USD 50M–100M">USD 50M – 100M</option>
+                        <option value="USD 100M–500M">USD 100M – 500M</option>
+                        <option value="USD 500M+">USD 500M+</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Iniciativa Oracle */}
+                  <div>
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Iniciativa Oracle actual o planeada *</div>
+                    <input type="text" value={formData.iniciativa} onChange={e => setFormData(p => ({ ...p, iniciativa: e.target.value }))}
+                      placeholder="Ej. implementación Fusion Cloud, migración OCI, soporte post go-live..."
+                      style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                  </div>
+
+                  <div style={{ padding: "12px 16px", background: "var(--bg-base)", border: "1px solid var(--border)", borderLeft: "2px solid var(--accent)", fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.7 }}>
+                    Respuesta en 3 días hábiles · Proceso bajo NDA mutuo
+                  </div>
+                </div>
               </>
             ) : (
-              <div style={{ textAlign: "center", width: "100%" }}>
-                <div style={{ fontFamily: "var(--serif)", fontSize: 20, marginBottom: 8 }}>Solicitud <em style={{ color: "var(--accent)" }}>recibida.</em></div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)" }}>Respuesta en 3 días hábiles · Proceso bajo NDA mutuo</div>
-                <button onClick={close} style={{ marginTop: 16, padding: "10px 20px", background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.15em", textTransform: "uppercase" }}>Cerrar</button>
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <div style={{ fontFamily: "var(--serif)", fontSize: 48, color: "var(--accent)", marginBottom: 16 }}>✓</div>
+                <div style={{ fontFamily: "var(--serif)", fontSize: 24, marginBottom: 12 }}>Evaluación <em>registrada exitosamente.</em></div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.8, marginBottom: 24 }}>
+                  Tus datos han sido registrados en la consola de Leads.<br />
+                  <span style={{ color: "var(--accent)" }}>{formData.email}</span><br />
+                  Respuesta en 3 días hábiles · Proceso bajo NDA mutuo.
+                </div>
+                <button onClick={close} style={{ padding: "12px 24px", background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                  Cerrar
+                </button>
               </div>
             )}
           </div>
+
+          {!submitted && (
+            <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", flexDirection: "column", gap: 8 }}>
+              {apiError && active === "reference" && (
+                <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#B85450", letterSpacing: "0.05em" }}>{apiError}</span>
+              )}
+              <button
+                disabled={loading}
+                onClick={async () => {
+                  setApiError("");
+                  if (!formData.nombre || !formData.cargo || !formData.empresa || !formData.email || !formData.iniciativa) {
+                    setApiError("Completa todos los campos obligatorios.");
+                    return;
+                  }
+                  setLoading(true);
+                  try {
+                    await api.post("/leads/referencia", {
+                      nombre:     formData.nombre,
+                      cargo:      formData.cargo,
+                      empresa:    formData.empresa,
+                      email:      formData.email,
+                      revenue:    formData.revenue,
+                      iniciativa: formData.iniciativa,
+                      iniciativaOracle: formData.iniciativa,
+                      tracking:   tracking("S12", "reference"),
+                    });
+                    setSubmitted(true);
+                  } catch (err: unknown) {
+                    const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+                    setApiError(msg ?? "Error al enviar. Intenta de nuevo.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                style={{ alignSelf: "flex-end", padding: "13px 28px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
+              >
+                {loading ? "Enviando..." : "Iniciar evaluación →"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -739,27 +1117,36 @@ export default function InteractionManager({
 
           {!submitted ? (
             <>
-              <div style={{ display: "flex", borderBottom: "1px solid var(--border)" }}>
-                {papersList.map((p, i) => (
-                  <button key={i} className={`im-paper-tab${selectedPaper === i ? " active" : ""}`} onClick={() => setSelectedPaper(i)}
-                    style={{ flex: 1, padding: "12px 8px", background: "transparent", border: "none", borderBottom: selectedPaper === i ? "2px solid var(--accent)" : "2px solid transparent", fontFamily: "var(--mono)", fontSize: 10, color: selectedPaper === i ? "var(--accent)" : "var(--text-tertiary)", cursor: "pointer", letterSpacing: "0.1em", transition: "all 200ms" }}>
-                    {p.num}
-                  </button>
-                ))}
-              </div>
               <div style={{ padding: "24px 28px", flex: 1, overflowY: "auto" }}>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 8 }}>{papersList[selectedPaper]?.tag}</div>
-                <div style={{ fontFamily: "var(--serif)", fontSize: 22, lineHeight: 1.15, marginBottom: 12 }}>{papersList[selectedPaper]?.title}</div>
-                <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.7, marginBottom: 16 }}>{papersList[selectedPaper]?.abstract}</p>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.1em", marginBottom: 24 }}>{papersList[selectedPaper]?.meta}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {(["nombre", "cargo", "empresa", "email"] as const).map((field) => (
-                    <div key={field}>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>{field === "email" ? "Email corporativo" : field}</div>
-                      <input type={field === "email" ? "email" : "text"} value={formData[field]} onChange={e => setFormData(p => ({ ...p, [field]: e.target.value }))}
-                        style={{ width: "100%", padding: "11px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
+                  Ingresa tus datos corporativos para solicitar el paper técnico o la ficha de rescate de proyecto.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Nombre Completo *</div>
+                      <input type="text" value={formData.nombre} onChange={e => setFormData(p => ({ ...p, nombre: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                     </div>
-                  ))}
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Cargo / Puesto *</div>
+                      <input type="text" value={formData.cargo} onChange={e => setFormData(p => ({ ...p, cargo: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Empresa *</div>
+                      <input type="text" value={formData.empresa} onChange={e => setFormData(p => ({ ...p, empresa: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Email Corporativo *</div>
+                      <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
                 </div>
               </div>
               <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -770,7 +1157,8 @@ export default function InteractionManager({
                   disabled={loading}
                   onClick={async () => {
                     setApiError("");
-                    const paperId = papersList[selectedPaper]?.paperId;
+                    const pObj = papersList[selectedPaper] || papersList[0];
+                    const paperId = pObj?.title ? `${pObj.num} - ${pObj.title}` : (pObj?.paperId || "Paper 01 - Fórmulas Oracle Fusion");
                     if (!paperId) {
                       setApiError("ID de paper no válido.");
                       return;

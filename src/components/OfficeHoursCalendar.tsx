@@ -96,9 +96,12 @@ export default function OfficeHoursCalendar({ onDayClick }: Props) {
   const cells = buildCalendarGrid(year, month, visibleMonthData);
 
   const handleDayClick = (cell: typeof cells[0]) => {
-    if (cell.available <= 0 || !cell.dateStr) return;
-    if (onDayClick) onDayClick(cell.dateStr);
-    // Sin onDayClick: el bubble nativo del click llega al InteractionManager en document
+    if (!cell.dateStr) return;
+    if (onDayClick) {
+      onDayClick(cell.dateStr);
+      return;
+    }
+    if (cell.available <= 0) return;
   };
 
   return (

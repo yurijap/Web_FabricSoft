@@ -118,20 +118,22 @@ export default function S06bFixedPrice() {
                 proyecto FABRIC.
               </p>
 
-              <a
-                href="#doctrina"
+              <button
+                type="button"
+                data-interaction="doctrina"
                 className="
                   group inline-flex w-fit items-center gap-3
                   font-mono text-[10px] font-semibold uppercase tracking-[0.22em]
                   text-[#C9A96E]
                   transition-colors duration-300 hover:text-[#F5F5F5]
+                  cursor-pointer
                 "
               >
                 Ver doctrina
                 <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#C9A96E]/35 transition-all duration-300 group-hover:translate-x-1 group-hover:border-[#C9A96E] group-hover:bg-[#C9A96E]/10">
                   -&gt;
                 </span>
-              </a>
+              </button>
             </div>
           </article>
         </div>

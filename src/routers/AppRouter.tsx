@@ -2,11 +2,8 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { useEffect, Suspense, lazy } from 'react';
 
 import PublicLayout from '../layouts/public/publicLayaout';
-import { ProtectorRoles } from '../auth/ProtecteRoles';
-import { PublicRouteProtector } from '../auth/PublicProtecte';
 
-// Limite de Clerk: provee el ClerkProvider solo a las rutas de auth/admin.
-// Lazy => la landing publica no carga el runtime de Clerk.
+// Lazy cargar ClerkBoundary y Pantallas de Login/Acceso
 const ClerkBoundary = lazy(() => import('../auth/ClerkBoundary'));
 const AccesoScreen = lazy(() =>
   import('../auth/AuthScreens').then((m) => ({ default: m.AccesoScreen })),
@@ -14,6 +11,18 @@ const AccesoScreen = lazy(() =>
 const CrearCuentaScreen = lazy(() =>
   import('../auth/AuthScreens').then((m) => ({ default: m.CrearCuentaScreen })),
 );
+
+// Dashboard principal post-login
+const DashboardPage = lazy(() => import('../pages/admin/DashboardPage'));
+
+// Admin Layout y Páginas del Consola Admin FABRIC
+const AdminLayout = lazy(() => import('../layouts/admin/adminLayaout'));
+const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
+const AdminLeads = lazy(() => import('../pages/admin/AdminLeads'));
+const AdminOfficeHours = lazy(() => import('../pages/admin/AdminOfficeHours'));
+const AdminDocumentos = lazy(() => import('../pages/admin/AdminDocumentos'));
+const AdminValidacionDirecta = lazy(() => import('../pages/admin/AdminValidacionDirecta'));
+const AdminLogs = lazy(() => import('../pages/admin/AdminLogs'));
 
 // Páginas Públicas
 import Home from '../pages/public/home/home';
@@ -31,8 +40,6 @@ const TerminosPage = lazy(() => import('../pages/public/legal/TerminosPage'));
 const PrivacidadPage = lazy(() => import('../pages/public/legal/PrivacidadPage'));
 const DoctrinaNoAlineacionPage = lazy(() => import('../pages/public/legal/DoctrinaNoAlineacionPage'));
 
-import { VerificarAcceso } from '../auth/VerificarAcceso';
-
 // Páginas de Herramientas
 const MigrationRoadmapPage = lazy(() => import('../pages/public/herramientas/MigrationRoadmapPage'));
 const ReadinessScorePage = lazy(() => import('../pages/public/herramientas/ReadinessScorePage'));
@@ -48,30 +55,6 @@ const OptimizadorOciPage = lazy(() => import('../pages/public/optimizador-oci/Op
 // Páginas de Investigación
 const ResearchLettersPage = lazy(() => import('../pages/public/investigacion/ResearchLettersPage'));
 const PaperPage = lazy(() => import('../pages/public/investigacion/PaperPage'));
-
-// Páginas de Administración — Layout nuevo (rama diagnostico)
-const AdminLayout = lazy(() => import('../layouts/admin/adminLayaout'));
-
-const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
-const AdminLeads = lazy(() => import('../pages/admin/AdminLeads'));
-const AdminPapers = lazy(() => import('../pages/admin/AdminPapers'));
-const AdminNda = lazy(() => import('../pages/admin/AdminNda'));
-const AdminReferencias = lazy(() => import('../pages/admin/AdminReferencias'));
-const AdminTransparencia = lazy(() => import('../pages/admin/AdminTransparencia'));
-const AdminResearchLetters = lazy(() => import('../pages/admin/AdminResearchLetters'));
-const AdminMetricas = lazy(() => import('../pages/admin/AdminMetricas'));
-const AdminCapacidad = lazy(() => import('../pages/admin/AdminCapacidad'));
-const AdminOfficeHours = lazy(() => import('../pages/admin/AdminOfficeHours'));
-const AdminLogs = lazy(() => import('../pages/admin/AdminLogs'));
-const AdminAgenteIA = lazy(() => import('../pages/admin/AdminAgenteIA'));
-const AdminConversacionesIA = lazy(() => import('../pages/admin/AdminConversacionesIA'));
-const AdminDiagnosticosOracle = lazy(() => import('../pages/admin/AdminDiagnosticosOracle'));
-const AdminRescueAssessment   = lazy(() => import('../pages/admin/AdminRescueAssessment'));
-const AdminOciAudit           = lazy(() => import('../pages/admin/AdminOciAudit'));
-const AdminMigrationRoadmap   = lazy(() => import('../pages/admin/AdminMigrationRoadmap'));
-const AdminReadinessScore     = lazy(() => import('../pages/admin/AdminReadinessScore'));
-const AdminCloudComparator    = lazy(() => import('../pages/admin/AdminCloudComparator'));
-
 
 const legacyHashAliases: Record<string, string> = {
   s07: 'casos',
@@ -109,13 +92,13 @@ function ScrollToTop() {
 
     const scrollToHash = (behavior: ScrollBehavior) => {
       const id = canonicalId;
-      const target = document.getElementById(id);
-      if (!target) return false;
+      const sectionEl = document.getElementById(id);
+      const headerEl = document.querySelector<HTMLElement>('header[data-no-translate]');
+      if (!sectionEl) return true;
 
-      const header = document.querySelector<HTMLElement>('header[data-no-translate]');
-      const headerOffset = (header?.offsetHeight ?? 0) + 12;
+      const headerOffset = (headerEl?.offsetHeight ?? 0) + 12;
       const visualInset = id === 'inicio' ? 0 : Math.min(88, Math.max(48, viewportHeight * 0.08));
-      const top = target.getBoundingClientRect().top + window.scrollY - headerOffset + visualInset;
+      const top = sectionEl.getBoundingClientRect().top + window.scrollY - headerOffset + visualInset;
       const distance = Math.abs(top - window.scrollY);
 
       if (distance < 6) {
@@ -144,20 +127,16 @@ function ScrollToTop() {
 }
 
 const GlobalLoader = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] font-sans">
+  <div className="min-h-screen flex flex-col items-center justify-center bg-white text-slate-900 font-sans">
     <div className="relative mb-6 flex h-16 w-16 items-center justify-center">
-      <div className="absolute inset-0 rounded-full border border-[#2A2A2A]" />
-      <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#C9A96E]" />
+      <div className="absolute inset-0 rounded-full border border-slate-200" />
+      <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-blue-600" />
     </div>
-    <p className="text-[10px] font-mono font-bold text-[#C9A96E] uppercase tracking-[0.3em] animate-pulse">
-      Iniciando Terminal...
+    <p className="text-[10px] font-mono font-bold text-blue-600 uppercase tracking-[0.3em] animate-pulse">
+      Cargando Consola Admin...
     </p>
   </div>
 );
-
-// =========================================================================
-// ENRUTADOR PRINCIPAL
-// =========================================================================
 
 export const AppRouter = () => {
   return (
@@ -165,11 +144,8 @@ export const AppRouter = () => {
       <ScrollToTop />
       <Suspense fallback={<GlobalLoader />}>
         <Routes>
-
-          <Route
-            path="/"
-            element={<PublicLayout />}
-          >
+          {/* Rutas Públicas */}
+          <Route path="/" element={<PublicLayout />}>
             <Route index element={<Home />} />
 
             {/* Casos y Engagements */}
@@ -204,61 +180,25 @@ export const AppRouter = () => {
             <Route path="investigacion/paper/:num" element={<PaperPage />} />
           </Route>
 
-          {/* =================================================================
-              RUTAS QUE REQUIEREN CLERK (auth + admin)
-              Agrupadas bajo ClerkBoundary (lazy) para que el ClerkProvider
-              y el runtime de Clerk NO carguen en las rutas publicas.
-              ================================================================= */}
+          {/* Rutas de Consola de Administración y Login con Clerk */}
           <Route element={<ClerkBoundary />}>
-            <Route path="/verificar-acceso" element={<VerificarAcceso />} />
-
-            <Route
-              path="/acceso/*"
-              element={
-                <PublicRouteProtector>
-                  <AccesoScreen />
-                </PublicRouteProtector>
-              }
-            />
-
-            <Route
-              path="/crear-cuenta/*"
-              element={
-                <PublicRouteProtector>
-                  <CrearCuentaScreen />
-                </PublicRouteProtector>
-              }
-            />
-
+            <Route path="/acceso/*" element={<AccesoScreen />} />
+            <Route path="/crear-cuenta/*" element={<CrearCuentaScreen />} />
+            <Route path="/login" element={<Navigate to="/acceso" replace />} />
             <Route path="/admin/login" element={<Navigate to="/acceso" replace />} />
 
-            <Route
-              path="/admin"
-              element={
-                <ProtectorRoles rolesPermitidos={['admin']}>
-                  <AdminLayout />
-                </ProtectorRoles>
-              }
-            >
+            {/* Dashboard General */}
+            <Route path="/dashboard" element={<DashboardPage />} />
+
+            {/* Consola de Administración FABRIC */}
+            <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="leads" element={<AdminLeads />} />
-              <Route path="papers" element={<AdminPapers />} />
-              <Route path="nda" element={<AdminNda />} />
-              <Route path="referencias" element={<AdminReferencias />} />
-              <Route path="transparencia" element={<AdminTransparencia />} />
-              <Route path="research-letters" element={<AdminResearchLetters />} />
-              <Route path="metricas" element={<AdminMetricas />} />
-              <Route path="capacidad" element={<AdminCapacidad />} />
               <Route path="office-hours" element={<AdminOfficeHours />} />
+              <Route path="documentos" element={<AdminDocumentos />} />
+              <Route path="validacion-directa" element={<AdminValidacionDirecta />} />
               <Route path="logs" element={<AdminLogs />} />
-              <Route path="agente-ia" element={<AdminAgenteIA />} />
-              <Route path="conversaciones-ia" element={<AdminConversacionesIA />} />
-              <Route path="diagnosticos-oracle"  element={<AdminDiagnosticosOracle />} />
-              <Route path="rescue-assessment"    element={<AdminRescueAssessment />} />
-              <Route path="oci-audit"           element={<AdminOciAudit />} />
-              <Route path="migration-roadmap"   element={<AdminMigrationRoadmap />} />
-              <Route path="readiness-score"     element={<AdminReadinessScore />} />
-              <Route path="cloud-comparator"     element={<AdminCloudComparator />} />
             </Route>
           </Route>
 

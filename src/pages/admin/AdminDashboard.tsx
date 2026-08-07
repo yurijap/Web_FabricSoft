@@ -74,7 +74,7 @@ const periodConfig: Record<Period, { labels: string[]; pipeline: number[]; capac
 };
 
 const baseLeads: Lead[] = [
-  // Financiero (10 leads)
+  // Financiero
   { date: '28 may', company: 'Banco Atlas', contact: 'R. Molina CFO', industry: 'Financiero', revenueValue: 8.5, revenue: 'USD 8.5M', score: 94, status: 'Aprobado', source: 'Founder Line' },
   { date: '26 may', company: 'FinCore Bank', contact: 'A. Torres CFO', industry: 'Financiero', revenueValue: 6.2, revenue: 'USD 6.2M', score: 91, status: 'WaitList', source: 'AI Chat' },
   { date: '24 may', company: 'CryptoCred LatAm', contact: 'J. Delgado CEO', industry: 'Financiero', revenueValue: 3.8, revenue: 'USD 3.8M', score: 85, status: 'Nuevo', source: 'Referral' },
@@ -86,7 +86,7 @@ const baseLeads: Lead[] = [
   { date: '12 may', company: 'Caja Solidaria', contact: 'F. Ortega CFO', industry: 'Financiero', revenueValue: 3.0, revenue: 'USD 3.0M', score: 76, status: 'Nuevo', source: 'Office Hours' },
   { date: '10 may', company: 'Inversiones Omega', contact: 'D. Vaca COO', industry: 'Financiero', revenueValue: 5.4, revenue: 'USD 5.4M', score: 82, status: 'Aprobado', source: 'AI Chat' },
 
-  // Inmobiliario (9 leads)
+  // Inmobiliario
   { date: '27 may', company: 'Inmobiliaria Mítica', contact: 'M. Saldívar CFO', industry: 'Inmobiliario', revenueValue: 5.8, revenue: 'USD 5.8M', score: 87, status: 'Nuevo', source: 'Founder Line' },
   { date: '25 may', company: 'Habita Norte', contact: 'L. Cano COO', industry: 'Inmobiliario', revenueValue: 4.2, revenue: 'USD 4.2M', score: 76, status: 'Aprobado', source: 'Referral' },
   { date: '23 may', company: 'Desarrollos Aura', contact: 'C. Slim Jr. CEO', industry: 'Inmobiliario', revenueValue: 9.5, revenue: 'USD 9.5M', score: 92, status: 'Aprobado', source: 'Founder Line' },
@@ -97,7 +97,7 @@ const baseLeads: Lead[] = [
   { date: '13 may', company: 'Parques Industriales Bajío', contact: 'H. Herrera COO', industry: 'Inmobiliario', revenueValue: 8.0, revenue: 'USD 8.0M', score: 89, status: 'Aprobado', source: 'Founder Line' },
   { date: '11 may', company: 'Edificios Quantum', contact: 'J. Reyes CFO', industry: 'Inmobiliario', revenueValue: 3.5, revenue: 'USD 3.5M', score: 72, status: 'Nuevo', source: 'Office Hours' },
 
-  // Logística (9 leads)
+  // Logística
   { date: '28 may', company: 'TransLog SA', contact: 'R. Méndez COO', industry: 'Logística', revenueValue: 6.4, revenue: 'USD 6.4M', score: 82, status: 'Aprobado', source: 'Office Hours' },
   { date: '26 may', company: 'Ruta Fría MX', contact: 'P. Ibarra CTO', industry: 'Logística', revenueValue: 3.2, revenue: 'USD 3.2M', score: 69, status: 'Nuevo', source: 'AI Chat' },
   { date: '24 may', company: 'Súper Envío Exprés', contact: 'E. Blanco CEO', industry: 'Logística', revenueValue: 5.0, revenue: 'USD 5.0M', score: 80, status: 'Aprobado', source: 'Referral' },
@@ -127,11 +127,11 @@ const baseLeadsWithDates: Lead[] = baseLeads.map(lead => ({
 }));
 
 const STATUS_CLASS: Record<Exclude<StatusFilter, 'Todos'>, string> = {
-  Nuevo: 'border-border-strong bg-bg-elevated text-text-primary',
-  'Revisión': 'border-amber-400/25 bg-amber-400/10 text-amber-300',
-  Aprobado: 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300',
-  WaitList: 'border-sky-400/25 bg-sky-400/10 text-sky-300',
-  Rechazado: 'border-[#B85450]/25 bg-[#B85450]/10 text-[#B85450]',
+  Nuevo: 'border-[#1E3A5F] bg-[#123254] text-[#F5F5F5]',
+  'Revisión': 'border-amber-500/30 bg-amber-500/15 text-amber-300',
+  Aprobado: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300',
+  WaitList: 'border-sky-500/30 bg-sky-500/15 text-sky-300',
+  Rechazado: 'border-rose-500/30 bg-rose-500/15 text-rose-300',
 };
 
 function AdminHeader({
@@ -164,41 +164,41 @@ function AdminHeader({
   const hasActiveFilters = period !== '7d' || industry !== 'Todas' || status !== 'Todos';
 
   return (
-    <header className="fabric-admin-hero">
-      <div className="flex flex-col gap-5">
+    <header className="p-6 md:p-8 bg-[#0B1F3A] border-b border-[#1E3A5F]">
+      <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 border border-border bg-bg-panel px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+            <div className="mb-2 inline-flex items-center gap-2 border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#C9A96E] rounded-md">
               <Sparkles size={12} />
               FABRIC · Admin
             </div>
-            <h1 className="fabric-admin-title">
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-white tracking-tight">
               Dashboard operativo
             </h1>
-            <p className="fabric-admin-subtitle">
+            <p className="text-xs md:text-sm text-[#94A3B8] mt-1 font-sans">
               Pipeline, capacidad, revenue y admisión en una vista filtrable.
             </p>
           </div>
 
-          <div className="fabric-admin-pill flex-col items-start gap-1 lg:items-end">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-tertiary">
+          <div className="flex flex-col items-start lg:items-end gap-1 bg-[#0E2747] border border-[#1E3A5F] px-4 py-2.5 rounded-xl shadow-md">
+            <div className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-[#94A3B8]">
               Sincronizado
             </div>
-            <div className="mt-1 text-xs capitalize text-text-secondary">{dateStr}</div>
+            <div className="text-xs capitalize font-medium text-white">{dateStr}</div>
           </div>
         </div>
 
-        <div className="admin-main-panel overflow-hidden rounded-md">
-          <div className="grid gap-3 px-4 py-3 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="bg-[#0E2747] border border-[#1E3A5F] rounded-2xl shadow-lg overflow-hidden">
+          <div className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="flex min-w-0 items-start gap-3 sm:items-center">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-border bg-bg-elevated text-accent">
-                <Filter size={14} />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#C9A96E]/30 bg-[#C9A96E]/10 text-[#C9A96E]">
+                <Filter size={16} />
               </span>
               <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-primary">
+                <div className="text-[11px] font-mono font-bold uppercase tracking-[0.14em] text-white">
                   Filtros de operación
                 </div>
-                <div className="mt-1 flex flex-wrap gap-1.5">
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   <FilterPill label={period.toUpperCase()} />
                   <FilterPill label={industry} />
                   <FilterPill label={status} />
@@ -211,10 +211,10 @@ function AdminHeader({
                 type="button"
                 onClick={() => setFiltersOpen(!filtersOpen)}
                 className={[
-                  'group inline-flex h-10 items-center justify-center gap-2 rounded-sm border px-4 text-[11px] font-semibold uppercase tracking-[0.12em] transition sm:min-w-[158px]',
+                  'group inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-[11px] font-mono font-bold uppercase tracking-[0.12em] transition cursor-pointer sm:min-w-[150px]',
                   filtersOpen
-                    ? 'border-accent/45 bg-[var(--accent-soft)] text-text-primary'
-                    : 'border-border bg-bg-base text-text-secondary hover:border-border-strong hover:bg-bg-elevated hover:text-text-primary',
+                    ? 'border-[#C9A96E] bg-[#C9A96E]/15 text-[#C9A96E]'
+                    : 'border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:border-[#C9A96E]/50 hover:bg-[#1A426E] hover:text-white',
                 ].join(' ')}
               >
                 {filtersOpen ? 'Ocultar filtros' : 'Filtrar'}
@@ -222,7 +222,7 @@ function AdminHeader({
                   size={14}
                   className={[
                     'transition-transform duration-300',
-                    filtersOpen ? 'rotate-180 text-accent' : 'group-hover:text-text-primary',
+                    filtersOpen ? 'rotate-180 text-[#C9A96E]' : 'group-hover:text-white',
                   ].join(' ')}
                 />
               </button>
@@ -235,7 +235,7 @@ function AdminHeader({
                     setIndustry('Todas');
                     setStatus('Todos');
                   }}
-                  className="h-10 rounded-sm border border-border bg-bg-base px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary transition hover:border-border-strong hover:bg-bg-elevated hover:text-text-primary sm:min-w-[108px]"
+                  className="h-10 rounded-xl border border-[#1E3A5F] bg-[#123254] px-4 text-[11px] font-mono font-bold uppercase tracking-[0.12em] text-[#94A3B8] transition hover:border-[#C9A96E]/50 hover:bg-[#1A426E] hover:text-white cursor-pointer sm:min-w-[100px]"
                 >
                   Limpiar
                 </button>
@@ -245,8 +245,8 @@ function AdminHeader({
 
           <div
             className={[
-              'grid gap-3 overflow-hidden border-t border-border bg-bg-base/45 transition-[max-height,opacity,transform,padding] duration-300 ease-out md:grid-cols-3',
-              filtersOpen ? 'max-h-[620px] translate-y-0 p-3 opacity-100' : 'max-h-0 -translate-y-2 p-0 opacity-0',
+              'grid gap-4 border-t border-[#1E3A5F] bg-[#07192F]/60 transition-all duration-300 ease-out md:grid-cols-3',
+              filtersOpen ? 'max-h-[600px] p-5 opacity-100' : 'max-h-0 p-0 opacity-0 overflow-hidden border-t-0',
             ].join(' ')}
           >
             <Segmented label="Periodo" items={PERIODS} value={period} onChange={setPeriod} />
@@ -281,18 +281,18 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="min-w-0 rounded-sm border border-border bg-bg-panel p-3">
+    <div className="min-w-0 rounded-xl border border-[#1E3A5F] bg-[#0E2747] p-3.5 shadow-md">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+        <div className="text-[10px] font-mono font-bold uppercase tracking-[0.12em] text-[#94A3B8]">
           {label}
         </div>
-        <div className="max-w-[60%] truncate rounded-sm border border-accent/25 bg-[var(--accent-soft)] px-2 py-0.5 text-right font-mono text-[10px] text-accent">
+        <div className="max-w-[60%] truncate rounded-md border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#C9A96E]">
           {value}
         </div>
       </div>
       <div
         className="grid gap-2"
-        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))' }}
       >
         {items.map((item) => (
           <button
@@ -300,14 +300,14 @@ function Segmented<T extends string>({
             type="button"
             onClick={() => onChange(item.value)}
             className={[
-              'relative min-h-10 min-w-0 overflow-hidden rounded-sm border px-3 py-2 text-center text-[12px] font-medium leading-tight tracking-[0.01em] transition duration-200',
+              'relative min-h-[38px] min-w-0 overflow-hidden rounded-lg border px-2.5 py-1.5 text-center text-xs font-semibold leading-tight transition duration-200 cursor-pointer',
               value === item.value
-                ? 'border-accent/45 bg-[var(--accent-soft)] text-text-primary'
-                : 'border-border bg-bg-base text-text-secondary hover:border-border-strong hover:bg-bg-elevated hover:text-text-primary',
+                ? 'border-[#C9A96E] bg-[#C9A96E]/15 text-white font-bold'
+                : 'border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:border-[#1E3A5F] hover:bg-[#1A426E] hover:text-white',
             ].join(' ')}
           >
             <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{item.label}</span>
-            {value === item.value && <span className="absolute inset-x-2 bottom-0 h-px bg-accent" />}
+            {value === item.value && <span className="absolute inset-x-2 bottom-0 h-0.5 bg-[#C9A96E]" />}
           </button>
         ))}
       </div>
@@ -317,7 +317,7 @@ function Segmented<T extends string>({
 
 function FilterPill({ label }: { label: string }) {
   return (
-    <span className="rounded-sm border border-border bg-bg-base px-2 py-0.5 text-[10px] font-medium text-text-tertiary">
+    <span className="rounded-md border border-[#1E3A5F] bg-[#123254] px-2.5 py-0.5 text-[10px] font-mono font-semibold text-[#94A3B8]">
       {label}
     </span>
   );
@@ -325,7 +325,7 @@ function FilterPill({ label }: { label: string }) {
 
 function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <article className={`admin-main-panel rounded-md border border-border bg-bg-panel shadow-[0_18px_44px_rgba(0,0,0,0.16)] ${className}`}>
+    <article className={`rounded-2xl border border-[#1E3A5F] bg-[#0E2747] shadow-lg ${className}`}>
       {children}
     </article>
   );
@@ -343,8 +343,8 @@ function SectionTitle({
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">{eyebrow}</div>
-        <h2 className="mt-1 font-serif text-2xl text-text-primary">{title}</h2>
+        <div className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-[#C9A96E]">{eyebrow}</div>
+        <h2 className="mt-1 font-serif text-xl md:text-2xl font-bold text-white">{title}</h2>
       </div>
       {action}
     </div>
@@ -611,17 +611,17 @@ export default function AdminDashboard() {
 
   if (loading && leads.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050505] font-sans">
-        <div className="relative mb-6 flex h-12 w-12 items-center justify-center">
-          <div className="absolute inset-0 rounded-full border border-[#2A2A2A]" />
-          <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#C9A96E]" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0B1F3A]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent animate-spin rounded-full"></div>
+          <span className="font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-widest animate-pulse">Cargando métricas...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fabric-admin-page">
+    <div className="min-h-screen bg-[#0B1F3A] text-white font-sans pb-12">
       <AdminHeader
         period={period}
         setPeriod={setPeriod}
@@ -633,66 +633,67 @@ export default function AdminDashboard() {
         setFiltersOpen={setFiltersOpen}
       />
 
-      {isDemoMode && (
-        <div className="mx-6 mt-4 flex items-center justify-between border border-accent/30 bg-[var(--accent-soft)] px-4 py-3 text-xs text-accent rounded-sm">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="animate-pulse" />
-            <span><strong>Modo de Simulación Activo</strong>: Mostrando datos de demostración del pipeline corporativo porque la base de datos real está vacía.</span>
+      <div className="px-6 md:px-8 space-y-6 mt-6">
+        {isDemoMode && (
+          <div className="flex items-center justify-between border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-4 py-3 text-xs text-[#C9A96E] rounded-xl shadow-md">
+            <div className="flex items-center gap-2.5">
+              <Sparkles size={16} className="animate-pulse shrink-0" />
+              <span><strong>Modo de Simulación Activo</strong>: Mostrando datos de demostración del pipeline corporativo porque la base de datos real está vacía.</span>
+            </div>
+            <button 
+              onClick={() => setIsDemoMode(false)}
+              className="underline font-bold uppercase tracking-wider text-[10px] font-mono hover:text-white bg-transparent border-none cursor-pointer shrink-0 ml-3"
+            >
+              Ver datos reales (vacío)
+            </button>
           </div>
-          <button 
-            onClick={() => setIsDemoMode(false)}
-            className="underline font-bold uppercase tracking-wider text-[10px] hover:text-text-primary bg-transparent border-none cursor-pointer"
-          >
-            Ver datos reales (vacío)
-          </button>
-        </div>
-      )}
+        )}
 
-      {!isDemoMode && leads.length === 0 && (
-        <div className="mx-6 mt-4 flex items-center justify-between border border-border bg-bg-panel px-4 py-3 text-xs text-text-secondary rounded-sm">
-          <div className="flex items-center gap-2 text-text-tertiary">
-            <span>Mostrando base de datos real (vacía). No hay leads registrados aún en la plataforma.</span>
+        {!isDemoMode && leads.length === 0 && (
+          <div className="flex items-center justify-between border border-[#1E3A5F] bg-[#0E2747] px-4 py-3 text-xs text-[#94A3B8] rounded-xl shadow-md">
+            <div className="flex items-center gap-2 text-[#94A3B8]">
+              <span>Mostrando base de datos real (vacía). No hay leads registrados aún en la plataforma.</span>
+            </div>
+            <button 
+              onClick={() => setIsDemoMode(true)}
+              className="underline font-bold uppercase tracking-wider text-[10px] font-mono hover:text-white bg-transparent border-none cursor-pointer shrink-0 ml-3 text-[#C9A96E]"
+            >
+              Cargar demo de simulación
+            </button>
           </div>
-          <button 
-            onClick={() => setIsDemoMode(true)}
-            className="underline font-bold uppercase tracking-wider text-[10px] hover:text-text-primary bg-transparent border-none cursor-pointer"
-          >
-            Cargar demo de simulación
-          </button>
-        </div>
-      )}
+        )}
 
-      <div className="fabric-admin-content space-y-5">
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {/* ── KPI Cards ── */}
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {kpis.map(({ label, scope, value, delta, icon: Icon, progress, explanation }) => (
-            <Panel key={label} className="p-4 transition hover:border-border-strong hover:bg-bg-elevated">
+            <Panel key={label} className="p-5 transition-all duration-200 hover:border-[#C9A96E]/40 hover:shadow-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-tertiary">{label}</div>
-                    <div className="group relative cursor-help text-text-tertiary hover:text-accent transition-colors">
-                      <Info size={11} className="opacity-60 hover:opacity-100" />
-                      <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-md border border-border bg-[#0c0c0b] p-2.5 text-[10px] font-medium leading-relaxed normal-case tracking-normal text-text-secondary opacity-0 shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 whitespace-normal">
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-[#94A3B8]">{label}</div>
+                    <div className="group relative cursor-help text-[#94A3B8] hover:text-[#C9A96E] transition-colors">
+                      <Info size={13} className="opacity-70 hover:opacity-100" />
+                      <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-60 -translate-x-1/2 rounded-xl border border-[#1E3A5F] bg-[#07192F] p-3 text-[11px] font-medium leading-relaxed text-[#94A3B8] opacity-0 shadow-2xl transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 whitespace-normal">
                         {explanation}
-                        <div className="absolute top-full left-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-[2px] rotate-45 border-b border-r border-border bg-[#0c0c0b]" />
+                        <div className="absolute top-full left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 border-b border-r border-[#1E3A5F] bg-[#07192F]" />
                       </div>
                     </div>
                   </div>
-                  <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-text-secondary">{scope}</div>
+                  <div className="mt-1 text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-[#C9A96E]">{scope}</div>
                 </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-bg-elevated text-text-secondary">
-                  <Icon size={15} />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8]">
+                  <Icon size={16} />
                 </div>
               </div>
 
               <div className="mt-4 flex items-end justify-between gap-3">
-                <div className="font-serif text-3xl text-text-primary sm:text-4xl">{value}</div>
-                <div className="pb-1 text-right text-[11px] leading-5 text-text-tertiary">{delta}</div>
+                <div className="font-serif text-3xl font-bold text-white sm:text-4xl">{value}</div>
+                <div className="pb-1 text-right text-xs font-medium text-[#94A3B8]">{delta}</div>
               </div>
 
-              <div className="mt-4 h-1 rounded-full bg-bg-elevated">
+              <div className="mt-4 h-1.5 rounded-full bg-[#123254] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-accent/65 to-text-secondary/60"
+                  className="h-full rounded-full bg-gradient-to-r from-[#C9A96E] to-[#A07845]"
                   style={{ width: `${Math.min(100, progress)}%` }}
                 />
               </div>
@@ -700,44 +701,45 @@ export default function AdminDashboard() {
           ))}
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-          <Panel className="p-5">
+        {/* ── Main Charts ── */}
+        <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+          <Panel className="p-6">
             <SectionTitle
               eyebrow="Pipeline"
               title="Actividad comercial"
-              action={<div className="text-right text-[11px] uppercase tracking-[0.12em] text-text-tertiary">{period.toUpperCase()} · {industry} · {status}</div>}
+              action={<div className="text-right text-xs font-mono font-bold uppercase tracking-[0.12em] text-[#94A3B8]">{period.toUpperCase()} · {industry} · {status}</div>}
             />
-            <p className="mt-2 text-xs text-text-secondary max-w-xl">
+            <p className="mt-2 text-xs text-[#94A3B8] max-w-xl leading-relaxed">
               Volumen operativo de interacciones diarias registradas, incluyendo análisis automáticos ejecutados por el Agente de IA, llamadas de diagnóstico y correos de validación técnica en el periodo.
             </p>
             <div className="mt-6">
-              <div className="flex h-48 items-stretch gap-2">
-                <div className="flex flex-col justify-between text-[9px] font-mono text-text-tertiary pb-4 text-right pr-2 border-r border-border w-10 shrink-0">
+              <div className="flex h-52 items-stretch gap-2">
+                <div className="flex flex-col justify-between text-[10px] font-mono text-[#94A3B8] pb-5 text-right pr-3 border-r border-[#1E3A5F] w-12 shrink-0">
                   <span>{maxPipeline} int</span>
                   <span>{Math.round(maxPipeline * 0.66)} int</span>
                   <span>{Math.round(maxPipeline * 0.33)} int</span>
                   <span>0</span>
                 </div>
-                <div className="flex-1 flex items-end gap-2 border-b border-border pb-4 sm:gap-3">
+                <div className="flex-1 flex items-end gap-2 border-b border-[#1E3A5F] pb-5 sm:gap-3">
                   {pipeline.map((point, index) => (
                     <div key={`${point.label}-${index}`} className="flex h-full flex-1 flex-col justify-end gap-2 group relative">
-                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 rounded bg-black/90 border border-border px-2 py-1 text-[9px] font-mono text-accent opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap shadow-md">
+                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 rounded-lg bg-[#07192F] border border-[#1E3A5F] px-2.5 py-1 text-[10px] font-mono text-[#C9A96E] opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap shadow-lg">
                         {point.val} interacciones
                       </div>
-                      <div className="text-center text-[10px] text-text-tertiary font-mono">{point.val}</div>
+                      <div className="text-center text-[10px] text-[#94A3B8] font-mono">{point.val}</div>
                       <div className="flex w-full items-end justify-center">
                         <div
-                          className="w-full max-w-11 rounded-t-sm bg-gradient-to-t from-accent-2/70 via-accent/55 to-text-secondary/75 transition hover:brightness-125"
-                          style={{ height: `${(point.val / maxPipeline) * 100}%`, minHeight: 8 }}
+                          className="w-full max-w-10 rounded-t-lg bg-gradient-to-t from-[#A07845] via-[#C9A96E] to-[#e6cf9c] transition-all duration-200 hover:brightness-125"
+                          style={{ height: `${(point.val / maxPipeline) * 100}%`, minHeight: 10 }}
                         />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="mt-3 flex gap-2 pl-12">
+              <div className="mt-3 flex gap-2 pl-14">
                 {pipeline.map((point, index) => (
-                  <div key={`${point.label}-label-${index}`} className="flex-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                  <div key={`${point.label}-label-${index}`} className="flex-1 text-center text-xs font-mono font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
                     {point.label}
                   </div>
                 ))}
@@ -745,37 +747,37 @@ export default function AdminDashboard() {
             </div>
           </Panel>
 
-          <Panel className="p-5">
+          <Panel className="p-6">
             <SectionTitle
               eyebrow="Capacidad Q3"
               title="Ocupación"
-              action={<span className="rounded-sm border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-emerald-300">Estable</span>}
+              action={<span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.13em] text-emerald-300">Estable</span>}
             />
-            <p className="mt-2 text-xs text-text-secondary leading-relaxed">
+            <p className="mt-2 text-xs text-[#94A3B8] leading-relaxed">
               Asignación de horas de consultoría de arquitectura Senior para el trimestre actual (Q3). Capacidad mensual total de 480 horas (equivalente a 3 consultores Senior). Límite de seguridad recomendado: 85%.
             </p>
 
-            <div className="mt-6 grid grid-cols-[120px_1fr] items-center gap-5">
+            <div className="mt-6 grid grid-cols-[130px_1fr] items-center gap-6">
               <div
-                className="grid h-28 w-28 place-items-center rounded-full"
+                className="grid h-32 w-32 place-items-center rounded-full p-2.5 shadow-lg"
                 style={{
-                  background: `conic-gradient(var(--accent) 0 ${capacity}%, var(--bg-elevated) ${capacity}% 100%)`,
+                  background: `conic-gradient(#C9A96E 0 ${capacity}%, #123254 ${capacity}% 100%)`,
                 }}
               >
-                <div className="grid h-20 w-20 place-items-center rounded-full bg-bg-panel">
-                  <div className="font-serif text-3xl text-text-primary">{capacity}%</div>
+                <div className="grid h-24 w-24 place-items-center rounded-full bg-[#0E2747] shadow-inner">
+                  <div className="font-serif text-3xl font-bold text-white">{capacity}%</div>
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs text-text-secondary">
+              <div className="space-y-3 text-xs text-[#94A3B8]">
                 {[
                   ['Proyectos activos', '9'],
                   ['Proyectos reservados', period === '90d' ? '4' : '2'],
                   ['Límite operativo', '85%'],
                 ].map(([label, value]) => (
-                  <div key={label} className="flex items-center justify-between border-b border-border pb-2">
-                    <span>{label}</span>
-                    <span className="font-mono text-text-primary">{value}</span>
+                  <div key={label} className="flex items-center justify-between border-b border-[#1E3A5F] pb-2">
+                    <span className="font-medium">{label}</span>
+                    <span className="font-mono font-bold text-white">{value}</span>
                   </div>
                 ))}
               </div>
@@ -783,22 +785,23 @@ export default function AdminDashboard() {
           </Panel>
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-3">
-          <Panel className="p-5">
-            <SectionTitle eyebrow="Revenue" title="Por industria" action={<TrendingUp size={18} className="text-text-tertiary" />} />
-            <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
+        {/* ── Secondary Grid ── */}
+        <section className="grid gap-6 xl:grid-cols-3">
+          <Panel className="p-6">
+            <SectionTitle eyebrow="Revenue" title="Por industria" action={<TrendingUp size={18} className="text-[#94A3B8]" />} />
+            <p className="mt-2 text-xs leading-relaxed text-[#94A3B8]">
               Distribución del pipeline estimado por sector industrial para Q3 2026. Valores en Millones de USD.
             </p>
-            <div className="mt-5 space-y-4">
+            <div className="mt-6 space-y-4">
               {revenueByIndustry.map((item) => (
                 <div key={item.label}>
-                  <div className="mb-1 flex items-center justify-between text-[11px] text-text-secondary">
-                    <span>{item.label}</span>
-                    <span className="font-mono text-text-primary">USD {item.value}M</span>
+                  <div className="mb-1.5 flex items-center justify-between text-xs text-[#94A3B8]">
+                    <span className="font-semibold text-white">{item.label}</span>
+                    <span className="font-mono font-bold text-white">USD {item.value}M</span>
                   </div>
-                  <div className="h-3 rounded-full bg-bg-base">
+                  <div className="h-3 rounded-full bg-[#123254] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-accent/60 to-text-secondary/50"
+                      className="h-full rounded-full bg-gradient-to-r from-[#C9A96E] to-[#A07845]"
                       style={{ width: `${(item.value / maxRevenue) * 100}%` }}
                     />
                   </div>
@@ -807,134 +810,136 @@ export default function AdminDashboard() {
             </div>
           </Panel>
 
-          <Panel className="p-5">
-            <SectionTitle eyebrow="Funnel" title="Leads por etapa" action={<Target size={18} className="text-text-tertiary" />} />
-            <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
+          <Panel className="p-6">
+            <SectionTitle eyebrow="Funnel" title="Leads por etapa" action={<Target size={18} className="text-[#94A3B8]" />} />
+            <p className="mt-2 text-xs leading-relaxed text-[#94A3B8]">
               Distribución actual de leads en las distintas fases del pipeline de admisión.
             </p>
-            <div className="mt-5 space-y-3">
+            <div className="mt-6 space-y-3.5">
               {statusFunnel.map((item) => (
                 <div key={item.label}>
-                  <div className="mb-1 flex items-center justify-between text-[11px] text-text-secondary">
-                    <span>{item.label}</span>
-                    <span className="font-mono text-text-primary">{item.value}</span>
+                  <div className="mb-1 flex items-center justify-between text-xs text-[#94A3B8]">
+                    <span className="font-semibold text-white">{item.label}</span>
+                    <span className="font-mono font-bold text-white">{item.value}</span>
                   </div>
-                  <div className="h-8 rounded-sm border border-border bg-bg-base">
-                    <div className="h-full rounded-sm bg-bg-elevated" style={{ width: item.width }} />
+                  <div className="h-7 rounded-lg border border-[#1E3A5F] bg-[#123254] overflow-hidden p-0.5">
+                    <div className="h-full rounded-md bg-[#C9A96E]/30 border border-[#C9A96E]/50" style={{ width: item.width }} />
                   </div>
                 </div>
               ))}
             </div>
           </Panel>
 
-          <Panel className="p-5">
-            <SectionTitle eyebrow="Canales" title="Origen de demanda" action={<UsersRound size={18} className="text-text-tertiary" />} />
-            <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
+          <Panel className="p-6">
+            <SectionTitle eyebrow="Canales" title="Origen de demanda" action={<UsersRound size={18} className="text-[#94A3B8]" />} />
+            <p className="mt-2 text-xs leading-relaxed text-[#94A3B8]">
               Origen del primer contacto de los prospectos calificados en el pipeline.
             </p>
-            <div className="mt-5 grid grid-cols-4 items-end gap-3">
+            <div className="mt-6 grid grid-cols-4 items-end gap-3">
               {sourceData.map((item) => (
-                <div key={item.source} className="flex h-36 flex-col items-center justify-end gap-2">
-                  <div className="text-[10px] text-text-tertiary">{item.value}</div>
+                <div key={item.source} className="flex h-40 flex-col items-center justify-end gap-2">
+                  <div className="text-xs font-mono font-bold text-white">{item.value}</div>
                   <div
-                    className="w-full rounded-t-sm bg-bg-elevated"
-                    style={{ height: `${Math.max(8, (item.value / maxSource) * 100)}%` }}
+                    className="w-full rounded-t-lg bg-gradient-to-t from-[#123254] to-[#1E3A5F]"
+                    style={{ height: `${Math.max(10, (item.value / maxSource) * 100)}%` }}
                   />
-                  <div className="h-8 text-center text-[9px] leading-3 text-text-tertiary">{item.source}</div>
+                  <div className="h-9 text-center text-[10px] font-mono font-semibold leading-tight text-[#94A3B8]">{item.source}</div>
                 </div>
               ))}
             </div>
           </Panel>
         </section>
 
-        <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <Panel className="p-5">
-            <SectionTitle eyebrow="Score" title="Calidad del pipeline" action={<span className="font-serif text-3xl text-text-primary">{avgScore || 0}</span>} />
-            <div className="mt-5 grid grid-cols-3 gap-3">
+        {/* ── Third Grid ── */}
+        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <Panel className="p-6">
+            <SectionTitle eyebrow="Score" title="Calidad del pipeline" action={<span className="font-serif text-3xl font-bold text-white">{avgScore || 0}</span>} />
+            <div className="mt-6 grid grid-cols-3 gap-3.5">
               {['Fit', 'Revenue', 'Urgencia'].map((label, index) => {
                 const value = Math.max(32, Math.min(96, avgScore - index * 9 + (period === '90d' ? 4 : 0)));
                 return (
-                  <div key={label} className="rounded-sm border border-border bg-bg-base p-3">
-                    <div className="mb-2 text-[10px] uppercase tracking-[0.14em] text-text-tertiary">{label}</div>
-                    <div className="h-20 border-b border-l border-border">
-                      <div className="flex h-full items-end px-3">
-                        <div className="w-full rounded-t-sm bg-gradient-to-t from-accent/55 to-text-secondary/60" style={{ height: `${value}%` }} />
+                  <div key={label} className="rounded-xl border border-[#1E3A5F] bg-[#123254] p-3.5 text-center">
+                    <div className="mb-2 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-[#94A3B8]">{label}</div>
+                    <div className="h-24 border-b border-l border-[#1E3A5F] mb-2">
+                      <div className="flex h-full items-end justify-center px-2">
+                        <div className="w-full max-w-[28px] rounded-t-md bg-gradient-to-t from-[#C9A96E] to-[#e6cf9c]" style={{ height: `${value}%` }} />
                       </div>
                     </div>
-                    <div className="mt-2 font-mono text-xs text-text-secondary">{value}</div>
+                    <div className="font-mono text-xs font-bold text-white">{value}</div>
                   </div>
                 );
               })}
             </div>
           </Panel>
 
-          <Panel className="p-5">
+          <Panel className="p-6">
             <SectionTitle
               eyebrow="Office Hours"
               title="Agenda semanal"
               action={
                 <Link
                   to="/admin/office-hours"
-                  className="inline-flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-secondary transition hover:border-border-strong hover:bg-bg-elevated hover:text-text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#1E3A5F] bg-[#123254] px-3.5 py-2 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-white transition hover:border-[#C9A96E] hover:text-[#C9A96E] hover:bg-[#1A426E]"
                 >
                   Abrir
-                  <ArrowUpRight size={13} />
+                  <ArrowUpRight size={14} />
                 </Link>
               }
             />
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
               {[
                 ['Confirmadas', '3'],
                 ['Pendientes', '1'],
                 ['Libres', '0'],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-sm border border-border bg-bg-base p-4 text-center">
-                  <div className="font-serif text-3xl text-text-primary">{value}</div>
-                  <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-text-tertiary">{label}</div>
+                <div key={label} className="rounded-xl border border-[#1E3A5F] bg-[#123254] p-4 text-center">
+                  <div className="font-serif text-3xl font-bold text-white">{value}</div>
+                  <div className="mt-1 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-[#94A3B8]">{label}</div>
                 </div>
               ))}
             </div>
           </Panel>
         </section>
 
-        <Panel>
-          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+        {/* ── Table Section ── */}
+        <Panel className="overflow-hidden">
+          <div className="flex flex-col gap-4 border-b border-[#1E3A5F] p-6 sm:flex-row sm:items-center sm:justify-between bg-[#0E2747]">
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Leads recientes</div>
-              <h2 className="mt-1 font-serif text-2xl text-text-primary">Evaluación comercial</h2>
+              <div className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-[#C9A96E]">Leads recientes</div>
+              <h2 className="mt-1 font-serif text-2xl font-bold text-white">Evaluación comercial</h2>
             </div>
             <Link
               to="/admin/leads"
-              className="inline-flex h-9 w-fit items-center gap-2 rounded-sm border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-secondary transition hover:border-border-strong hover:bg-bg-elevated hover:text-text-primary"
+              className="inline-flex h-9 w-fit items-center gap-2 rounded-xl border border-[#1E3A5F] bg-[#123254] px-4 text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-white transition hover:border-[#C9A96E] hover:text-[#C9A96E]"
             >
               Ver todos
-              <ArrowUpRight size={13} />
+              <ArrowUpRight size={14} />
             </Link>
           </div>
 
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[780px] border-collapse">
+            <table className="w-full min-w-[780px] border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-[#1E3A5F] bg-[#07192F]">
                   {['Fecha', 'Compañía', 'Contacto', 'Industria', 'Revenue', 'Score', 'Estado'].map((heading) => (
-                    <th key={heading} className="px-5 py-4 text-left text-[10px] font-semibold uppercase tracking-[0.17em] text-text-tertiary">
+                    <th key={heading} className="px-6 py-3.5 text-[10px] font-mono font-bold uppercase tracking-[0.17em] text-[#94A3B8]">
                       {heading}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[#1E3A5F]/50">
                 {filteredLeads.map((lead, index) => (
-                  <tr key={`${lead.company}-${lead.date}-${index}`} className="border-b border-bg-elevated transition hover:bg-bg-elevated/55">
-                    <td className="whitespace-nowrap px-5 py-4 text-xs text-text-tertiary">{lead.date}</td>
-                    <td className="px-5 py-4 text-sm font-medium text-text-primary">{lead.company}</td>
-                    <td className="px-5 py-4 text-xs text-text-secondary">{lead.contact}</td>
-                    <td className="px-5 py-4 text-xs text-text-secondary">{lead.industry}</td>
-                    <td className="whitespace-nowrap px-5 py-4 text-xs text-text-secondary">{lead.revenue}</td>
-                    <td className="px-5 py-4 font-serif text-xl italic text-text-primary">{lead.score}</td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-sm border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.13em] ${STATUS_CLASS[lead.status]}`}>
+                  <tr key={`${lead.company}-${lead.date}-${index}`} className="transition hover:bg-[#123254]/50">
+                    <td className="whitespace-nowrap px-6 py-4 font-mono text-[#94A3B8]">{lead.date}</td>
+                    <td className="px-6 py-4 font-bold text-white">{lead.company}</td>
+                    <td className="px-6 py-4 text-[#94A3B8]">{lead.contact}</td>
+                    <td className="px-6 py-4 text-[#94A3B8]">{lead.industry}</td>
+                    <td className="whitespace-nowrap px-6 py-4 font-mono font-semibold text-[#F5F5F5]">{lead.revenue}</td>
+                    <td className="px-6 py-4 font-serif text-lg font-bold text-white">{lead.score}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex rounded-md border px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.13em] ${STATUS_CLASS[lead.status]}`}>
                         {lead.status}
                       </span>
                     </td>
@@ -944,23 +949,23 @@ export default function AdminDashboard() {
             </table>
           </div>
 
-          <div className="grid gap-3 p-4 md:hidden">
+          <div className="grid gap-3 p-4 md:hidden bg-[#07192F]">
             {filteredLeads.map((lead, index) => (
-              <article key={`${lead.company}-mobile-${index}`} className="rounded-sm border border-border bg-bg-base/55 p-4">
+              <article key={`${lead.company}-mobile-${index}`} className="rounded-xl border border-[#1E3A5F] bg-[#0E2747] p-4 shadow-md space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-text-primary">{lead.company}</div>
-                    <div className="mt-1 text-xs text-text-tertiary">{lead.contact}</div>
+                    <div className="text-sm font-bold text-white">{lead.company}</div>
+                    <div className="mt-0.5 text-xs text-[#94A3B8]">{lead.contact}</div>
                   </div>
-                  <div className="font-serif text-2xl italic text-text-primary">{lead.score}</div>
+                  <div className="font-serif text-2xl font-bold text-white">{lead.score}</div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-2 gap-3 text-xs border-t border-[#1E3A5F] pt-3">
                   <InfoField label="Fecha" value={lead.date} />
                   <InfoField label="Revenue" value={lead.revenue} />
                   <InfoField label="Industria" value={lead.industry} />
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-text-tertiary">Estado</div>
-                    <span className={`mt-1 inline-flex rounded-sm border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${STATUS_CLASS[lead.status]}`}>
+                    <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#94A3B8]">Estado</div>
+                    <span className={`mt-1 inline-flex rounded-md border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-[0.12em] ${STATUS_CLASS[lead.status]}`}>
                       {lead.status}
                     </span>
                   </div>
@@ -977,8 +982,8 @@ export default function AdminDashboard() {
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.14em] text-text-tertiary">{label}</div>
-      <div className="mt-1 text-text-secondary">{value}</div>
+      <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#94A3B8]">{label}</div>
+      <div className="mt-0.5 font-medium text-white">{value}</div>
     </div>
   );
 }

@@ -354,7 +354,7 @@ export default function S15Founder() {
           </div>
 
           <div style={{ marginTop: 40, display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}>
-            <button data-interaction="waitlist" className="btn-primary" style={{ cursor: "pointer" }}>
+            <button data-interaction="reference" className="btn-primary cursor-pointer">
               Solicitar lugar en lista →
             </button>
             <span className="nda-seal">Aplicación bajo NDA</span>

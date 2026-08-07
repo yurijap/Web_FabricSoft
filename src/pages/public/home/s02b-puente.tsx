@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useInViewOnce } from '../../../hooks/useInViewOnce';
+import { api } from '../../../config/api';
 
 function ErpTcoInteractiveWidget() {
   const [currentLicenses, setCurrentLicenses] = useState(120000);
@@ -725,13 +727,11 @@ function CloudCostInteractiveWidget() {
 
 function AuditTrailInteractiveWidget() {
   const [activeCase, setActiveCase] = useState<'ape' | 'aplazo'>('ape');
-  const [gatedDoc, setGatedDoc] = useState<string | null>(null);
-  const [requestName, setRequestName] = useState('');
-  const [requestEmail, setRequestEmail] = useState('');
-  const [requestCompany, setRequestCompany] = useState('');
-  const [requestRole, setRequestRole] = useState('');
-  const [ndaAccepted, setNdaAccepted] = useState(false);
-  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ nombre: '', email: '', empresa: '', cargo: '', nda: false });
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const auditTrails = {
     ape: {
@@ -790,19 +790,39 @@ function AuditTrailInteractiveWidget() {
 
   const currentTrail = auditTrails[activeCase];
 
-  const handleOpenRequest = (docName: string) => {
-    setGatedDoc(docName);
-    setRequestSuccess(false);
-    setRequestName('');
-    setRequestEmail('');
-    setRequestCompany('');
-    setRequestRole('');
-    setNdaAccepted(false);
+  const handleOpenModal = (docName: string) => {
+    setSelectedDoc(docName);
+    setSuccess(false);
+    setErrorMsg('');
+    setFormData({ nombre: '', email: '', empresa: '', cargo: '', nda: false });
   };
 
-  const handleSubmitRequest = (e: React.FormEvent) => {
+  const handleCloseModal = () => {
+    setSelectedDoc(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRequestSuccess(true);
+    if (!formData.nda) {
+      setErrorMsg('Debes aceptar los términos del NDA para continuar.');
+      return;
+    }
+    setSubmitting(true);
+    setErrorMsg('');
+    try {
+      await api.post('/papers/solicitar', {
+        paperId: selectedDoc || '01',
+        nombre: formData.nombre,
+        email: formData.email,
+        empresa: formData.empresa,
+        cargo: formData.cargo,
+      });
+      setSuccess(true);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.error || 'Error al enviar solicitud. Intenta de nuevo.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -864,7 +884,7 @@ function AuditTrailInteractiveWidget() {
             <div className="flex border-b border-zinc-900 pb-4 gap-2">
               <button
                 type="button"
-                onClick={() => { setActiveCase('ape'); setGatedDoc(null); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveCase('ape'); setSelectedDoc(null); }}
                 className={`px-4 py-2 border transition-all cursor-pointer font-serif text-sm rounded ${
                   activeCase === 'ape'
                     ? 'border-[#C9A96E] bg-[#C9A96E]/10 text-white font-light'
@@ -875,7 +895,7 @@ function AuditTrailInteractiveWidget() {
               </button>
               <button
                 type="button"
-                onClick={() => { setActiveCase('aplazo'); setGatedDoc(null); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveCase('aplazo'); setSelectedDoc(null); }}
                 className={`px-4 py-2 border transition-all cursor-pointer font-serif text-sm rounded ${
                   activeCase === 'aplazo'
                     ? 'border-[#C9A96E] bg-[#C9A96E]/10 text-white font-light'
@@ -916,7 +936,11 @@ function AuditTrailInteractiveWidget() {
 
                       <button
                         type="button"
-                        onClick={() => handleOpenRequest(event.docName)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleOpenModal(event.docName);
+                        }}
                         className="flex flex-wrap items-center gap-2 text-[#C9A96E] hover:text-white transition-colors text-[10px] cursor-pointer pt-1 font-bold uppercase"
                       >
                         <div className="flex items-center gap-1 bg-[#C9A96E]/10 border border-[#C9A96E]/30 px-2 py-0.5 rounded text-[9px] text-[#C9A96E]">
@@ -939,8 +963,12 @@ function AuditTrailInteractiveWidget() {
 
                 <button
                   type="button"
-                  onClick={() => handleOpenRequest(`contacto-directo-${activeCase}.pdf`)}
-                  className="fabric-btn-accent text-[10px] shrink-0"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleOpenModal(`Referencia Directa [NDA] - ${currentTrail.caseName}`);
+                  }}
+                  className="fabric-btn-accent text-[10px] shrink-0 cursor-pointer"
                 >
                   🔒 Solicitar referencia directa [NDA]
                 </button>
@@ -950,112 +978,180 @@ function AuditTrailInteractiveWidget() {
         </div>
       </div>
 
-      {/* Modal */}
-      {gatedDoc && (
-        <div className="fixed inset-0 z-[2500] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-[#C9A96E] p-6 md:p-8 max-w-md w-full relative space-y-6 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setGatedDoc(null)}
-              className="absolute top-4 right-4 text-zinc-500 hover:text-white cursor-pointer font-mono text-[10px] border border-zinc-800 px-2.5 py-1 bg-black rounded"
-            >
-              [CERRAR ✕]
-            </button>
+      {/* Exact 100% Identical Modal Style as "Ver Paper Técnico →" mounted to document.body via Portal */}
+      {selectedDoc && createPortal(
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 999999,
+            background: "rgba(6, 6, 6, 0.88)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            boxSizing: "border-box",
+            animation: "fadeIn 200ms ease",
+          }}
+        >
+          <div
+            className="im-modal"
+            style={{
+              background: "rgb(10, 25, 47)",
+              border: "1px solid rgba(201, 169, 110, 0.3)",
+              maxWidth: 720,
+              width: "100%",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              color: "#e6f1ff",
+              borderRadius: 8,
+              overflow: "hidden",
+              boxShadow: "0 25px 80px rgba(0,0,0,0.9)",
+              margin: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Bar */}
+            <div style={{ padding: "20px 28px 16px 28px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ padding: "4px 12px", border: "1px solid rgba(201, 169, 110, 0.5)", borderRadius: 12, background: "rgba(201, 169, 110, 0.1)", fontFamily: "var(--mono)", fontSize: 10, color: "#C9A96E", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                EVIDENCIA TÉCNICA · AUDIT TRAIL
+              </div>
+              <button onClick={handleCloseModal} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#8892b0", fontFamily: "var(--mono)", fontSize: 11, padding: "4px 10px", cursor: "pointer", letterSpacing: "0.1em" }}>
+                [CERRAR X]
+              </button>
+            </div>
 
-            <div className="space-y-4">
-              <div className="border-b border-zinc-900 pb-3">
-                <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono">Solicitud de evidencia bajo NDA</span>
-                <h4 className="text-sm text-white font-bold leading-tight mt-1">
-                  <span className="font-mono text-[#C9A96E]">{gatedDoc}</span>
-                </h4>
+            {/* Body content */}
+            <div style={{ padding: "28px", overflowY: "auto", flex: 1 }}>
+              <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, color: "#ffffff", fontWeight: 400, marginBottom: 6, lineHeight: 1.2 }}>
+                Documento: <span style={{ color: "#C9A96E" }}>{selectedDoc}</span>
+              </h2>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "#8892b0", marginBottom: 20 }}>
+                Acceso bajo Acuerdo de Confidencialidad Mutuo (NDA). Entrega en &lt; 2 horas hábiles.
               </div>
 
-              {requestSuccess ? (
-                <div className="p-6 bg-emerald-950/20 border border-emerald-500/30 text-center space-y-3 rounded">
-                  <h5 className="text-white text-xs font-serif font-light">Solicitud recibida</h5>
-                  <p className="text-zinc-400 font-sans text-[11px] leading-relaxed">
-                    Enviamos el Acuerdo de Confidencialidad Mutuo a tu correo corporativo. Una vez firmado digitalmente, liberamos el documento auditado en menos de 2 horas hábiles.
-                  </p>
+              {success ? (
+                <div style={{ textAlign: "center", padding: "32px 16px" }}>
+                  <div style={{ fontFamily: "var(--serif)", fontSize: 40, color: "#C9A96E", marginBottom: 12 }}>✓</div>
+                  <div style={{ fontFamily: "var(--serif)", fontSize: 22, color: "#ffffff", marginBottom: 8 }}>Solicitud <em>recibida.</em></div>
+                  <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#8892b0", lineHeight: 1.6, maxWidth: 460, margin: "0 auto 20px" }}>
+                    Enviamos el Acuerdo de Confidencialidad Mutuo a tu correo corporativo. Una vez firmado digitalmente, liberamos el documento auditado.
+                  </div>
+                  <button
+                    onClick={handleCloseModal}
+                    style={{ padding: "10px 24px", background: "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer" }}
+                  >
+                    Entendido
+                  </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmitRequest} className="space-y-4">
-                  <p className="text-zinc-500 font-sans text-xs leading-relaxed">
-                    Ingresa tus datos corporativos para recibir el NDA. No compartimos tu información con terceros.
-                  </p>
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {errorMsg && (
+                    <div style={{ padding: "10px 14px", background: "rgba(184,84,80,0.15)", border: "1px solid #B85450", color: "#F08884", fontFamily: "var(--mono)", fontSize: 11 }}>
+                      {errorMsg}
+                    </div>
+                  )}
 
-                  <div className="space-y-3 font-mono">
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                     <div>
-                      <label className="text-zinc-500 block mb-1 text-[9px] uppercase tracking-wider">Nombre completo</label>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#8892b0", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Nombre completo</div>
                       <input
                         type="text"
                         required
-                        value={requestName}
-                        onChange={(e) => setRequestName(e.target.value)}
+                        value={formData.nombre}
+                        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                         placeholder="Roberto Martínez"
-                        className="w-full bg-black border border-zinc-800 text-white px-3 py-2 outline-none focus:border-[#C9A96E] text-xs rounded"
+                        style={{ width: "100%", padding: "10px 12px", background: "rgba(16, 33, 60, 0.6)", border: "1px solid rgba(201,169,110,0.25)", color: "#ffffff", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}
                       />
                     </div>
 
                     <div>
-                      <label className="text-zinc-500 block mb-1 text-[9px] uppercase tracking-wider">Correo corporativo</label>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#8892b0", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Email corporativo</div>
                       <input
                         type="email"
                         required
-                        value={requestEmail}
-                        onChange={(e) => setRequestEmail(e.target.value)}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="nombre@empresa.com"
-                        className="w-full bg-black border border-zinc-800 text-white px-3 py-2 outline-none focus:border-[#C9A96E] text-xs rounded"
+                        style={{ width: "100%", padding: "10px 12px", background: "rgba(16, 33, 60, 0.6)", border: "1px solid rgba(201,169,110,0.25)", color: "#ffffff", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}
                       />
                     </div>
 
                     <div>
-                      <label className="text-zinc-500 block mb-1 text-[9px] uppercase tracking-wider">Empresa</label>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#8892b0", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Empresa</div>
                       <input
                         type="text"
                         required
-                        value={requestCompany}
-                        onChange={(e) => setRequestCompany(e.target.value)}
+                        value={formData.empresa}
+                        onChange={(e) => setFormData({ ...formData, empresa: e.target.value })}
                         placeholder="Empresa S.A."
-                        className="w-full bg-black border border-zinc-800 text-white px-3 py-2 outline-none focus:border-[#C9A96E] text-xs rounded"
+                        style={{ width: "100%", padding: "10px 12px", background: "rgba(16, 33, 60, 0.6)", border: "1px solid rgba(201,169,110,0.25)", color: "#ffffff", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}
                       />
                     </div>
 
                     <div>
-                      <label className="text-zinc-500 block mb-1 text-[9px] uppercase tracking-wider">Cargo / Puesto</label>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#8892b0", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Cargo / Puesto</div>
                       <input
                         type="text"
                         required
-                        value={requestRole}
-                        onChange={(e) => setRequestRole(e.target.value)}
+                        value={formData.cargo}
+                        onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
                         placeholder="CIO / Director de Finanzas"
-                        className="w-full bg-black border border-zinc-800 text-white px-3 py-2 outline-none focus:border-[#C9A96E] text-xs rounded"
+                        style={{ width: "100%", padding: "10px 12px", background: "rgba(16, 33, 60, 0.6)", border: "1px solid rgba(201,169,110,0.25)", color: "#ffffff", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}
                       />
                     </div>
-
-                    <label className="flex items-start gap-2 pt-2 cursor-pointer text-zinc-500 hover:text-zinc-400 select-none">
-                      <input
-                        type="checkbox"
-                        checked={ndaAccepted}
-                        onChange={(e) => setNdaAccepted(e.target.checked)}
-                        className="mt-0.5 accent-[#C9A96E]"
-                      />
-                      <span className="font-sans text-[10px] leading-snug">
-                        Acepto la emisión de un Acuerdo de Confidencialidad mutuo sobre la evidencia técnica solicitada.
-                      </span>
-                    </label>
                   </div>
+
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", color: "#8892b0", marginTop: 4 }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.nda}
+                      onChange={(e) => setFormData({ ...formData, nda: e.target.checked })}
+                      style={{ marginTop: 2, accentColor: "#C9A96E" }}
+                    />
+                    <span style={{ fontFamily: "var(--sans)", fontSize: 11, lineHeight: 1.4 }}>
+                      Acepto la emisión de un Acuerdo de Confidencialidad mutuo sobre la evidencia técnica solicitada.
+                    </span>
+                  </label>
 
                   <button
                     type="submit"
-                    className="fabric-btn-accent w-full justify-center py-2.5 text-xs font-mono uppercase mt-2"
+                    disabled={submitting}
+                    style={{
+                      marginTop: 8,
+                      padding: "13px",
+                      background: submitting ? "rgba(201,169,110,0.5)" : "var(--accent)",
+                      color: "var(--bg-base)",
+                      border: "none",
+                      fontFamily: "var(--mono)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      cursor: submitting ? "wait" : "pointer",
+                    }}
                   >
-                    Enviar solicitud de NDA →
+                    {submitting ? "Enviando solicitud..." : "Enviar solicitud de NDA →"}
                   </button>
                 </form>
               )}
             </div>
+
+            {/* Bottom Action Footer */}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(10, 20, 38, 0.9)", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#8892b0", letterSpacing: "0.1em" }}>Entrega bajo NDA &lt; 2 horas hábiles</span>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#C9A96E", letterSpacing: "0.1em" }}>Confidencial · FABRIC</span>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -1365,7 +1461,7 @@ function RescueAssessmentInteractiveWidget() {
 }
 
 function ValidacionDirectaInteractiveWidget() {
-  const referencesList = [
+  const DEFAULT_REFERENCES = [
     {
       id: 'ref-1',
       title: 'CFO de operadora de centros comerciales (LATAM)',
@@ -1407,6 +1503,25 @@ function ValidacionDirectaInteractiveWidget() {
       type: 'Oracle ACS / Audit'
     }
   ];
+
+  const [referencesList, setReferencesList] = useState(DEFAULT_REFERENCES);
+
+  useEffect(() => {
+    api.get('/referencias')
+      .then(res => {
+        if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          setReferencesList(res.data.data.map((item: any) => ({
+            id: item._id || item.auditId,
+            title: item.titulo,
+            context: item.contexto,
+            auditId: item.auditId,
+            status: item.status,
+            type: item.tipo
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="font-mono text-xs">
@@ -1660,7 +1775,7 @@ function InvestigacionInteractiveWidget() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-        {papers.map((paper) => (
+        {papers.map((paper, idx) => (
           <div
             key={paper.num}
             className="p-8 rounded-xl border border-zinc-800 bg-zinc-950/60 flex flex-col justify-between h-full relative overflow-hidden group hover:border-[#C9A96E]/50 transition-all duration-300"
@@ -1701,7 +1816,9 @@ function InvestigacionInteractiveWidget() {
 
               <button
                 type="button"
-                className="fabric-btn-accent w-full text-center justify-center font-mono text-xs py-3 uppercase tracking-wider font-bold"
+                data-interaction="paper"
+                data-paper-index={idx}
+                className="fabric-btn-accent w-full text-center justify-center font-mono text-xs py-3 uppercase tracking-wider font-bold cursor-pointer"
               >
                 Descargar paper →
               </button>
@@ -1724,7 +1841,8 @@ function InvestigacionInteractiveWidget() {
 
         <button
           type="button"
-          className="fabric-btn-accent text-xs px-6 py-3 shrink-0 uppercase font-mono font-bold tracking-wider"
+          data-interaction="reference"
+          className="fabric-btn-accent text-xs px-6 py-3 shrink-0 uppercase font-mono font-bold tracking-wider cursor-pointer"
         >
           Reservar early access →
         </button>
@@ -2248,12 +2366,13 @@ function WaitlistInteractiveWidget() {
 
         {/* Action button */}
         <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
-          <a
-            href="#radar-admision"
-            className="fabric-btn-accent w-full sm:w-auto text-center justify-center font-mono text-xs py-3.5 px-8 uppercase font-bold tracking-wider"
+          <button
+            type="button"
+            data-interaction="reference"
+            className="fabric-btn-accent w-full sm:w-auto text-center justify-center font-mono text-xs py-3.5 px-8 uppercase font-bold tracking-wider cursor-pointer"
           >
             Solicitar lugar en lista →
-          </a>
+          </button>
           <span className="text-[10px] text-zinc-500 font-mono">
             🔒 Aplicación bajo NDA
           </span>
@@ -2470,7 +2589,7 @@ export default function S02bPuente() {
               </div>
               <button 
                 type="button"
-                onClick={() => setIsOfficeHoursOpen(true)} 
+                data-interaction="office-hours"
                 className="fabric-btn-accent text-[10px] tracking-wider uppercase font-bold py-2 px-4 font-mono w-full sm:w-auto text-center cursor-pointer whitespace-nowrap"
               >
                 [ APLICAR A WAITLIST ]
@@ -2543,7 +2662,7 @@ export default function S02bPuente() {
 
                 <button
                   type="button"
-                  onClick={() => setIsOfficeHoursOpen(true)}
+                  data-interaction="office-hours"
                   className="fabric-btn-accent w-full justify-center gap-2 text-[10px] tracking-wider uppercase font-bold py-2.5 px-4 mt-2 font-mono flex items-center cursor-pointer whitespace-nowrap"
                 >
                   [ AGENDAR CITA DE INGENIERÍA ]
@@ -2695,12 +2814,13 @@ export default function S02bPuente() {
                 <p className="font-mono text-zinc-500 text-xs">
                   — Cláusula 7.2 del Contrato de Prestación de Servicios FABRIC
                 </p>
-                <a 
-                  href="#doctrina" 
+                <button 
+                  type="button"
+                  data-interaction="doctrina"
                   className="fabric-btn-accent text-xs w-fit text-left cursor-pointer inline-flex items-center gap-2"
                 >
                   Ver doctrina detallada →
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -2758,12 +2878,13 @@ export default function S02bPuente() {
                 </blockquote>
               </div>
 
-              <a 
-                href="#casos"
-                className="fabric-btn-accent w-full text-center justify-center font-mono text-xs py-3"
+              <button 
+                type="button"
+                data-interaction="case-ape"
+                className="fabric-btn-accent w-full text-center justify-center font-mono text-xs py-3 cursor-pointer"
               >
-                Ver Paper Técnico
-              </a>
+                Ver Paper Técnico →
+              </button>
             </div>
 
             {/* Caso Aplazo */}
@@ -2805,12 +2926,13 @@ export default function S02bPuente() {
                 </blockquote>
               </div>
 
-              <a 
-                href="#casos"
-                className="fabric-btn-accent w-full text-center justify-center font-mono text-xs py-3"
+              <button 
+                type="button"
+                data-interaction="case-aplazo"
+                className="fabric-btn-accent w-full text-center justify-center font-mono text-xs py-3 cursor-pointer"
               >
-                Ver Paper Técnico
-              </a>
+                Ver Paper Técnico →
+              </button>
             </div>
           </div>
         </div>

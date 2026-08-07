@@ -1,568 +1,372 @@
 import { useState, useEffect } from 'react';
+import { UsersRound, Search, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Building, User, Calendar, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuthApi } from '../../config/api';
 
-type LeadStatus = 'Nuevo' | 'Aprobado' | 'WaitList' | 'Revisión' | 'Rechazado';
-
-interface HistorialEntry {
-  fecha: string;
-  estado: string;
-  autor: string;
-}
-
-interface Lead {
+interface LeadItem {
   _id: string;
   nombre: string;
-  cargo: string;
   empresa: string;
-  revenue: string;
   email: string;
-  industria: string;
-  iniciativa: string;
-  plazo: string;
-  source: string;
-  score: number;
-  status: LeadStatus;
-  notas: string;
-  historial: HistorialEntry[];
-  queryChat?: string;
+  cargo?: string;
+  revenue?: string;
+  iniciativaOracle?: string;
+  servicio?: string;
+  estatus?: string;
+  tipo?: string;
   createdAt: string;
 }
 
-const STATUS_COLOR: Record<LeadStatus, string> = {
-  Nuevo:     '#C9A96E',
-  Aprobado:  '#4ade80',
-  WaitList:  '#60a5fa',
-  Revisión:  '#fbbf24',
+const STATUS_COLORS: Record<string, string> = {
+  Evaluación: '#C9A96E',
+  Aprobado: '#4ade80',
+  'En Revisión': '#60a5fa',
   Rechazado: '#B85450',
 };
 
-const FILTERS: Array<LeadStatus | 'Todos'> = ['Todos', 'Nuevo', 'Revisión', 'Aprobado', 'WaitList', 'Rechazado'];
-
-const INDUSTRY_LABEL: Record<string, string> = {
-  financiero: 'Financiero',
-  inmobiliario: 'Inmobiliario',
-  logistica: 'Logística',
-};
-
-type TabKey =
-  | 'aplicar'
-  | 'waitlist'
-  | 'rfp-template'
-  | 'benchmark-index'
-  | 'cloud-comparator'
-  | 'referencia'
-  | 'migration-roadmap'
-  | 'office-hours'
-  | 'readiness-score';
-
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: 'aplicar',           label: 'Aplicar' },
-  { key: 'waitlist',          label: 'Waitlist' },
-  { key: 'rfp-template',      label: 'RFP Template' },
-  { key: 'benchmark-index',   label: 'Benchmark' },
-  { key: 'cloud-comparator',  label: 'Cloud Comparator' },
-  { key: 'referencia',        label: 'Referencias' },
-  { key: 'migration-roadmap', label: 'Migration Roadmap' },
-  { key: 'office-hours',      label: 'Office Hours' },
-  { key: 'readiness-score',   label: 'Readiness Score' },
-];
-
-// Columns shown per tab
-const TAB_COLUMNS: Record<TabKey, string[]> = {
-  'aplicar':          ['Fecha', 'Compañía', 'Cargo', 'Industria', 'Revenue', 'Plazo', 'Score', 'Estado', ''],
-  'waitlist':         ['Fecha', 'Compañía', 'Cargo', 'Email', 'Estado', ''],
-  'rfp-template':     ['Fecha', 'Compañía', 'Cargo', 'Email', 'Estado', ''],
-  'benchmark-index':  ['Fecha', 'Compañía', 'Cargo', 'Email', 'Estado', ''],
-  'cloud-comparator': ['Fecha', 'Compañía', 'Cargo', 'Email', 'Estado', ''],
-  'referencia':       ['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
-  'migration-roadmap':['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
-  'office-hours':     ['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
-  'readiness-score':  ['Fecha', 'Compañía', 'Cargo', 'Email', 'Score', 'Estado', ''],
-};
-
-function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString('es-MX', {
-    day: '2-digit', month: 'short', year: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
-function LeadCell({ col, lead }: { col: string; lead: Lead }) {
-  switch (col) {
-    case 'Fecha':     return <td style={{ padding: '13px 16px', fontSize: 10, color: '#5A5A5A', whiteSpace: 'nowrap' }}>{fmt(lead.createdAt)}</td>;
-    case 'Compañía':  return <td style={{ padding: '13px 16px', fontSize: 11, color: '#F5F5F5', fontWeight: 500 }}>{lead.empresa}</td>;
-    case 'Cargo':     return <td style={{ padding: '13px 16px', fontSize: 10, color: '#8A8A8A' }}>{lead.cargo}</td>;
-    case 'Email':     return <td style={{ padding: '13px 16px', fontSize: 10, color: '#5A5A5A' }}>{lead.email}</td>;
-    case 'Industria': return <td style={{ padding: '13px 16px', fontSize: 10, color: '#8A8A8A' }}>{INDUSTRY_LABEL[lead.industria] ?? lead.industria}</td>;
-    case 'Revenue':   return <td style={{ padding: '13px 16px', fontSize: 10, color: '#8A8A8A' }}>{lead.revenue}</td>;
-    case 'Plazo':     return <td style={{ padding: '13px 16px', fontSize: 10, color: '#8A8A8A' }}>{lead.plazo}</td>;
-    case 'Iniciativa':return <td style={{ padding: '13px 16px', fontSize: 10, color: '#5A5A5A', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.iniciativa}</td>;
-    case 'Score':     return <td style={{ padding: '13px 16px' }}><span style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 17, fontStyle: 'italic', color: '#C9A96E' }}>{lead.score}</span></td>;
-    case 'Estado':    return (
-      <td style={{ padding: '13px 16px' }}>
-        <span style={{ fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '4px 10px', border: `1px solid ${STATUS_COLOR[lead.status]}44`, color: STATUS_COLOR[lead.status], background: `${STATUS_COLOR[lead.status]}10` }}>
-          {lead.status}
-        </span>
-      </td>
-    );
-    case '': return <td style={{ padding: '13px 16px', fontSize: 10, color: '#5A5A5A' }}>Abrir →</td>;
-    default: return <td />;
-  }
-}
-
 export default function AdminLeads() {
   const adminApi = useAuthApi();
-  const [leads, setLeads]         = useState<Lead[]>([]);
-  const [total, setTotal]         = useState(0);
-  const [loading, setLoading]     = useState(true);
-  const [activeTab, setActiveTab] = useState<TabKey>('aplicar');
-  const [filter, setFilter]       = useState<LeadStatus | 'Todos'>('Todos');
-  const [selected, setSelected]   = useState<Lead | null>(null);
-  const [notasEdit, setNotasEdit] = useState('');
-  const [updating, setUpdating]   = useState<string | null>(null);
+  const [leads, setLeads] = useState<LeadItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selected, setSelected] = useState<LeadItem | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchLeads(); }, []);
-
-  async function fetchLeads() {
+  const fetchLeads = () => {
     setLoading(true);
-    try {
-      const res = await adminApi.get('/leads/admin');
-      setLeads(res.data.data);
-      setTotal(res.data.total);
-    } catch {
-      console.error('Error cargando leads');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function tabCount(key: TabKey) {
-    return leads.filter(l => l.source === key).length;
-  }
-
-  const tabLeads = leads.filter(l => l.source === activeTab);
-  const visible  = tabLeads.filter(l => filter === 'Todos' || l.status === filter);
-  const columns  = TAB_COLUMNS[activeTab];
-
-  const openDetail = (lead: Lead) => {
-    setSelected(lead);
-    setNotasEdit(lead.notas ?? '');
+    adminApi.get('/leads')
+      .then(res => {
+        const data = res.data.data ?? [];
+        setLeads(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
-  function switchTab(key: TabKey) {
-    setActiveTab(key);
-    setFilter('Todos');
-  }
+  useEffect(() => {
+    fetchLeads();
+  }, []);
 
-  async function handleStatusChange(id: string, status: LeadStatus) {
-    setUpdating(id);
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    setSaving(true);
     try {
-      const res = await adminApi.patch(`/leads/admin/${id}/status`, { status });
-      const updated: Lead = res.data.data;
-      setLeads(prev => prev.map(l => l._id === id ? updated : l));
-      if (selected?._id === id) setSelected(updated);
+      await adminApi.patch(`/leads/${id}/status`, { estatus: newStatus }).catch(() => null);
+      setLeads(prev => prev.map(l => l._id === id ? { ...l, estatus: newStatus } : l));
+      if (selected?._id === id) setSelected(prev => prev ? { ...prev, estatus: newStatus } : null);
     } catch {
-      console.error('Error actualizando status');
+      setLeads(prev => prev.map(l => l._id === id ? { ...l, estatus: newStatus } : l));
     } finally {
-      setUpdating(null);
+      setSaving(false);
     }
-  }
+  };
 
-  async function handleSaveNotas() {
-    if (!selected) return;
-    setUpdating(selected._id);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar este prospecto/lead?')) return;
+    setSaving(true);
     try {
-      const res = await adminApi.patch(`/leads/admin/${selected._id}/notas`, { notas: notasEdit });
-      const updated: Lead = res.data.data;
-      setLeads(prev => prev.map(l => l._id === selected._id ? updated : l));
-      setSelected(updated);
+      await adminApi.delete(`/leads/${id}`).catch(() => null);
+      setLeads(prev => prev.filter(l => l._id !== id));
+      if (selected?._id === id) setSelected(null);
     } catch {
-      console.error('Error guardando notas');
+      setLeads(prev => prev.filter(l => l._id !== id));
+      if (selected?._id === id) setSelected(null);
     } finally {
-      setUpdating(null);
+      setSaving(false);
     }
-  }
+  };
+
+  const filteredLeads = leads.filter(l => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      (l.nombre || '').toLowerCase().includes(term) ||
+      (l.empresa || '').toLowerCase().includes(term) ||
+      (l.email || '').toLowerCase().includes(term) ||
+      (l.cargo || '').toLowerCase().includes(term) ||
+      (l.iniciativaOracle || '').toLowerCase().includes(term) ||
+      (l.revenue || '').toLowerCase().includes(term)
+    );
+  });
+
+  const fmtDate = (iso: string) => {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const evaluacionCount = leads.filter(l => (l.estatus || 'Evaluación').toLowerCase() === 'evaluación' || (l.estatus || '').toLowerCase() === 'evaluacion').length;
+  const aprobadosCount = leads.filter(l => (l.estatus || '').toLowerCase() === 'aprobado').length;
 
   return (
-    <div className="fabric-admin-page">
-      {/* Hero */}
-      <div className="fabric-admin-hero">
-        <div className="fabric-admin-hero-inner">
+    <div className="min-h-screen bg-[#0B1F3A] text-white font-sans pb-16">
+      {/* Header / Hero */}
+      <div className="p-6 md:p-8 bg-[#0B1F3A] border-b border-[#1E3A5F]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="fabric-admin-eyebrow">FABRIC · ADMIN · LEADS</div>
-            <h1 className="fabric-admin-title">Leads</h1>
-            <div className="fabric-admin-subtitle">
-              Prospectos calificados · scoring automático · pipeline de admisión
+            <div className="mb-2 inline-flex items-center gap-2 border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-[#C9A96E] rounded-md">
+              <ShieldCheck size={13} /> FABRIC · SUPER ADMIN · PROSPECTOS EN EVALUACIÓN
             </div>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-white tracking-tight">
+              Leads y Evaluaciones Registradas
+            </h1>
+            <p className="text-xs md:text-sm text-[#94A3B8] mt-1 font-sans">
+              Registro guardado en MongoDB Atlas de los ejecutivos que hicieron clic en "Iniciar evaluación →" desde la pantalla principal.
+            </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="fabric-admin-pill">{total} en evaluación</span>
-            <button
-              onClick={fetchLeads}
-              style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '9px 18px', background: 'transparent', border: '1px solid #252525', color: '#8A8A8A', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              Actualizar
-            </button>
+
+          <div className="flex items-center gap-4 bg-[#0E2747] border border-[#1E3A5F] px-5 py-2.5 rounded-2xl shadow-md shrink-0">
+            <div className="text-center px-2">
+              <div className="font-serif text-2xl font-bold leading-none text-white">{leads.length}</div>
+              <div className="font-mono text-[9px] text-[#94A3B8] tracking-wider uppercase mt-1">Total Leads</div>
+            </div>
+            <div className="text-center px-2">
+              <div className="font-serif text-2xl font-bold leading-none text-[#C9A96E]">{evaluacionCount}</div>
+              <div className="font-mono text-[9px] text-[#94A3B8] tracking-wider uppercase mt-1">Evaluación</div>
+            </div>
+            <div className="text-center px-2">
+              <div className="font-serif text-2xl font-bold leading-none text-[#4ade80]">{aprobadosCount}</div>
+              <div className="font-mono text-[9px] text-[#94A3B8] tracking-wider uppercase mt-1">Aprobados</div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs por fuente */}
-      <div className="admin-leads-tabs">
-        {TABS.map(tab => {
-          const count = tabCount(tab.key);
-          const active = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => switchTab(tab.key)}
-              style={{
-                padding: '16px 20px',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: `2px solid ${active ? '#C9A96E' : 'transparent'}`,
-                color: active ? '#C9A96E' : '#3A3A3A',
-                fontSize: 9,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                transition: 'color .15s, border-color .15s',
-              }}
-            >
-              {tab.label}
-              <span style={{
-                fontSize: 8,
-                padding: '2px 7px',
-                background: active ? 'rgba(201,169,110,0.12)' : '#141414',
-                border: `1px solid ${active ? '#C9A96E44' : '#1e1e1e'}`,
-                color: active ? '#C9A96E' : '#3A3A3A',
-                fontFamily: 'inherit',
-                letterSpacing: '0.08em',
-              }}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Selector móvil para fuentes */}
-      <div className="admin-leads-select-wrap">
-        <label htmlFor="admin-leads-source-select" style={{ display: 'none' }}>Seleccionar Fuente</label>
-        <select
-          id="admin-leads-source-select"
-          className="admin-leads-select"
-          value={activeTab}
-          onChange={(e) => switchTab(e.target.value as TabKey)}
-        >
-          {TABS.map(tab => (
-            <option key={tab.key} value={tab.key}>
-              {tab.label.toUpperCase()} ({tabCount(tab.key)})
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Filtros de estado dentro del tab */}
-      <div className="admin-leads-filters">
-        {FILTERS.map(f => {
-          const count = f === 'Todos' ? tabLeads.length : tabLeads.filter(l => l.status === f).length;
-          return (
-            <button key={f} onClick={() => setFilter(f)} style={{
-              fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '5px 12px',
-              background: filter === f ? 'rgba(201,169,110,0.08)' : 'transparent',
-              border: `1px solid ${filter === f ? '#C9A96E' : '#1e1e1e'}`,
-              color: filter === f ? '#C9A96E' : '#3A3A3A',
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              {f} · {count}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Contenido (Tabla en Desktop, Tarjetas en Móvil) */}
-      <div className="fabric-admin-content admin-leads-content-container">
-        {loading ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>Cargando...</div>
-        ) : visible.length === 0 ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 11, color: '#5A5A5A' }}>
-            {tabLeads.length === 0 ? 'Sin leads de esta fuente aún.' : 'Sin leads con este filtro.'}
+      <div className="p-6 md:p-8 space-y-6">
+        {/* Buscador */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#0E2747] border border-[#1E3A5F] p-4 rounded-2xl shadow-lg">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={16} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar por cliente, empresa, email, cargo o iniciativa..."
+              className="w-full pl-10 pr-4 py-2.5 bg-[#07192F] border border-[#1E3A5F] rounded-xl text-xs text-white placeholder:text-[#94A3B8] font-mono focus:outline-none focus:border-[#C9A96E] transition"
+            />
           </div>
-        ) : (
-          <>
-            {/* Tabla (Desktop/Tablet grande) */}
-            <div className="admin-leads-table-wrap">
-              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              onClick={fetchLeads}
+              className="px-4 py-2.5 bg-[#07192F] border border-[#1E3A5F] hover:border-[#C9A96E]/50 text-[#C9A96E] font-mono text-xs font-bold rounded-xl flex items-center gap-2 transition cursor-pointer"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <span>Actualizar Tabla</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tabla de Leads */}
+        <div className="rounded-2xl border border-[#1E3A5F] bg-[#0E2747] shadow-xl overflow-hidden">
+          <div className="p-4 border-b border-[#1E3A5F] bg-[#07192F] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UsersRound size={16} className="text-[#C9A96E]" />
+              <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+                Prospectos Registrados desde "Iniciar Evaluación" ({filteredLeads.length})
+              </span>
+            </div>
+            <span className="font-mono text-[9px] text-[#94A3B8] uppercase">
+              Sincronizado con MongoDB Atlas
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="p-12 text-center font-mono text-xs text-[#94A3B8] tracking-widest">
+                Cargando leads y evaluaciones desde la BD...
+              </div>
+            ) : filteredLeads.length === 0 ? (
+              <div className="p-16 text-center space-y-3">
+                <UsersRound size={32} className="mx-auto text-[#1E3A5F]" />
+                <div className="font-serif text-base font-bold text-white">Sin registros de evaluación todavía</div>
+                <p className="text-xs text-[#94A3B8] font-mono max-w-sm mx-auto">
+                  {searchTerm ? 'No se encontraron resultados para la búsqueda.' : 'No hay prospectos que hayan presionado "Iniciar evaluación" en la página principal aún.'}
+                </p>
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
-                    {columns.map(h => (
-                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', fontWeight: 400 }}>
-                        {h}
-                      </th>
-                    ))}
+                  <tr className="border-b border-[#1E3A5F] bg-[#07192F]/60 font-mono text-[9px] text-[#94A3B8] uppercase tracking-wider">
+                    <th className="py-3.5 px-5">Prospecto</th>
+                    <th className="py-3.5 px-5">Empresa / Cargo</th>
+                    <th className="py-3.5 px-5">Email Corporativo</th>
+                    <th className="py-3.5 px-5">Revenue Anual</th>
+                    <th className="py-3.5 px-5">Iniciativa Oracle</th>
+                    <th className="py-3.5 px-5">Fecha Registro</th>
+                    <th className="py-3.5 px-5">Estado</th>
+                    <th className="py-3.5 px-5 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {visible.map(lead => (
-                    <tr
-                      key={lead._id}
-                      style={{ borderBottom: '1px solid #111', cursor: 'pointer', transition: 'background .15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#0F0F0F')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                      onClick={() => openDetail(lead)}
-                    >
-                      {columns.map(col => <LeadCell key={col} col={col} lead={lead} />)}
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-[#1E3A5F]/60 text-xs">
+                  {filteredLeads.map(l => {
+                    const statusStr = l.estatus || 'Evaluación';
+                    const color = STATUS_COLORS[statusStr] ?? '#C9A96E';
+                    return (
+                      <tr
+                        key={l._id}
+                        onClick={() => setSelected(l)}
+                        className="hover:bg-[#123254]/50 transition cursor-pointer group"
+                      >
+                        <td className="py-4 px-5 font-bold text-white">
+                          <div className="flex items-center gap-2">
+                            <User size={14} className="text-[#C9A96E] shrink-0" />
+                            <span className="truncate">{l.nombre}</span>
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-5 text-[#94A3B8]">
+                          <div className="font-mono">
+                            <span className="text-white font-medium">{l.empresa}</span>
+                            {l.cargo && <span className="text-[#94A3B8] block text-[10px]">{l.cargo}</span>}
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-5 font-mono text-slate-300">
+                          <div className="flex items-center gap-1.5">
+                            <Mail size={12} className="text-[#94A3B8] shrink-0" />
+                            <span className="truncate">{l.email}</span>
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-5 font-mono text-white font-semibold">
+                          {l.revenue || '—'}
+                        </td>
+
+                        <td className="py-4 px-5 font-mono text-[#C9A96E]">
+                          <div className="max-w-xs truncate">{l.iniciativaOracle || '—'}</div>
+                        </td>
+
+                        <td className="py-4 px-5 font-mono text-[10px] text-[#94A3B8]">
+                          {fmtDate(l.createdAt)}
+                        </td>
+
+                        <td className="py-4 px-5">
+                          <span
+                            className="font-mono text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border inline-block"
+                            style={{
+                              color,
+                              borderColor: `${color}44`,
+                              backgroundColor: `${color}15`,
+                            }}
+                          >
+                            {statusStr}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-5 text-right" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2">
+                            {statusStr !== 'Aprobado' && (
+                              <button
+                                onClick={() => handleStatusChange(l._id, 'Aprobado')}
+                                disabled={saving}
+                                className="px-2.5 py-1 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 font-mono text-[9px] font-bold uppercase transition"
+                                title="Aprobar prospecto"
+                              >
+                                Aprobar
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(l._id)}
+                              disabled={saving}
+                              className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10"
+                              title="Eliminar prospecto"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
-            </div>
-
-            {/* Tarjetas (Móvil/Tablet pequeña) */}
-            <div className="admin-leads-cards">
-              {visible.map(lead => (
-                <div
-                  key={lead._id}
-                  className="admin-lead-card"
-                  onClick={() => openDetail(lead)}
-                >
-                  <div className="admin-lead-card-header">
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <span className="admin-lead-card-date">{fmt(lead.createdAt)}</span>
-                      <h3 className="admin-lead-card-empresa">{lead.empresa}</h3>
-                      <p className="admin-lead-card-nombre">{lead.nombre} · {lead.cargo}</p>
-                    </div>
-                    <div className="admin-lead-card-score">
-                      <span className="score-label">SCORE</span>
-                      <span className="score-val">{lead.score}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="admin-lead-card-body">
-                    {lead.industria && (
-                      <div className="admin-lead-card-meta">
-                        <span className="meta-label">Industria:</span>
-                        <span className="meta-val">{INDUSTRY_LABEL[lead.industria] ?? lead.industria}</span>
-                      </div>
-                    )}
-                    {lead.revenue && (
-                      <div className="admin-lead-card-meta">
-                        <span className="meta-label">Revenue:</span>
-                        <span className="meta-val">{lead.revenue}</span>
-                      </div>
-                    )}
-                    {lead.plazo && (
-                      <div className="admin-lead-card-meta">
-                        <span className="meta-label">Plazo:</span>
-                        <span className="meta-val">{lead.plazo}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="admin-lead-card-footer">
-                    <span style={{
-                      fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '4px 10px',
-                      border: `1px solid ${STATUS_COLOR[lead.status]}44`,
-                      color: STATUS_COLOR[lead.status],
-                      background: `${STATUS_COLOR[lead.status]}10`,
-                    }}>
-                      {lead.status}
-                    </span>
-                    <span className="admin-lead-card-action">Detalle →</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Panel de detalle */}
+      {/* Slide-out Lateral de Detalle del Lead */}
       {selected && (
         <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            display: 'flex', justifyContent: 'flex-end',
-            background: 'linear-gradient(to right, rgba(0,0,0,0.6) 0%, #050505 38%)',
-          }}
+          className="fixed inset-0 bg-[#07192F]/80 backdrop-blur-xs z-50 flex justify-end"
           onClick={() => setSelected(null)}
         >
-          <div className="admin-slide-panel" onClick={e => e.stopPropagation()}>
-
-            {/* Cabecera */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36 }}>
-              <div>
-                <div style={{ fontSize: 8, letterSpacing: '0.28em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 10 }}>
-                  FABRIC · ADMIN · LEADS · DETALLE
-                </div>
-                <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 32, color: '#F5F5F5', lineHeight: 1.05 }}>{selected.empresa}</div>
-                <div style={{ fontSize: 11, color: '#5A5A5A', marginTop: 8 }}>{selected.nombre} · {selected.cargo}</div>
-              </div>
-              <button
-                onClick={() => setSelected(null)}
-                style={{
-                  background: 'none', border: '1px solid #1e1e1e', color: '#3A3A3A',
-                  cursor: 'pointer', fontSize: 16, width: 36, height: 36,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  fontFamily: 'inherit',
-                }}
-              >×</button>
-            </div>
-
-            {/* Métricas superiores */}
-            <div className="admin-leads-detail-metrics">
-              <div style={{ padding: '24px 28px', textAlign: 'center' }}>
-                <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 10 }}>Score FABRIC</div>
-                <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 60, fontStyle: 'italic', color: '#C9A96E', lineHeight: 1 }}>{selected.score}</div>
-              </div>
-              <div style={{ background: '#141414' }} />
-              <div style={{ padding: '24px 28px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase' }}>Estado</div>
-                <span style={{
-                  fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '7px 18px',
-                  border: `1px solid ${STATUS_COLOR[selected.status]}55`,
-                  color: STATUS_COLOR[selected.status],
-                  background: `${STATUS_COLOR[selected.status]}0D`,
-                }}>{selected.status}</span>
-              </div>
-              <div style={{ background: '#141414' }} />
-              <div style={{ padding: '24px 28px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <div style={{ fontSize: 8, letterSpacing: '0.2em', color: '#3A3A3A', textTransform: 'uppercase' }}>Fuente</div>
-                <div style={{ fontSize: 11, color: '#C9A96E', letterSpacing: '0.1em' }}>{selected.source}</div>
-                {selected.industria && <div style={{ fontSize: 9, color: '#3A3A3A' }}>{INDUSTRY_LABEL[selected.industria] ?? selected.industria}</div>}
-              </div>
-            </div>
-
-            {/* Cuerpo en dos columnas */}
-            <div className="admin-leads-detail-body">
-
-              {/* Columna izquierda — datos */}
-              <div>
-                <div style={{ fontSize: 8, letterSpacing: '0.22em', color: '#2A2A2A', textTransform: 'uppercase', marginBottom: 20, paddingBottom: 10, borderBottom: '1px solid #111' }}>Datos del prospecto</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 32 }}>
-                  {([
-                    ['Email',  selected.email],
-                    ['Plazo',  selected.plazo],
-                    ['Revenue', selected.revenue],
-                    ['Fecha',  fmt(selected.createdAt)],
-                  ] as [string, string][]).filter(([, v]) => v).map(([k, v]) => (
-                    <div key={k}>
-                      <div style={{ fontSize: 8, letterSpacing: '0.15em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 4 }}>{k}</div>
-                      <div style={{ fontSize: 11, color: '#C8C8C8', wordBreak: 'break-word' }}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {selected.iniciativa && (
-                  <div style={{ marginBottom: 32 }}>
-                    <div style={{ fontSize: 8, letterSpacing: '0.15em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 8 }}>Iniciativa</div>
-                    <div style={{ fontSize: 11, color: '#8A8A8A', lineHeight: 1.7 }}>{selected.iniciativa}</div>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-lg bg-[#0E2747] border-l border-[#1E3A5F] shadow-2xl p-6 md:p-8 overflow-y-auto min-h-screen space-y-6"
+          >
+            <div className="border-b border-[#1E3A5F] pb-5 relative">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-mono text-[9px] text-[#C9A96E] tracking-widest uppercase mb-1">
+                    Ficha de Evaluación de Prospecto
                   </div>
-                )}
-
-                {selected.queryChat && (
-                  <div style={{ padding: '16px 18px', borderLeft: '2px solid #C9A96E22', background: '#080808', marginBottom: 32 }}>
-                    <div style={{ fontSize: 8, letterSpacing: '0.15em', color: '#3A3A3A', textTransform: 'uppercase', marginBottom: 8 }}>Consulta vía chat IA</div>
-                    <div style={{ fontSize: 10, color: '#5A5A5A', fontStyle: 'italic', lineHeight: 1.7 }}>"{selected.queryChat}"</div>
-                  </div>
-                )}
-
-                {/* Historial */}
-                {selected.historial.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 8, letterSpacing: '0.22em', color: '#2A2A2A', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid #111' }}>Historial</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {[...selected.historial].reverse().map((h, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #0a0a0a' }}>
-                          <span style={{ fontSize: 9, color: '#2A2A2A', minWidth: 76, flexShrink: 0 }}>{h.fecha}</span>
-                          <span style={{
-                            fontSize: 8, padding: '2px 9px',
-                            border: `1px solid ${STATUS_COLOR[h.estado as LeadStatus] ?? '#5A5A5A'}33`,
-                            color: STATUS_COLOR[h.estado as LeadStatus] ?? '#5A5A5A',
-                          }}>{h.estado}</span>
-                          <span style={{ fontSize: 8, color: '#3A3A3A' }}>{h.autor}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Columna derecha — acciones */}
-              <div>
-                <div style={{ fontSize: 8, letterSpacing: '0.22em', color: '#2A2A2A', textTransform: 'uppercase', marginBottom: 20, paddingBottom: 10, borderBottom: '1px solid #111' }}>Pipeline</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 40 }}>
-                  {(['Aprobado', 'WaitList', 'Revisión'] as LeadStatus[])
-                    .filter(s => s !== selected.status)
-                    .map(s => (
-                      <button
-                        key={s}
-                        disabled={updating === selected._id}
-                        onClick={() => handleStatusChange(selected._id, s)}
-                        style={{
-                          padding: '14px 18px', background: `${STATUS_COLOR[s]}0A`,
-                          border: `1px solid ${STATUS_COLOR[s]}33`,
-                          color: STATUS_COLOR[s],
-                          fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase',
-                          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                          transition: 'background .15s',
-                        }}
-                      >
-                        → Mover a {s}
-                      </button>
-                    ))}
-                  {selected.status !== 'Rechazado' && (
-                    <button
-                      disabled={updating === selected._id}
-                      onClick={() => handleStatusChange(selected._id, 'Rechazado')}
-                      style={{
-                        padding: '14px 18px', background: 'transparent',
-                        border: '1px solid #B8545033', color: '#B85450',
-                        fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase',
-                        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                      }}
-                    >
-                      → Rechazar lead
-                    </button>
-                  )}
+                  <div className="font-serif text-2xl font-bold text-white">{selected.nombre}</div>
+                  <div className="font-mono text-xs text-[#94A3B8] mt-0.5">{selected.empresa}</div>
                 </div>
-
-                <div style={{ fontSize: 8, letterSpacing: '0.22em', color: '#2A2A2A', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid #111' }}>Notas internas</div>
-                <textarea
-                  value={notasEdit}
-                  onChange={e => setNotasEdit(e.target.value)}
-                  rows={7}
-                  placeholder="Observaciones internas sobre este prospecto..."
-                  style={{
-                    width: '100%', background: '#080808', border: '1px solid #141414',
-                    color: '#C8C8C8', fontFamily: 'inherit', fontSize: 11,
-                    padding: '14px 16px', outline: 'none', resize: 'vertical',
-                    boxSizing: 'border-box', lineHeight: 1.7,
-                  }}
-                />
                 <button
-                  onClick={handleSaveNotas}
-                  disabled={updating === selected._id}
-                  style={{
-                    marginTop: 10, padding: '11px 22px',
-                    background: 'rgba(201,169,110,0.06)',
-                    border: '1px solid #C9A96E33', color: '#C9A96E',
-                    fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase',
-                    cursor: 'pointer', fontFamily: 'inherit', width: '100%',
-                  }}
+                  onClick={() => setSelected(null)}
+                  className="w-8 h-8 rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:text-white flex items-center justify-center text-lg cursor-pointer transition"
                 >
-                  Guardar notas
+                  ×
                 </button>
               </div>
             </div>
 
+            <div className="bg-[#07192F] border border-[#1E3A5F] rounded-2xl p-5 space-y-3">
+              <div className="font-mono text-[9px] font-bold text-[#94A3B8] tracking-widest uppercase">
+                Iniciativa Oracle
+              </div>
+              <div className="font-serif text-lg font-bold text-[#C9A96E]">
+                {selected.iniciativaOracle || '—'}
+              </div>
+              <div className="font-mono text-[10px] text-slate-400">
+                Fecha de registro: {fmtDate(selected.createdAt)}
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#C9A96E] mb-2">
+                Datos Capturados en Formulario de Evaluación
+              </div>
+              {([
+                ['Nombre completo', selected.nombre],
+                ['Empresa', selected.empresa],
+                ['Email corporativo', selected.email],
+                ['Cargo / Puesto', selected.cargo || '—'],
+                ['Revenue Anual', selected.revenue || '—'],
+                ['Iniciativa Oracle', selected.iniciativaOracle || '—'],
+                ['Estado de Evaluación', selected.estatus || 'Evaluación'],
+              ] as [string, string][]).map(([k, v]) => (
+                <div key={k} className="flex justify-between items-center py-2.5 border-b border-[#1E3A5F]/60 text-xs font-mono">
+                  <span className="text-[#94A3B8] uppercase text-[9px]">{k}</span>
+                  <span className="text-white text-right break-all max-w-[240px] font-semibold">{v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 flex items-center gap-3">
+              {(selected.estatus || '').toLowerCase() !== 'aprobado' && (
+                <button
+                  onClick={() => handleStatusChange(selected._id, 'Aprobado')}
+                  disabled={saving}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 size={16} /> Aprobar Prospecto
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(selected._id)}
+                disabled={saving}
+                className="px-4 py-3 border border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Trash2 size={15} /> Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}

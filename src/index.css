@@ -3983,7 +3983,7 @@ html[data-theme="light"] {
 }
 
 .aoh-info-band {
-  background: rgba(201, 169, 110, 0.05);
+  background: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(201, 169, 110, 0.12);
   padding: 10px 36px;
   display: flex;
@@ -4361,3 +4361,158 @@ html[data-theme="light"] {
     line-height: 1.5 !important;
   }
 }
+
+/* =========================================================================
+   DASHBOARD WHITE THEME OVERRIDES
+   Overrides global dark theme rules (#0B1F3A) specifically for /dashboard
+   ========================================================================= */
+.dashboard-white-theme,
+html[data-theme="dark"] .dashboard-white-theme,
+html[data-theme="light"] .dashboard-white-theme {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.dashboard-white-theme aside,
+html[data-theme="dark"] .dashboard-white-theme aside,
+html[data-theme="light"] .dashboard-white-theme aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.dashboard-white-theme main,
+html[data-theme="dark"] .dashboard-white-theme main,
+html[data-theme="light"] .dashboard-white-theme main {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.dashboard-white-theme section,
+html[data-theme="dark"] .dashboard-white-theme section,
+html[data-theme="light"] .dashboard-white-theme section {
+  background-color: transparent !important;
+}
+
+.dashboard-white-theme .dashboard-card,
+html[data-theme="dark"] .dashboard-white-theme .dashboard-card,
+html[data-theme="light"] .dashboard-white-theme .dashboard-card {
+  background-color: #ffffff !important;
+  border-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+.dashboard-white-theme input[type="date"],
+.dashboard-white-theme input[type="time"],
+.dashboard-white-theme input[type="text"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.dashboard-white-theme p,
+.dashboard-white-theme span,
+.dashboard-white-theme label,
+.dashboard-white-theme h3,
+.dashboard-white-theme h2 {
+  color: inherit;
+}
+
+/* =========================================================================
+   FORCE 100% WHITE THEME FOR ALL ADMIN DASHBOARD CONSOLE PAGES (.fabric-admin-shell)
+   ========================================================================= */
+.fabric-admin-shell,
+.fabric-admin-page,
+html[data-theme="dark"] .fabric-admin-shell,
+html[data-theme="dark"] .fabric-admin-page {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.fabric-admin-sidebar,
+html[data-theme="dark"] .fabric-admin-sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+.fabric-admin-sidebar-brand {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.fabric-admin-sidebar-brand div,
+.fabric-admin-sidebar-brand span {
+  color: #0f172a !important;
+}
+
+.fabric-admin-hero,
+html[data-theme="dark"] .fabric-admin-hero {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.fabric-admin-title,
+html[data-theme="dark"] .fabric-admin-title {
+  color: #0f172a !important;
+}
+
+.fabric-admin-subtitle,
+html[data-theme="dark"] .fabric-admin-subtitle {
+  color: #475569 !important;
+}
+
+.fabric-admin-eyebrow,
+html[data-theme="dark"] .fabric-admin-eyebrow {
+  color: #2563eb !important;
+}
+
+.admin-main-panel,
+.fabric-admin-content article,
+html[data-theme="dark"] .admin-main-panel {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+.aoh-row,
+html[data-theme="dark"] .aoh-row {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.aoh-panel,
+html[data-theme="dark"] .aoh-panel {
+  background-color: #ffffff !important;
+  border-left: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.fabric-admin-shell table th,
+html[data-theme="dark"] .fabric-admin-shell table th {
+  color: #64748b !important;
+  border-bottom-color: #f1f5f9 !important;
+}
+
+.fabric-admin-shell table td,
+html[data-theme="dark"] .fabric-admin-shell table td {
+  color: #1e293b !important;
+  border-bottom-color: #f1f5f9 !important;
+}
+
+.fabric-admin-shell table tr:hover {
+  background-color: #f8fafc !important;
+}
+
+.fabric-admin-shell input,
+.fabric-admin-shell select,
+.fabric-admin-shell textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+
