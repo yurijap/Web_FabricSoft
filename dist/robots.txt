@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /acceso
-Disallow: /crear-cuenta
-
-Sitemap: https://equipo-a-v2.vercel.app/sitemap.xml
