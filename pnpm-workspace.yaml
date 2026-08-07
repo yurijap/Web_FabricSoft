@@ -1,0 +1,10 @@
+packages:
+  - . # Frontend Vite/React (app principal)
+  - backend # Backend API Express (en desarrollo)
+
+allowBuilds:
+  '@clerk/shared': true
+  '@tsparticles/engine': true
+  esbuild: true
+  sharp: false
+minimumReleaseAge: 0

@@ -1,0 +1,230 @@
+/* ==========================================================================
+   FABRIC AI DIAGNOSTIC CONSOLE — Theme-aware CSS
+   Replaces hardcoded inline styles with CSS variables for light/dark mode
+   ========================================================================== */
+
+/* ── Section wrapper ─────────────────────────────────────────── */
+:root,
+html[data-theme="dark"] {
+  --chat-bg: var(--bg-base);
+  --chat-border-bg: linear-gradient(135deg, rgba(240, 207, 122, 0.68), rgba(82, 161, 218, 0.24) 42%, rgba(240, 207, 122, 0.34));
+  --chat-panel-bg: radial-gradient(circle at 12% 0%, rgba(240, 207, 122, 0.07), transparent 28%), linear-gradient(145deg, rgba(14, 39, 71, 0.96), rgba(9, 30, 56, 0.98) 52%, rgba(7, 25, 47, 0.98));
+  --chat-bar-bg: rgba(7, 25, 47, 0.56);
+  --chat-composer-bg: rgba(7, 25, 47, 0.48);
+  --chat-divider: rgba(240, 207, 122, 0.2);
+  --chat-btn-bg: rgba(11, 31, 58, 0.56);
+  --chat-btn-border: rgba(240, 207, 122, 0.22);
+  --chat-btn-text: var(--text-secondary);
+  --chat-btn-hover-bg: rgba(240, 207, 122, 0.08);
+  --chat-btn-hover-border: var(--accent);
+  --chat-text-primary: var(--text-primary);
+  --chat-text-secondary: var(--text-secondary);
+  --chat-text-muted: var(--text-tertiary);
+  --chat-shadow: 0 30px 90px rgba(3, 12, 26, 0.34), 0 2px 0 rgba(240, 207, 122, 0.16);
+}
+
+.chat-section-bg {
+  background-color: var(--chat-bg, #050203);
+}
+
+/* ── Console outer glow border (spinner container) ──────────── */
+.chat-console-border {
+  background: var(--chat-border-bg, #080706);
+}
+
+/* ── Console inner panel ─────────────────────────────────────── */
+.chat-console-inner {
+  background: var(--chat-panel-bg, #080706);
+  overflow: hidden;
+}
+
+.chat-console {
+  box-shadow: var(--chat-shadow) !important;
+}
+
+.chat-console::before {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 78% 8%, rgba(240, 207, 122, 0.11), transparent 32%),
+    radial-gradient(circle at 18% 88%, rgba(82, 161, 218, 0.1), transparent 34%);
+  filter: blur(22px);
+  pointer-events: none;
+}
+
+/* ── Header bar & footer bar ─────────────────────────────────── */
+.chat-bar {
+  background: var(--chat-bar-bg, #050203);
+  border-color: var(--chat-divider, #1A1A1A);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.chat-console-header {
+  background:
+    linear-gradient(90deg, rgba(240, 207, 122, 0.035), transparent 38%),
+    var(--chat-bar-bg);
+}
+
+.chat-console-composer {
+  background:
+    linear-gradient(180deg, rgba(240, 207, 122, 0.035), rgba(7, 25, 47, 0.46)),
+    var(--chat-composer-bg);
+}
+
+/* ── Scenario (preset) buttons ───────────────────────────────── */
+.chat-scenario-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--chat-btn-border, #2A2A2A);
+  background: var(--chat-btn-bg, #050203);
+  padding: 9px 16px;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--chat-btn-text, #666);
+  transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.3s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chat-scenario-btn:hover:not(:disabled) {
+  background: var(--chat-btn-hover-bg, rgba(201, 169, 110, 0.04));
+  border-color: var(--chat-btn-hover-border, rgba(201, 169, 110, 0.5));
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.chat-scenario-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Message area scroll container ───────────────────────────── */
+.chat-messages-area {
+  background:
+    linear-gradient(rgba(240, 207, 122, 0.025), transparent 18%),
+    transparent;
+}
+
+/* ── Input field ─────────────────────────────────────────────── */
+.chat-input {
+  background: rgba(11, 31, 58, 0.72);
+  border-color: rgba(240, 207, 122, 0.2);
+  color: var(--chat-text-primary, #F5F5F5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+.chat-input::placeholder {
+  color: rgba(245, 245, 245, 0.38);
+}
+.chat-input:focus {
+  border-color: rgba(240, 207, 122, 0.48);
+  background: rgba(14, 39, 71, 0.9);
+  outline: none;
+}
+
+/* ── Left column copy text ───────────────────────────────────── */
+.chat-heading {
+  color: var(--chat-text-primary, #F5F5F5);
+}
+.chat-body-text {
+  color: var(--chat-text-secondary, #888);
+}
+.chat-label-text {
+  color: var(--chat-text-muted, #555);
+}
+.chat-value-text {
+  color: var(--chat-text-primary, #F5F5F5);
+}
+.chat-stat-border {
+  border-color: var(--chat-btn-border, #2A2A2A);
+}
+.chat-cta-btn {
+  border-color: var(--chat-btn-border, #2A2A2A);
+  color: var(--chat-text-secondary, #888);
+}
+.chat-cta-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(201, 169, 110, 0.04);
+}
+
+/* ── Agent message bubble ────────────────────────────────────── */
+.chat-agent-bubble {
+  background: rgba(7, 25, 47, 0.46);
+  border-color: var(--chat-divider, #1A1A1A);
+  color: var(--chat-text-primary, #F5F5F5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.chat-agent-text {
+  color: var(--chat-text-secondary, #A0A0A0);
+}
+
+/* ── User message bubble ─────────────────────────────────────── */
+.chat-user-bubble {
+  background: rgba(201, 169, 110, 0.05);
+  border-color: rgba(201, 169, 110, 0.15);
+  color: var(--chat-text-primary, #F5F5F5);
+}
+
+/* ── Typing indicator ────────────────────────────────────────── */
+.chat-typing-dot {
+  background-color: var(--chat-text-muted, #555);
+}
+
+/* ── Scrollbar (chat messages area) ──────────────────────────── */
+#chat-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240, 207, 122, 0.22) transparent;
+}
+#chat-scroll-container::-webkit-scrollbar {
+  width: 4px;
+}
+#chat-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+#chat-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(240, 207, 122, 0.22);
+  border-radius: 2px;
+}
+#chat-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 207, 122, 0.38);
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+html[data-theme="light"] {
+  --chat-bg:              var(--bg-base);
+  --chat-border-bg:       var(--bg-elevated);
+  --chat-panel-bg:        var(--bg-panel);
+  --chat-bar-bg:          var(--bg-elevated);
+  --chat-divider:         var(--border);
+  --chat-btn-bg:          var(--bg-elevated);
+  --chat-btn-border:      var(--border);
+  --chat-btn-text:        var(--text-secondary);
+  --chat-btn-hover-bg:    var(--accent-soft);
+  --chat-btn-hover-border: var(--accent);
+  --chat-text-primary:    var(--text-primary);
+  --chat-text-secondary:  var(--text-secondary);
+  --chat-text-muted:      var(--text-tertiary);
+}
+
+/* ── Light mode scrollbar (cream tone) ────────────────────────── */
+html[data-theme="light"] #chat-scroll-container {
+  scrollbar-color: rgba(150, 105, 35, 0.25) transparent;
+}
+html[data-theme="light"] #chat-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(150, 105, 35, 0.25);
+}
+html[data-theme="light"] #chat-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 105, 35, 0.45);
+}
+
+/* ── Light mode: warm cream shadow for the console wrapper ────── */
+html[data-theme="light"] .chat-console {
+  box-shadow: 0 16px 60px rgba(150, 105, 35, 0.12), 0 4px 16px rgba(150, 105, 35, 0.08) !important;
+}
