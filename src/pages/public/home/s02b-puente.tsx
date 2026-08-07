@@ -2081,7 +2081,7 @@ function EvaluacionProyectosInteractiveWidget() {
               {filteredProjects.map((proj) => (
                 <div
                   key={proj.id}
-                  onClick={() => setSelectedProject(proj)}
+                  data-interaction="doctrina"
                   className="group border border-zinc-900 hover:border-red-900/50 bg-zinc-950/40 hover:bg-zinc-950/90 p-4 rounded-lg transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer relative overflow-hidden"
                 >
                   <div className="space-y-1.5 flex-1">

@@ -15,14 +15,13 @@ const sections: SectionItem[] = [
   { id: "casos-ancla", label: "Casos Ancla", number: "05" },
   { id: "audit-trail-section", label: "Casos Auditables", number: "06" },
   { id: "industrias-focales", label: "Industrias Focales", number: "07" },
-  { id: "fso-engine-section", label: "FSO Engine", number: "08" },
-  { id: "rescue-assessment-section", label: "Rescue Assessment", number: "09" },
-  { id: "referencias", label: "Validación Directa", number: "10" },
-  { id: "transparencia", label: "Transparencia", number: "11" },
-  { id: "investigacion-section", label: "Investigación", number: "12" },
-  { id: "apply-reverse-section", label: "Evaluación Proyectos", number: "13" },
-  { id: "founder-manifesto-section", label: "Manifiesto Fundador", number: "14" },
-  { id: "waitlist-section", label: "Wait List 2026", number: "15" },
+  { id: "rescue-assessment-section", label: "Rescue Assessment", number: "08" },
+  { id: "referencias", label: "Validación Directa", number: "09" },
+  { id: "transparencia", label: "Transparencia", number: "10" },
+  { id: "investigacion-section", label: "Investigación", number: "11" },
+  { id: "apply-reverse-section", label: "Evaluación Proyectos", number: "12" },
+  { id: "founder-manifesto-section", label: "Manifiesto Fundador", number: "13" },
+  { id: "waitlist-section", label: "Wait List 2026", number: "14" },
 ];
 
 const legacyHashAliases: Record<string, string> = {

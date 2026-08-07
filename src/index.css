@@ -4515,4 +4515,14 @@ html[data-theme="dark"] .fabric-admin-shell table td {
   color: #0f172a !important;
 }
 
+/* Ocultar barras de desplazamiento globales manteniendo la funcionalidad de scroll */
+::-webkit-scrollbar {
+  display: none !important;
+}
+
+html, body {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE y Edge */
+}
+
 
