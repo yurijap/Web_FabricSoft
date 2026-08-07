@@ -4477,43 +4477,7 @@ html[data-theme="dark"] .admin-main-panel {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
 }
 
-.aoh-row,
-html[data-theme="dark"] .aoh-row {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
-}
 
-.aoh-panel,
-html[data-theme="dark"] .aoh-panel {
-  background-color: #ffffff !important;
-  border-left: 1px solid #e2e8f0 !important;
-  color: #0f172a !important;
-}
-
-.fabric-admin-shell table th,
-html[data-theme="dark"] .fabric-admin-shell table th {
-  color: #64748b !important;
-  border-bottom-color: #f1f5f9 !important;
-}
-
-.fabric-admin-shell table td,
-html[data-theme="dark"] .fabric-admin-shell table td {
-  color: #1e293b !important;
-  border-bottom-color: #f1f5f9 !important;
-}
-
-.fabric-admin-shell table tr:hover {
-  background-color: #f8fafc !important;
-}
-
-.fabric-admin-shell input,
-.fabric-admin-shell select,
-.fabric-admin-shell textarea {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
 
 /* Ocultar barras de desplazamiento globales manteniendo la funcionalidad de scroll */
 ::-webkit-scrollbar {
