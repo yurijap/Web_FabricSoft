@@ -9,25 +9,47 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://paqiotoelmanquito_
 app.use(cors());
 app.use(express.json());
 
-// Conexión con MongoDB Atlas
+// Conexión con MongoDB Atlas (Optimizada para Serverless)
+let cachedConnection = null;
+
 const connectDb = async () => {
-  if (mongoose.connection.readyState === 0) {
-    try {
-      await mongoose.connect(MONGODB_URI);
-      console.log('🟢 Conectado exitosamente a MongoDB Atlas');
-    } catch (err) {
-      console.warn('⚠️ Error de conexión a MongoDB:', err.message);
-    }
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
   }
+  
+  if (!cachedConnection) {
+    console.log('🔌 Iniciando nueva conexión a MongoDB...');
+    cachedConnection = mongoose.connect(MONGODB_URI, {
+      bufferCommands: false, // Desactivar buffer para fallar rápido en lugar de colgarse 10s
+      serverSelectionTimeoutMS: 5000 // Timeout corto para detectar problemas de IP/red rápido
+    }).then((m) => {
+      console.log('🟢 Conectado exitosamente a MongoDB Atlas');
+      return m;
+    }).catch((err) => {
+      console.error('❌ Error crítico al conectar a MongoDB:', err.message);
+      cachedConnection = null;
+      throw err;
+    });
+  }
+  
+  return cachedConnection;
 };
-connectDb();
+
+// Intentar conectar en frío
+connectDb().catch(() => {});
 
 // Middleware para asegurar conexión DB en entornos serverless (Vercel)
 app.use(async (req, res, next) => {
-  if (mongoose.connection.readyState === 0) {
+  try {
     await connectDb();
+    next();
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error de conexión a la base de datos (MongoDB Atlas)',
+      details: err.message 
+    });
   }
-  next();
 });
 
 // Schemas de Mongoose
@@ -95,11 +117,29 @@ const ReferenciaItemSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const CalendarSlotSchema = new mongoose.Schema({
+  slot: String,
+  fecha: String,
+  hora: String,
+  status: { type: String, default: 'Disponible' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const GeneralMeetingSchema = new mongoose.Schema({
+  fecha: String,
+  hora: String,
+  titulo: String,
+  descripcion: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
 const Lead = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);
 const OfficeHour = mongoose.models.OfficeHour || mongoose.model('OfficeHour', OfficeHourSchema);
 const PaperRequest = mongoose.models.PaperRequest || mongoose.model('PaperRequest', PaperRequestSchema);
 const ReferenciaRequest = mongoose.models.ReferenciaRequest || mongoose.model('ReferenciaRequest', ReferenciaRequestSchema);
 const ReferenciaItem = mongoose.models.ReferenciaItem || mongoose.model('ReferenciaItem', ReferenciaItemSchema);
+const CalendarSlot = mongoose.models.CalendarSlot || mongoose.model('CalendarSlot', CalendarSlotSchema);
+const GeneralMeeting = mongoose.models.GeneralMeeting || mongoose.model('GeneralMeeting', GeneralMeetingSchema);
 
 // Helper para sembrar datos demo iniciales si la BD está vacía
 async function seedInitialDataIfEmpty() {
@@ -515,7 +555,7 @@ app.get('/api/office-hours/admin', async (req, res) => {
   try {
     const officeHours = await OfficeHour.find().sort({ createdAt: -1 });
     const mapped = officeHours.map(item => ({
-      _id: item._id.toString(),
+      _id: item._id ? item._id.toString() : '',
       nombre: item.usuario || item.nombre || 'Cliente Agendado',
       empresa: item.empresa || 'Empresa',
       email: item.correo || item.email || '',
@@ -533,7 +573,8 @@ app.get('/api/office-hours/admin', async (req, res) => {
     }));
     res.json({ success: true, data: mapped });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("❌ Error en GET /api/office-hours/admin:", err);
+    res.status(500).json({ success: false, error: err.message, stack: err.stack });
   }
 });
 
