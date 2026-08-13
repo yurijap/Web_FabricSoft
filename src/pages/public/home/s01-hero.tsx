@@ -497,7 +497,7 @@ const PremiumGlobe = memo(function PremiumGlobe() {
 
 
 export default function S01Hero() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [mounted, setMounted] = useState(false);
 
   const highlightPhrases = useMemo<HighlightPhrase[]>(
@@ -808,32 +808,42 @@ export default function S01Hero() {
           </div>
 
           <h1
-            className="mt-7 max-w-[1120px] font-serif text-[clamp(64px,8vw,132px)] leading-[0.84] tracking-[-0.075em] text-[#F5F5F5]"
+            className="mt-7 max-w-[1120px] font-serif text-[clamp(44px,5.8vw,98px)] font-light leading-[1.1] tracking-tight text-[#F5F5F5] drop-shadow-[0_2px_20px_rgba(201,169,110,0.22)]"
             style={{
               animation: "titleReveal .9s cubic-bezier(.16,1,.3,1) .18s both",
             }}
           >
-            {t("hero.h1")}
+            {t("hero.h1")} <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F5F5F5] via-[#FFF5E0] to-[#C9A96E] font-normal italic">
+              {t("hero.h2.before")}
+            </span> <br />
+            {t("hero.h2.gold")}
           </h1>
 
-          <h2
-            className="mt-6 max-w-5xl font-serif text-[clamp(40px,4.8vw,78px)] font-semibold leading-[0.98] tracking-[-0.055em] text-[#F5F5F5]"
-            style={{
-              animation: "titleReveal .9s cubic-bezier(.16,1,.3,1) .34s both",
-            }}
-          >
-            {t("hero.h2.before")}
-            <span className="text-[#C9A96E]">{t("hero.h2.gold")}</span>
-          </h2>
-
-          <p
-            className="fabric-hero-copy mt-7 max-w-3xl text-base leading-8 md:text-xl"
+          <div
+            className="max-w-3xl mt-8 space-y-4 font-sans font-light"
             style={{
               animation: "titleReveal .9s cubic-bezier(.16,1,.3,1) .5s both",
             }}
           >
-            {t("hero.body")}
-          </p>
+            <div className="border-l-2 border-[#C9A96E]/25 pl-4 py-1.5 bg-zinc-950/20 rounded-r-xl text-[#A8A8A8] text-base leading-relaxed md:text-lg">
+              {lang === 'es' ? (
+                <>
+                  El <strong className="text-[#F5F5F5] font-semibold">73% de las implementaciones</strong> Oracle Fusion celebran el "go-live" y abandonan al cliente con cierres contables pesados, reportes manuales paralelos e incidencias críticas abiertas.
+                </>
+              ) : (
+                <>
+                  <strong className="text-[#F5F5F5] font-semibold">73% of Oracle Fusion implementations</strong> celebrate the "go-live" and abandon the client with heavy accounting closes, parallel manual reports, and open critical incidents.
+                </>
+              )}
+            </div>
+            <p className="text-[#D4D4D8] text-base leading-relaxed md:text-lg">
+              {t("hero.body.part2")}{" "}
+              <span className="text-[#C9A96E] font-mono font-bold tracking-wider">
+                {t("hero.body.contract")}
+              </span>.
+            </p>
+          </div>
 
           <div
             className="fabric-hero-stats mt-7 grid max-w-3xl grid-cols-3 overflow-hidden border"

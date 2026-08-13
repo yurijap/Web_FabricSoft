@@ -18,11 +18,13 @@ export const translations = {
     'cta.audit': 'Auditoría OCI gratuita',
    'hero.badge': 'Oracle Critical Engineering · Acceso selectivo',
 
-'hero.h1': 'Oracle no se cae en código.',
-'hero.h2.before': 'Se cae en ',
-'hero.h2.gold': 'operación.',
+'hero.h1': 'Migramos tu ERP a',
+'hero.h2.before': 'Oracle Fusion Cloud. ',
+'hero.h2.gold': 'Y no nos vamos hasta que tu primer cierre contable opere.',
 
-'hero.body': 'FABRIC rescata, estabiliza y blinda proyectos Oracle cuando el riesgo ya afecta cierres financieros, reportes ejecutivos y continuidad del negocio.',
+'hero.body.part1': 'El 73% de las implementaciones Oracle Fusion celebran el "go-live" y abandonan al cliente con cierres contables pesados, reportes manuales paralelos e incidencias críticas abiertas.',
+'hero.body.part2': 'Nosotros nos quedamos en tu trinchera operativa hasta que tu primer ciclo crítico —sea cierre contable o facturación masiva— opera en producción sin incidencias.',
+'hero.body.contract': '[ POR CONTRATO ]',
 
 'hero.migrations': 'Fusion Cloud · SAP/EBS/JDE Migration · Rescue · Stabilization',
 
@@ -96,11 +98,13 @@ export const translations = {
     'cta.audit': 'Free OCI audit',
 'hero.badge': 'Oracle Critical Engineering · Selective access',
 
-'hero.h1': 'Oracle does not fail in code.',
-'hero.h2.before': 'It fails in ',
-'hero.h2.gold': 'operations.',
+'hero.h1': 'We migrate your ERP to',
+'hero.h2.before': 'Oracle Fusion Cloud. ',
+'hero.h2.gold': "And we don't leave until your first accounting close operates.",
 
-'hero.body': 'FABRIC rescues, stabilizes and protects Oracle projects when risk already impacts financial close, executive reporting and business continuity.',
+'hero.body.part1': '73% of Oracle Fusion implementations celebrate the "go-live" and abandon the client with heavy accounting closes, parallel manual reports, and open critical incidents.',
+'hero.body.part2': 'We stay in your operational trench until your first critical cycle —whether it is accounting close or massive invoicing— operates in production without incidents.',
+'hero.body.contract': '[ BY CONTRACT ]',
 
 'hero.migrations': 'Fusion Cloud · SAP/EBS/JDE Migration · Rescue · Stabilization',
 

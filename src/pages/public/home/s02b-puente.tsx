@@ -735,48 +735,48 @@ function AuditTrailInteractiveWidget() {
 
   const auditTrails = {
     ape: {
-      caseName: "APE Plazas — Remediación de facturación masiva",
+      caseName: "Inmobiliario / Retail — Remediación de facturación masiva",
       verifier: "Ing. Roberto Valdez",
       verifierRole: "Director de Finanzas y Control",
-      verifierCompany: "APE Plazas",
+      verifierCompany: "Holding Inmobiliario",
       timeline: [
         {
           date: "06 Abril 2026",
           title: "Go-live ejecutado en producción",
           evidence: "Acta formal de liberación del módulo de facturación masiva de arrendamientos en Oracle Fusion Cloud.",
-          docName: "Acta_GoLive_APE_Plazas.pdf"
+          docName: "Acta_GoLive_Retail.pdf"
         },
         {
           date: "15 Abril 2026",
           title: "Cierre quincenal validado y conciliado",
           evidence: "Reporte de latencia y consistencia de base de datos OCI sin inconsistencias en el Libro Auxiliar.",
-          docName: "Reporte_Latencia_Cierre_Q1_APE.pdf"
+          docName: "Reporte_Latencia_Cierre_Q1_Retail.pdf"
         },
         {
           date: "30 Abril 2026",
           title: "Cierre contable completo sin incidencias",
           evidence: "Acta de estabilización operativa y transición a soporte interno firmada de mutuo acuerdo.",
-          docName: "Acta_Transicion_Soporte_APE.pdf"
+          docName: "Acta_Transicion_Soporte_Retail.pdf"
         }
       ]
     },
     aplazo: {
-      caseName: "Aplazo — Estabilización de cobros y conciliación GL",
+      caseName: "Fintech — Estabilización de cobros y conciliación GL",
       verifier: "Lic. Sofía Macías",
       verifierRole: "Subdirectora de Sistemas e Integraciones",
-      verifierCompany: "Aplazo",
+      verifierCompany: "Plataforma Fintech BNPL",
       timeline: [
         {
           date: "04 Marzo 2026",
           title: "Interfaz de cobros recurrentes operando con SLA < 20ms",
           evidence: "Log auditado de transacciones de cobro recurrentes integradas de pasarela al ERP Oracle.",
-          docName: "Log_Performance_Gateway_Aplazo.pdf"
+          docName: "Log_Performance_Gateway_Fintech.pdf"
         },
         {
           date: "18 Marzo 2026",
           title: "Cuadratura automática del auxiliar de CXC con GL",
           evidence: "Reporte de validación de asientos contables cruzados en Libro Mayor sin diferencias.",
-          docName: "Reporte_Auditoria_Cuadratura_CXC.pdf"
+          docName: "Reporte_Auditoria_Cuadratura_Fintech.pdf"
         },
         {
           date: "15 Abril 2026",
@@ -891,7 +891,7 @@ function AuditTrailInteractiveWidget() {
                     : 'border-zinc-900 bg-zinc-950 hover:border-zinc-800 text-zinc-500'
                 }`}
               >
-                APE Plazas
+                Inmobiliario / Retail
               </button>
               <button
                 type="button"
@@ -902,7 +902,7 @@ function AuditTrailInteractiveWidget() {
                     : 'border-zinc-900 bg-zinc-950 hover:border-zinc-800 text-zinc-500'
                 }`}
               >
-                Aplazo
+                Fintech
               </button>
             </div>
 
@@ -2842,8 +2842,8 @@ export default function S02bPuente() {
             {/* Caso APE Plazas */}
             <div className="p-6 md:p-8 rounded-xl border border-zinc-800 bg-zinc-950/60 flex flex-col justify-between h-full">
               <div>
-                <span className="fabric-badge-premium mb-4 inline-block">Inmobiliario / Retail</span>
-                <h3 className="text-2xl md:text-3xl font-serif text-white font-light mb-4">Caso APE Plazas</h3>
+                <span className="fabric-badge-premium mb-4 inline-block">Caso Ancla</span>
+                <h3 className="text-2xl md:text-3xl font-serif text-white font-light mb-4">Inmobiliario / Retail</h3>
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
                   Implementación integral y remediación post-migración del módulo de facturación masiva de arrendamientos y contabilidad general en Oracle Fusion Cloud para el operador líder de centros comerciales.
                 </p>
@@ -2890,8 +2890,8 @@ export default function S02bPuente() {
             {/* Caso Aplazo */}
             <div className="p-6 md:p-8 rounded-xl border border-zinc-800 bg-zinc-950/60 flex flex-col justify-between h-full">
               <div>
-                <span className="fabric-badge-premium mb-4 inline-block">Fintech</span>
-                <h3 className="text-2xl md:text-3xl font-serif text-white font-light mb-4">Caso Aplazo</h3>
+                <span className="fabric-badge-premium mb-4 inline-block">Caso Ancla</span>
+                <h3 className="text-2xl md:text-3xl font-serif text-white font-light mb-4">Fintech</h3>
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
                   Estabilización de interfaces de cobros recurrentes y conciliación automática del auxiliar de Cuentas por Cobrar con el Libro Mayor (GL) en un plazo récord de 8 semanas.
                 </p>

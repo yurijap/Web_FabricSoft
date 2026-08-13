@@ -68,6 +68,18 @@ function localDateISO(): string {
 const TODAY_ISO = localDateISO();
 const NOW_HH_MM = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+function convert12hTo24h(time12h: string): string {
+  if (!time12h) return "00:00";
+  const match = time12h.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return time12h;
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const ampm = match[3].toUpperCase();
+  if (ampm === 'PM' && hours < 12) hours += 12;
+  if (ampm === 'AM' && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
 function formatDayLabel(iso: string): string {
   const d = new Date(iso + 'T12:00:00');
   return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit' }).toUpperCase();
@@ -455,10 +467,10 @@ export default function InteractionManager({
                           return (
                             <div style={{ padding: "28px 20px", border: "1px dashed var(--border)", textAlign: "center", borderRadius: 4, background: "rgba(255,255,255,0.02)" }}>
                               <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 8 }}>
-                                Sin días hábiles abiertos en la BD para este mes
+                                Sin citas disponibles
                               </div>
                               <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", lineHeight: 1.6 }}>
-                                No hay slots aperturados en la base de datos para días hábiles de {MONTH_NAMES[calMonth - 1]} de {calYear}.<br />
+                                No hay citas de ingeniería disponibles para {MONTH_NAMES[calMonth - 1]} de {calYear}.<br />
                                 Usa las flechas ← → para consultar otros meses.
                               </div>
                             </div>
@@ -518,16 +530,16 @@ export default function InteractionManager({
                                 ) : (
                                   <div className="im-oh-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
                                     {slots.filter(slot => {
-                                      const isPastSlot = selectedDay === TODAY_ISO && slot.time <= NOW_HH_MM;
+                                      const isPastSlot = selectedDay === TODAY_ISO && convert12hTo24h(slot.time) <= NOW_HH_MM;
                                       return !slot.taken && !isPastSlot;
                                     }).length === 0 ? (
-                                      <div style={{ gridColumn: 'span 3', fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", padding: "16px 0" }}>
-                                        No hay horarios libres para esta fecha en la base de datos.
+                                      <div style={{ gridColumn: 'span 3', fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", padding: "16px 0", textAlign: "center" }}>
+                                        Sin citas disponibles
                                       </div>
                                     ) : (
                                       slots
                                         .filter(slot => {
-                                          const isPastSlot = selectedDay === TODAY_ISO && slot.time <= NOW_HH_MM;
+                                          const isPastSlot = selectedDay === TODAY_ISO && convert12hTo24h(slot.time) <= NOW_HH_MM;
                                           return !slot.taken && !isPastSlot;
                                         })
                                         .map((slot) => (
@@ -803,7 +815,7 @@ export default function InteractionManager({
           {/* Body content */}
           <div style={{ padding: "28px", overflowY: "auto", flex: 1 }}>
             <h2 style={{ fontFamily: "var(--serif)", fontSize: 28, color: "#ffffff", fontWeight: 400, marginBottom: 8, lineHeight: 1.2 }}>
-              Caso APE Plazas: Estabilización de Facturación Masiva
+              Inmobiliario / Retail: Estabilización de Facturación Masiva
             </h2>
             <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#8892b0", marginBottom: 24 }}>
               Óptima facturación de arrendamientos comerciales y timbrado SAT masivo sin middlewares.
@@ -813,7 +825,7 @@ export default function InteractionManager({
               {/* Left Column: Text & Evidence */}
               <div className="md:col-span-7 space-y-5" style={{ fontSize: 13, lineHeight: 1.7, color: "#a8b2d1", fontFamily: "var(--sans)" }}>
                 <p>
-                  APE Plazas, operador líder de centros comerciales con más de 1,200 locales activos en México, enfrentaba el colapso de su ciclo contable mensual debido a la lentitud en la facturación masiva. Su integrador anterior había dejado la configuración inconclusa, obligando a reconciliar el IVA y los folios fiscales del SAT en hojas de cálculo externas.
+                  Un operador líder de centros comerciales con más de 1,200 locales activos en México enfrentaba el colapso de su ciclo contable mensual debido a la lentitud en la facturación masiva. Su integrador anterior había dejado la configuración inconclusa, obligando a reconciliar el IVA y los folios fiscales del SAT en hojas de cálculo externas.
                 </p>
 
                 <blockquote style={{ borderLeft: "2px solid #C9A96E", paddingLeft: 16, margin: "16px 0", color: "#8892b0", fontStyle: "italic", fontFamily: "var(--mono)", fontSize: 11, lineHeight: 1.6 }}>
@@ -892,7 +904,7 @@ export default function InteractionManager({
           {/* Body content */}
           <div style={{ padding: "28px", overflowY: "auto", flex: 1 }}>
             <h2 style={{ fontFamily: "var(--serif)", fontSize: 28, color: "#ffffff", fontWeight: 400, marginBottom: 8, lineHeight: 1.2 }}>
-              Caso Aplazo: Remediación de Cuentas por Cobrar (AR)
+              Fintech: Remediación de Cuentas por Cobrar (AR)
             </h2>
             <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#8892b0", marginBottom: 24 }}>
               Estabilización y balanceo de subledgers con el Libro Mayor en un plazo récord de 8 semanas.
@@ -902,7 +914,7 @@ export default function InteractionManager({
               {/* Left Column: Text & Evidence */}
               <div className="md:col-span-7 space-y-5" style={{ fontSize: 13, lineHeight: 1.7, color: "#a8b2d1", fontFamily: "var(--sans)" }}>
                 <p>
-                  Aplazo, la plataforma BNPL líder en México, requería conciliar millones de cobros recurrentes mensuales sin generar inconsistencias de centavos en la contabilidad general de su ERP. Las discrepancias acumulaban descuadres que tardaban hasta 5 días hábiles en corregirse manualmente.
+                  La plataforma BNPL líder en México requería conciliar millones de cobros recurrentes mensuales sin generar inconsistencias de centavos en la contabilidad general de su ERP. Las discrepancias acumulaban descuadres que tardaban hasta 5 días hábiles en corregirse manualmente.
                 </p>
 
                 <blockquote style={{ borderLeft: "2px solid #C9A96E", paddingLeft: 16, margin: "16px 0", color: "#8892b0", fontStyle: "italic", fontFamily: "var(--mono)", fontSize: 11, lineHeight: 1.6 }}>

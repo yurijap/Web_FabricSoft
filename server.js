@@ -436,6 +436,26 @@ app.post(['/api/referencias/solicitar', '/api/nda/solicitar', '/api/leads/refere
   }
 });
 
+// Helpers para comparación de tiempo de México
+const getMexicoCityTime = () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); // YYYY-MM-DD
+  const timeStr = now.toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false }); // HH:MM
+  return { dateStr, timeStr };
+};
+
+function convert12hTo24h(time12h) {
+  if (!time12h) return "00:00";
+  const match = time12h.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return time12h;
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const ampm = match[3].toUpperCase();
+  if (ampm === 'PM' && hours < 12) hours += 12;
+  if (ampm === 'AM' && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
 // ================= RUTAS API PARA DISPONIBILIDAD DE CALENDARIO PÚBLICO =================
 app.get('/api/office-hours/disponibilidad/mes', async (req, res) => {
   try {
@@ -443,6 +463,8 @@ app.get('/api/office-hours/disponibilidad/mes', async (req, res) => {
     const y = parseInt(year) || new Date().getFullYear();
     const m = parseInt(month) || (new Date().getMonth() + 1);
     const daysInMonth = new Date(y, m, 0).getDate();
+    
+    const { dateStr: todayStr, timeStr: nowTimeStr } = getMexicoCityTime();
     
     // Todos los registros de OfficeHour en MongoDB
     const allOfficeHours = await OfficeHour.find();
@@ -452,9 +474,9 @@ app.get('/api/office-hours/disponibilidad/mes', async (req, res) => {
       item.estado === 'disponible' || item.fase === 99 || item.usuario === 'Slot Abierto por Admin'
     );
 
-    // Citas ya reservadas por clientes
+    // Citas ya reservadas por clientes (cualquier estado que no sea disponible ni cancelado)
     const bookedMeetings = allOfficeHours.filter(item => 
-      ['pendiente', 'confirmado', 'reservado'].includes((item.estado || '').toLowerCase()) && item.fase !== 99 && item.usuario !== 'Slot Abierto por Admin'
+      !['disponible', 'cancelado'].includes((item.estado || '').toLowerCase()) && item.fase !== 99 && item.usuario !== 'Slot Abierto por Admin'
     );
     const bookedSet = new Set(bookedMeetings.map(b => `${b.fecha} ${b.hora}`));
 
@@ -463,6 +485,13 @@ app.get('/api/office-hours/disponibilidad/mes', async (req, res) => {
 
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      
+      // Excluir fechas del pasado
+      if (dateStr < todayStr) {
+        monthData[dateStr] = 0;
+        continue;
+      }
+      
       const dayOfWeek = new Date(`${dateStr}T12:00:00`).getDay();
       
       // Excluir fines de semana (Sábado = 6, Domingo = 0)
@@ -475,12 +504,20 @@ app.get('/api/office-hours/disponibilidad/mes', async (req, res) => {
 
       if (customDaySlots.length > 0) {
         // Horarios específicos abiertos por el Admin para este día
-        const freeCount = customDaySlots.filter(s => !bookedSet.has(`${dateStr} ${s.hora}`)).length;
+        const freeCount = customDaySlots.filter(s => {
+          const isBooked = bookedSet.has(`${dateStr} ${s.hora}`);
+          const isPast = dateStr === todayStr && convert12hTo24h(s.hora) <= nowTimeStr;
+          return !isBooked && !isPast;
+        }).length;
         monthData[dateStr] = freeCount;
       } else if (adminOpenSlots.length === 0) {
         // Fallback: Si el Super Admin aún no abre slots específicos, habilitar horarios por defecto de L-V
         const dayBookings = bookedMeetings.filter(b => b.fecha === dateStr).map(b => b.hora);
-        const freeCount = defaultHours.filter(h => !dayBookings.includes(h)).length;
+        const freeCount = defaultHours.filter(h => {
+          const isBooked = dayBookings.includes(h);
+          const isPast = dateStr === todayStr && convert12hTo24h(h) <= nowTimeStr;
+          return !isBooked && !isPast;
+        }).length;
         monthData[dateStr] = freeCount;
       } else {
         // Si el admin ha abierto slots en otros días pero en este no, 0 disponibles
@@ -499,6 +536,12 @@ app.get('/api/office-hours/disponibilidad/dia', async (req, res) => {
     const { date } = req.query;
     const defaultHours = ['09:00 AM','09:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','02:00 PM','02:30 PM','03:00 PM','04:00 PM'];
     
+    const { dateStr: todayStr, timeStr: nowTimeStr } = getMexicoCityTime();
+    
+    if (date < todayStr) {
+      return res.json({ success: true, data: [] });
+    }
+    
     const allOfficeHours = await OfficeHour.find();
 
     const adminOpenSlots = allOfficeHours.filter(item => 
@@ -506,7 +549,7 @@ app.get('/api/office-hours/disponibilidad/dia', async (req, res) => {
     );
 
     const bookedMeetings = allOfficeHours.filter(item => 
-      item.fecha === date && ['pendiente', 'confirmado', 'reservado'].includes((item.estado || '').toLowerCase()) && item.fase !== 99 && item.usuario !== 'Slot Abierto por Admin'
+      item.fecha === date && !['disponible', 'cancelado'].includes((item.estado || '').toLowerCase()) && item.fase !== 99 && item.usuario !== 'Slot Abierto por Admin'
     );
     const bookedHours = new Set(bookedMeetings.map(b => b.hora));
 
@@ -525,7 +568,13 @@ app.get('/api/office-hours/disponibilidad/dia', async (req, res) => {
       taken: bookedHours.has(h)
     })).sort((a, b) => a.time.localeCompare(b.time));
 
-    res.json({ success: true, data: slots });
+    // Filtrar los que ya pasaron
+    const filteredSlots = slots.filter(slot => {
+      const isPastSlot = date === todayStr && convert12hTo24h(slot.time) <= nowTimeStr;
+      return !isPastSlot;
+    });
+
+    res.json({ success: true, data: filteredSlots });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
