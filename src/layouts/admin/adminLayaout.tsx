@@ -22,6 +22,7 @@ import {
   PanelLeftClose,
   ShieldCheck,
   UsersRound,
+  Sliders,
 } from 'lucide-react';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: '/admin/office-hours', label: 'Generar Citas', icon: CalendarClock },
       { path: '/admin/documentos', label: 'Solicitudes de Documentos', icon: FileText },
       { path: '/admin/validacion-directa', label: 'VALIDACIÓN DIRECTA', icon: ShieldCheck },
+      { path: '/admin/waitlist', label: 'Wait List', icon: Sliders },
     ],
   },
   {

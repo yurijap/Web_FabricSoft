@@ -133,6 +133,16 @@ const GeneralMeetingSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const WaitlistQuarterSchema = new mongoose.Schema({
+  quarter: String,
+  status: String,
+  label: String,
+  description: String,
+  deadline: String,
+  orden: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const Lead = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);
 const OfficeHour = mongoose.models.OfficeHour || mongoose.model('OfficeHour', OfficeHourSchema);
 const PaperRequest = mongoose.models.PaperRequest || mongoose.model('PaperRequest', PaperRequestSchema);
@@ -140,6 +150,7 @@ const ReferenciaRequest = mongoose.models.ReferenciaRequest || mongoose.model('R
 const ReferenciaItem = mongoose.models.ReferenciaItem || mongoose.model('ReferenciaItem', ReferenciaItemSchema);
 const CalendarSlot = mongoose.models.CalendarSlot || mongoose.model('CalendarSlot', CalendarSlotSchema);
 const GeneralMeeting = mongoose.models.GeneralMeeting || mongoose.model('GeneralMeeting', GeneralMeetingSchema);
+const WaitlistQuarter = mongoose.models.WaitlistQuarter || mongoose.model('WaitlistQuarter', WaitlistQuarterSchema);
 
 // Helper para sembrar datos demo iniciales si la BD está vacía
 async function seedInitialDataIfEmpty() {
@@ -215,6 +226,45 @@ async function seedInitialDataIfEmpty() {
       ]);
       console.log('🌱 Se sembraron las 5 referencias auditadas de Validación Directa');
     }
+
+    const quarterCount = await WaitlistQuarter.countDocuments();
+    if (quarterCount === 0) {
+      await WaitlistQuarter.insertMany([
+        {
+          quarter: 'Q1 2026',
+          status: 'closed',
+          label: 'Cerrado',
+          description: '3 proyectos aceptados',
+          deadline: 'Completo',
+          orden: 1
+        },
+        {
+          quarter: 'Q2 2026',
+          status: 'closed',
+          label: 'Cerrado',
+          description: '2 proyectos aceptados',
+          deadline: 'Completo',
+          orden: 2
+        },
+        {
+          quarter: 'Q3 2026',
+          status: 'open',
+          label: 'Abierto',
+          description: 'Evaluando aplicaciones',
+          deadline: 'Plazo · 30 julio',
+          orden: 3
+        },
+        {
+          quarter: 'Q4 2026',
+          status: 'upcoming',
+          label: 'Próximo',
+          description: 'Aplicaciones desde 01 sept',
+          deadline: 'Próximo',
+          orden: 4
+        }
+      ]);
+      console.log('🌱 Se sembraron los 4 trimestres iniciales en la Waitlist');
+    }
   } catch (err) {
     console.warn('Error al sembrar datos demo:', err.message);
   }
@@ -232,6 +282,7 @@ app.post('/api/admin/clear-db', async (req, res) => {
     await GeneralMeeting.deleteMany({});
     await PaperRequest.deleteMany({});
     await ReferenciaRequest.deleteMany({});
+    await WaitlistQuarter.deleteMany({});
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
   } catch (err) {
@@ -246,6 +297,7 @@ app.delete('/api/admin/clear-db', async (req, res) => {
     await GeneralMeeting.deleteMany({});
     await PaperRequest.deleteMany({});
     await ReferenciaRequest.deleteMany({});
+    await WaitlistQuarter.deleteMany({});
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
   } catch (err) {
@@ -301,6 +353,53 @@ app.delete(['/api/leads/admin/:id', '/api/leads/:id'], async (req, res) => {
   try {
     await Lead.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Lead eliminado' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= RUTAS API PARA WAITLIST QUARTERS =================
+app.get('/api/waitlist-quarters', async (req, res) => {
+  try {
+    const quarters = await WaitlistQuarter.find().sort({ orden: 1, createdAt: 1 });
+    res.json({ success: true, data: quarters });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/waitlist-quarters', async (req, res) => {
+  try {
+    const { quarter, status, label, description, deadline } = req.body;
+    const count = await WaitlistQuarter.countDocuments();
+    const newQuarter = new WaitlistQuarter({
+      quarter,
+      status: status || 'upcoming',
+      label: label || 'Próximo',
+      description: description || '',
+      deadline: deadline || 'Próximo',
+      orden: count + 1
+    });
+    const saved = await newQuarter.save();
+    res.status(201).json({ success: true, data: saved });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/admin/waitlist-quarters/:id', async (req, res) => {
+  try {
+    const updated = await WaitlistQuarter.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/admin/waitlist-quarters/:id', async (req, res) => {
+  try {
+    await WaitlistQuarter.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Trimestre de Waitlist eliminado' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -83,7 +83,7 @@ export default function DashboardPage() {
   const [rescheduling, setRescheduling] = useState(false);
   
   // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'inicio' | 'clientes' | 'reuniones' | 'referencias' | 'logs'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio' | 'clientes' | 'reuniones' | 'referencias' | 'waitlist' | 'logs'>('inicio');
   const [systemLogs, setSystemLogs] = useState<any[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -280,6 +280,7 @@ export default function DashboardPage() {
               { id: 'clientes', label: 'Leads & Aplicaciones', icon: Users },
               { id: 'reuniones', label: 'Office Hours & Citas', icon: Calendar },
               { id: 'referencias', label: 'Referencias NDA', icon: Shield },
+              { id: 'waitlist', label: 'Wait List', icon: Sliders },
               { id: 'logs', label: 'Logs del Sistema', icon: Database },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -434,8 +435,251 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {activeTab === 'waitlist' && (
+            <WaitlistAdminTab adminApi={adminApi} triggerToast={triggerToast} />
+          )}
         </main>
       </div>
+    </div>
+  );
+}
+
+function WaitlistAdminTab({ adminApi, triggerToast }: { adminApi: any, triggerToast: any }) {
+  const [quarters, setQuarters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editingQuarter, setEditingQuarter] = useState<any | null>(null);
+  const [quarterForm, setQuarterForm] = useState({
+    quarter: '',
+    status: 'upcoming',
+    label: 'Próximo',
+    description: 'Aplicaciones desde 01 sept',
+    deadline: 'Próximo'
+  });
+
+  const fetchQuarters = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.get('/waitlist-quarters');
+      if (res.data && res.data.success) {
+        setQuarters(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuarters();
+  }, []);
+
+  const handleAddNextQuarter = async () => {
+    let nextQuarterName = 'Q1 2026';
+    if (quarters.length > 0) {
+      const lastQ = quarters[quarters.length - 1].quarter;
+      const match = lastQ.match(/Q(\d)\s+(\d{4})/i);
+      if (match) {
+        let qNum = parseInt(match[1], 10);
+        let year = parseInt(match[2], 10);
+        if (qNum === 4) {
+          qNum = 1;
+          year += 1;
+        } else {
+          qNum += 1;
+        }
+        nextQuarterName = `Q${qNum} ${year}`;
+      }
+    }
+
+    try {
+      const res = await adminApi.post('/admin/waitlist-quarters', {
+        quarter: nextQuarterName,
+        status: 'upcoming',
+        label: 'Próximo',
+        description: 'Aplicaciones desde 01 sept',
+        deadline: 'Próximo'
+      });
+      if (res.data && res.data.success) {
+        triggerToast('Trimestre agregado con éxito: ' + nextQuarterName, 'success');
+        fetchQuarters();
+      }
+    } catch (err: any) {
+      triggerToast(err.response?.data?.error || 'Error al agregar trimestre', 'error');
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuarter) return;
+    try {
+      const res = await adminApi.put(`/admin/waitlist-quarters/${editingQuarter._id}`, quarterForm);
+      if (res.data && res.data.success) {
+        triggerToast('Trimestre actualizado con éxito', 'success');
+        setEditingQuarter(null);
+        fetchQuarters();
+      }
+    } catch (err: any) {
+      triggerToast(err.response?.data?.error || 'Error al guardar cambios', 'error');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar este trimestre?')) return;
+    try {
+      const res = await adminApi.delete(`/admin/waitlist-quarters/${id}`);
+      if (res.data && res.data.success) {
+        triggerToast('Trimestre eliminado', 'success');
+        fetchQuarters();
+      }
+    } catch (err: any) {
+      triggerToast(err.response?.data?.error || 'Error al eliminar', 'error');
+    }
+  };
+
+  const startEdit = (q: any) => {
+    setEditingQuarter(q);
+    setQuarterForm({
+      quarter: q.quarter,
+      status: q.status,
+      label: q.label,
+      description: q.description,
+      deadline: q.deadline
+    });
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6 text-slate-900">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <Sliders className="w-5 h-5 text-blue-600" /> Wait List (Quarters del Ciclo de Admisión)
+        </h3>
+        <button
+          type="button"
+          onClick={handleAddNextQuarter}
+          className="flex items-center gap-1.5 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-4 py-2 text-[10px] font-bold text-blue-600 rounded-xl transition-all cursor-pointer font-mono"
+        >
+          <Zap className="w-3.5 h-3.5" /> Agregar Trimestre (Incremental)
+        </button>
+      </div>
+
+      {editingQuarter && (
+        <form onSubmit={handleSaveEdit} className="p-4 border border-blue-200 bg-blue-50/30 rounded-xl space-y-4 font-mono text-xs">
+          <div className="flex justify-between items-center border-b border-blue-100 pb-2">
+            <span className="font-bold text-blue-600 uppercase">Editar: {editingQuarter.quarter}</span>
+            <button type="button" onClick={() => setEditingQuarter(null)} className="text-slate-400 hover:text-slate-600 font-bold">Cancelar</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] text-slate-500 uppercase block mb-1">Nombre Trimestre</label>
+              <input
+                type="text"
+                required
+                value={quarterForm.quarter}
+                onChange={e => setQuarterForm(p => ({ ...p, quarter: e.target.value }))}
+                className="w-full bg-white border border-slate-200 text-slate-900 p-2.5 rounded text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-500 uppercase block mb-1">Estado</label>
+              <select
+                value={quarterForm.status}
+                onChange={e => {
+                  const val = e.target.value;
+                  let lbl = 'Próximo';
+                  if (val === 'closed') lbl = 'Cerrado';
+                  if (val === 'open') lbl = 'Abierto';
+                  setQuarterForm(p => ({ ...p, status: val, label: lbl }));
+                }}
+                className="w-full bg-white border border-slate-200 text-slate-900 p-2.5 rounded text-xs outline-none focus:border-blue-500"
+              >
+                <option value="closed">closed (Cerrado)</option>
+                <option value="open">open (Abierto)</option>
+                <option value="upcoming">upcoming (Próximo)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-500 uppercase block mb-1">Descripción</label>
+              <input
+                type="text"
+                required
+                value={quarterForm.description}
+                onChange={e => setQuarterForm(p => ({ ...p, description: e.target.value }))}
+                className="w-full bg-white border border-slate-200 text-slate-900 p-2.5 rounded text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-500 uppercase block mb-1">Deadline / Plazo</label>
+              <input
+                type="text"
+                required
+                value={quarterForm.deadline}
+                onChange={e => setQuarterForm(p => ({ ...p, deadline: e.target.value }))}
+                className="w-full bg-white border border-slate-200 text-slate-900 p-2.5 rounded text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 font-bold rounded-xl transition-all cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" /> Guardar Cambios
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading && quarters.length === 0 ? (
+        <div className="text-center py-6 text-slate-400 font-mono">Cargando trimestres...</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500 font-mono">
+                <th className="pb-3 pr-2">Trimestre</th>
+                <th className="pb-3 pr-2">Estado</th>
+                <th className="pb-3 pr-2">Descripción</th>
+                <th className="pb-3 pr-2">Deadline / Plazo</th>
+                <th className="pb-3 pr-2 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {quarters.map((q) => (
+                <tr key={q._id} className="hover:bg-slate-50">
+                  <td className="py-3 pr-2 font-bold text-slate-900 font-mono">{q.quarter}</td>
+                  <td className="py-3 pr-2">
+                    <span className={`px-2 py-0.5 border text-[9px] uppercase font-bold tracking-wider rounded ${
+                      q.status === 'open'
+                        ? 'border-emerald-500/40 text-emerald-600 bg-emerald-50'
+                        : 'border-slate-200 text-slate-500 bg-slate-50'
+                    }`}>
+                      {q.label}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-2 text-slate-600 font-sans">{q.description}</td>
+                  <td className="py-3 pr-2 text-slate-600 font-mono">{q.deadline}</td>
+                  <td className="py-3 pr-2 text-right space-x-2">
+                    <button
+                      onClick={() => startEdit(q)}
+                      className="inline-flex items-center gap-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(q._id)}
+                      className="inline-flex items-center gap-1 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

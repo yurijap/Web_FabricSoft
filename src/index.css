@@ -290,7 +290,7 @@ html[data-theme="light"] {
     justify-content: center;
     gap: 12px;
     border: 1px solid var(--accent);
-    border-radius: 0;
+    border-radius: 4px;
     background: var(--accent);
     color: var(--bg-base);
     padding: 18px 36px;
@@ -320,7 +320,7 @@ html[data-theme="light"] {
     justify-content: center;
     gap: 12px;
     border: 1px solid var(--border-strong);
-    border-radius: 0;
+    border-radius: 4px;
     background: transparent;
     color: var(--text-primary);
     padding: 18px 36px;

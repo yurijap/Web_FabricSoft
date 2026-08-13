@@ -103,20 +103,32 @@ export default function S15Founder() {
   const [apiWaitlistCount, setApiWaitlistCount] = useState<number | null>(null);
 
   useEffect(() => {
+    // Fetch stats and capacity
     Promise.all([
-      api.get('/capacidad'),
-      api.get('/stats'),
+      api.get('/capacidad').catch(() => null),
+      api.get('/stats').catch(() => null),
     ])
       .then(([capRes, statsRes]) => {
-        const d = capRes.data.data;
-        const normalizedSlots = normalizeApiSlots(d.slots);
-        const normalizedQuarters = normalizeAdmissionQuarters(d.admissionQuarters);
-        if (normalizedSlots) setApiSlots(normalizedSlots);
-        if (normalizedQuarters) setApiAdmissionQuarters(normalizedQuarters);
-        if (d.deadlineQ3) setApiDeadline(normalizeDeadline(d.deadlineQ3, ctxDeadline));
+        if (capRes && capRes.data && capRes.data.data) {
+          const d = capRes.data.data;
+          const normalizedSlots = normalizeApiSlots(d.slots);
+          if (normalizedSlots) setApiSlots(normalizedSlots);
+          if (d.deadlineQ3) setApiDeadline(normalizeDeadline(d.deadlineQ3, ctxDeadline));
+        }
 
-        const waitlistCount = statsRes.data.data?.enListaEspera;
-        if (typeof waitlistCount === 'number') setApiWaitlistCount(waitlistCount);
+        if (statsRes && statsRes.data && statsRes.data.data) {
+          const waitlistCount = statsRes.data.data?.enListaEspera;
+          if (typeof waitlistCount === 'number') setApiWaitlistCount(waitlistCount);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch quarters
+    api.get('/waitlist-quarters')
+      .then(res => {
+        if (res.data && res.data.success && Array.isArray(res.data.data)) {
+          setApiAdmissionQuarters(res.data.data);
+        }
       })
       .catch(() => {});
   }, [ctxDeadline]);

@@ -2256,36 +2256,32 @@ function FounderManifestoInteractiveWidget() {
 }
 
 function WaitlistInteractiveWidget() {
-  const admissionQuarters = [
-    {
-      quarter: 'Q1 2026',
-      status: 'closed',
-      label: 'Cerrado',
-      description: '3 proyectos aceptados',
-      deadline: 'Completo'
-    },
-    {
-      quarter: 'Q2 2026',
-      status: 'closed',
-      label: 'Cerrado',
-      description: '2 proyectos aceptados',
-      deadline: 'Completo'
-    },
-    {
-      quarter: 'Q3 2026',
-      status: 'open',
-      label: 'Abierto',
-      description: 'Evaluando aplicaciones',
-      deadline: 'Plazo · 30 julio'
-    },
-    {
-      quarter: 'Q4 2026',
-      status: 'upcoming',
-      label: 'Próximo',
-      description: 'Aplicaciones desde 01 sept',
-      deadline: 'Próximo'
+  const [admissionQuarters, setAdmissionQuarters] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchQuarters() {
+      try {
+        const res = await api.get('/waitlist-quarters');
+        if (res.data && res.data.success && Array.isArray(res.data.data)) {
+          setAdmissionQuarters(res.data.data);
+        }
+      } catch (err) {
+        console.warn('Error fetching waitlist quarters:', err);
+      }
     }
+    fetchQuarters();
+  }, []);
+
+  const listToRender = admissionQuarters.length > 0 ? admissionQuarters : [
+    { quarter: 'Q1 2026', status: 'closed', label: 'Cerrado', description: '3 proyectos aceptados', deadline: 'Completo' },
+    { quarter: 'Q2 2026', status: 'closed', label: 'Cerrado', description: '2 proyectos aceptados', deadline: 'Completo' },
+    { quarter: 'Q3 2026', status: 'open', label: 'Abierto', description: 'Evaluando aplicaciones', deadline: 'Plazo · 30 julio' },
+    { quarter: 'Q4 2026', status: 'upcoming', label: 'Próximo', description: 'Aplicaciones desde 01 sept', deadline: 'Próximo' }
   ];
+
+  const openQuarter = listToRender.find(q => q.status === 'open');
+  const nextQuarterToShow = openQuarter ? openQuarter.quarter : (listToRender.find(q => q.status === 'upcoming')?.quarter || 'Q4 2026');
+  const deadlineLabel = openQuarter ? openQuarter.deadline : 'Próximo';
 
   return (
     <div className="font-mono text-xs space-y-12">
@@ -2294,18 +2290,18 @@ function WaitlistInteractiveWidget() {
         <div className="flex items-center gap-3">
           <span className="w-2.5 h-2.5 rounded-full bg-[#C9A96E] animate-pulse shrink-0" />
           <div>
-            <span className="text-zinc-400 uppercase text-[10px] block font-mono">Cierre Q3 2026</span>
+            <span className="text-zinc-400 uppercase text-[10px] block font-mono">Cierre {openQuarter ? openQuarter.quarter : 'Waitlist'}</span>
             <span className="text-white font-bold text-sm tracking-wider font-mono">00d 00h 00m 00s restantes</span>
           </div>
         </div>
         <span className="text-[10px] text-[#C9A96E] font-bold uppercase tracking-wider bg-black/60 border border-[#C9A96E]/30 px-3 py-1 rounded">
-          Plazo · 30 julio
+          {deadlineLabel}
         </span>
       </div>
 
       <div className="space-y-6">
         <div>
-          <span className="fabric-badge-premium mb-3 inline-block">Wait List · Q3 2026</span>
+          <span className="fabric-badge-premium mb-3 inline-block">Wait List · {nextQuarterToShow}</span>
           <h2 className="text-3xl md:text-5xl font-serif text-white font-light leading-tight">
             FABRIC opera con un máximo de <span className="text-[#C9A96E]">12 proyectos simultáneos.</span>
           </h2>
@@ -2322,7 +2318,7 @@ function WaitlistInteractiveWidget() {
           </div>
 
           <div className="space-y-1">
-            <span className="text-3xl font-serif text-[#C9A96E] font-light block">Q3 2026</span>
+            <span className="text-3xl font-serif text-[#C9A96E] font-light block">{nextQuarterToShow}</span>
             <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Próxima ventana</span>
           </div>
 
@@ -2335,11 +2331,11 @@ function WaitlistInteractiveWidget() {
         {/* Admission Cycle Table */}
         <div className="space-y-4">
           <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-            Ciclo de Admisión 2026
+            Ciclo de Admisión {nextQuarterToShow.split(' ')[1] || '2026'}
           </div>
 
           <div className="border border-zinc-800 bg-zinc-950/80 rounded-xl overflow-hidden divide-y divide-zinc-900">
-            {admissionQuarters.map((q) => (
+            {listToRender.map((q) => (
               <div key={q.quarter} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-zinc-900/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-white font-mono w-16">{q.quarter}</span>
@@ -2427,7 +2423,7 @@ export default function S02bPuente() {
           'radial-gradient(circle at 18% 14%, rgba(201,169,110,0.055), transparent 32%), radial-gradient(circle at 84% 72%, rgba(82,161,218,0.09), transparent 34%), var(--bg-base)',
         borderTop: '1px solid rgba(255,255,255,0.075)',
         borderBottom: '1px solid rgba(255,255,255,0.075)',
-        padding: 'clamp(88px, 9vw, 132px) 0',
+        padding: 'clamp(24px, 3vw, 40px) 0 clamp(88px, 9vw, 132px) 0',
       }}
     >
       <div
