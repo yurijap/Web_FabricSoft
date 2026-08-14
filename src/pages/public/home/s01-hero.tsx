@@ -908,7 +908,19 @@ export default function S01Hero() {
             </Link>
 
             <Link
-              to="/optimizador-oci"
+              to="/#radar-admision"
+              onClick={(e) => {
+                if (window.location.pathname === '/') {
+                  e.preventDefault();
+                  const target = document.getElementById('radar-admision');
+                  if (target) {
+                    const header = document.querySelector<HTMLElement>('header[data-no-translate]');
+                    const headerOffset = (header?.offsetHeight ?? 0) + 12;
+                    const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                  }
+                }
+              }}
               className="btn-primary min-w-[250px] max-sm:min-w-0"
             >
               {t("cta.audit")} <span className="text-[#C9A96E]">-&gt;</span>
