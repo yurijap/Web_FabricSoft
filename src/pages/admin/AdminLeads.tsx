@@ -169,9 +169,6 @@ export default function AdminLeads() {
                 Prospectos Registrados desde "Iniciar Evaluación" ({filteredLeads.length})
               </span>
             </div>
-            <span className="font-mono text-[9px] text-[#94A3B8] uppercase">
-              Sincronizado con MongoDB Atlas
-            </span>
           </div>
 
           <div className="overflow-x-auto">

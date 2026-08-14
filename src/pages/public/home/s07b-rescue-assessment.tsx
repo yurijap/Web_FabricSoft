@@ -244,13 +244,37 @@ export default function S07bRescueAssessment() {
   };
 
   const handleSubmit = async () => {
-    if (!validEmail) return;
+    console.log("Submit clicked (S07b)", { email, nombre, empresa, escenario, totalScore });
+    const trimmedEmail = email.trim();
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+    if (!isEmailValid) {
+      console.warn("Invalid email for submission (S07b):", trimmedEmail);
+      return;
+    }
     setSending(true);
-    const answersPayload = questions.map((question) => ({ questionId: question.id, score: answers[question.id] ?? 0 }));
+    const answersPayload = questions.map((question) => {
+      const score = answers[question.id] ?? 0;
+      const selectedOption = question.options.find(o => o.score === score);
+      return {
+        questionId: question.id,
+        questionText: question.text,
+        selectedOptionLabel: selectedOption ? selectedOption.label : '',
+        score: score
+      };
+    });
+    console.log("Answers payload prepared (S07b):", answersPayload);
     try {
-      await api.post('/rescue-assessment/submit', { email, nombre, empresa, escenario: escenario ?? 'fusion-fallando', answers: answersPayload });
-    } catch {
-      // El resultado público no se bloquea si el email o el CRM fallan.
+      const response = await api.post('/rescue-assessment/submit', { 
+        email: trimmedEmail, 
+        nombre, 
+        empresa, 
+        escenario: escenario ?? 'fusion-fallando', 
+        totalScore,
+        answers: answersPayload 
+      });
+      console.log("Submit response success (S07b):", response.data);
+    } catch (err) {
+      console.error("Submit API error (S07b):", err);
     } finally {
       setSeverity(getSeverity(totalScore, escenario ?? 'fusion-fallando'));
       setStep('result');
@@ -305,8 +329,18 @@ export default function S07bRescueAssessment() {
                         className="rescue-scenario-card"
                         style={{
                           background: isSelected ? 'rgba(201,169,110,0.08)' : 'rgba(255,255,255,0.02)',
-                          border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid rgba(255, 255, 255, 0.25)',
                           color: 'var(--text-primary)',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                          }
                         }}
                       >
                         <div className="rescue-scenario-card-top">
@@ -493,8 +527,8 @@ export default function S07bRescueAssessment() {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               <input type="email" placeholder="correo@empresa.com" value={email} onChange={(event) => setEmail(event.target.value)} style={{ padding: '13px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontFamily: 'var(--mono)', fontSize: 13, outline: 'none' }} />
-              <input type="text" placeholder="Nombre (opcional)" value={nombre} onChange={(event) => setNombre(event.target.value)} style={{ padding: '13px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontFamily: 'var(--mono)', fontSize: 13, outline: 'none' }} />
-              <input type="text" placeholder="Empresa (opcional)" value={empresa} onChange={(event) => setEmpresa(event.target.value)} style={{ padding: '13px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontFamily: 'var(--mono)', fontSize: 13, outline: 'none' }} />
+              <input type="text" placeholder="Nombre" value={nombre} onChange={(event) => setNombre(event.target.value)} style={{ padding: '13px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontFamily: 'var(--mono)', fontSize: 13, outline: 'none' }} />
+              <input type="text" placeholder="Empresa" value={empresa} onChange={(event) => setEmpresa(event.target.value)} style={{ padding: '13px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontFamily: 'var(--mono)', fontSize: 13, outline: 'none' }} />
             </div>
             <button
               onClick={handleSubmit}
@@ -543,9 +577,13 @@ export default function S07bRescueAssessment() {
               {severity.action}
             </div>
             <div className="rescue-result-ctas">
-              <a href="/office-hours" className="btn-primary" data-interaction="office-hours">
+              <button
+                type="button"
+                data-interaction="office-hours"
+                className="btn-primary cursor-pointer"
+              >
                 Solicitar evaluación detallada →
-              </a>
+              </button>
               <button onClick={handleReset} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '12px 20px', cursor: 'pointer' }}>
                 Reiniciar
               </button>

@@ -143,6 +143,21 @@ const WaitlistQuarterSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const RescueAssessmentSchema = new mongoose.Schema({
+  nombre: String,
+  email: String,
+  empresa: String,
+  escenario: String,
+  totalScore: Number,
+  answers: [{
+    questionId: String,
+    questionText: String,
+    selectedOptionLabel: String,
+    score: Number
+  }],
+  createdAt: { type: Date, default: Date.now }
+});
+
 const Lead = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);
 const OfficeHour = mongoose.models.OfficeHour || mongoose.model('OfficeHour', OfficeHourSchema);
 const PaperRequest = mongoose.models.PaperRequest || mongoose.model('PaperRequest', PaperRequestSchema);
@@ -151,6 +166,7 @@ const ReferenciaItem = mongoose.models.ReferenciaItem || mongoose.model('Referen
 const CalendarSlot = mongoose.models.CalendarSlot || mongoose.model('CalendarSlot', CalendarSlotSchema);
 const GeneralMeeting = mongoose.models.GeneralMeeting || mongoose.model('GeneralMeeting', GeneralMeetingSchema);
 const WaitlistQuarter = mongoose.models.WaitlistQuarter || mongoose.model('WaitlistQuarter', WaitlistQuarterSchema);
+const RescueAssessment = mongoose.models.RescueAssessment || mongoose.model('RescueAssessment', RescueAssessmentSchema);
 
 // Helper para sembrar datos demo iniciales si la BD está vacía
 async function seedInitialDataIfEmpty() {
@@ -283,6 +299,7 @@ app.post('/api/admin/clear-db', async (req, res) => {
     await PaperRequest.deleteMany({});
     await ReferenciaRequest.deleteMany({});
     await WaitlistQuarter.deleteMany({});
+    await RescueAssessment.deleteMany({});
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
   } catch (err) {
@@ -298,6 +315,7 @@ app.delete('/api/admin/clear-db', async (req, res) => {
     await PaperRequest.deleteMany({});
     await ReferenciaRequest.deleteMany({});
     await WaitlistQuarter.deleteMany({});
+    await RescueAssessment.deleteMany({});
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
   } catch (err) {
@@ -859,6 +877,44 @@ app.post('/api/office-hours/slots', async (req, res) => {
       }
     }
     res.status(201).json({ success: true, data: docs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= RUTAS API PARA RESCUE ASSESSMENT =================
+app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit'], async (req, res) => {
+  try {
+    const { nombre, email, empresa, escenario, totalScore, answers } = req.body;
+    const newSubmission = new RescueAssessment({
+      nombre: nombre || 'Anónimo',
+      email: email || '',
+      empresa: empresa || 'Empresa',
+      escenario: escenario || 'fusion-fallando',
+      totalScore: totalScore || 0,
+      answers: answers || []
+    });
+    const saved = await newSubmission.save();
+    console.log(`📋 Rescue Assessment guardado en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}]`);
+    res.status(201).json({ success: true, data: saved });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get(['/api/rescue-assessment/submissions', '/rescue-assessment/submissions'], async (req, res) => {
+  try {
+    const submissions = await RescueAssessment.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: submissions });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete(['/api/rescue-assessment/submissions/:id', '/rescue-assessment/submissions/:id'], async (req, res) => {
+  try {
+    await RescueAssessment.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Registro de Rescue Assessment eliminado' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -83,7 +83,7 @@ export default function DashboardPage() {
   const [rescheduling, setRescheduling] = useState(false);
   
   // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'inicio' | 'clientes' | 'reuniones' | 'referencias' | 'waitlist' | 'logs'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio' | 'clientes' | 'reuniones' | 'referencias' | 'waitlist' | 'rescue' | 'logs'>('inicio');
   const [systemLogs, setSystemLogs] = useState<any[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -281,6 +281,7 @@ export default function DashboardPage() {
               { id: 'reuniones', label: 'Office Hours & Citas', icon: Calendar },
               { id: 'referencias', label: 'Referencias NDA', icon: Shield },
               { id: 'waitlist', label: 'Wait List', icon: Sliders },
+              { id: 'rescue', label: 'Rescue Assessment', icon: CheckSquare },
               { id: 'logs', label: 'Logs del Sistema', icon: Database },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -438,6 +439,10 @@ export default function DashboardPage() {
 
           {activeTab === 'waitlist' && (
             <WaitlistAdminTab adminApi={adminApi} triggerToast={triggerToast} />
+          )}
+
+          {activeTab === 'rescue' && (
+            <RescueAssessmentAdminTab adminApi={adminApi} triggerToast={triggerToast} />
           )}
         </main>
       </div>
@@ -678,6 +683,185 @@ function WaitlistAdminTab({ adminApi, triggerToast }: { adminApi: any, triggerTo
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RescueAssessmentAdminTab({ adminApi, triggerToast }: { adminApi: any, triggerToast: any }) {
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
+
+  const fetchSubmissions = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.get('/rescue-assessment/submissions');
+      if (res.data && res.data.success) {
+        setSubmissions(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar este registro de diagnóstico?')) return;
+    try {
+      const res = await adminApi.delete(`/rescue-assessment/submissions/${id}`);
+      if (res.data && res.data.success) {
+        triggerToast('Registro de diagnóstico eliminado', 'success');
+        fetchSubmissions();
+      }
+    } catch (err: any) {
+      triggerToast(err.response?.data?.error || 'Error al eliminar', 'error');
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6 text-slate-900">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <CheckSquare className="w-5 h-5 text-blue-600" /> Oracle Fusion Rescue Assessment Submissions
+        </h3>
+        <button
+          type="button"
+          onClick={fetchSubmissions}
+          className="flex items-center gap-1.5 border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2 text-[10px] font-bold text-slate-700 rounded-xl transition-all cursor-pointer font-mono"
+        >
+          <RefreshCw className="w-3.5 h-3.5" /> Recargar
+        </button>
+      </div>
+
+      {loading && submissions.length === 0 ? (
+        <div className="text-center py-6 text-slate-400 font-mono">Cargando evaluaciones...</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500 font-mono">
+                <th className="pb-3 pr-2 font-semibold">Fecha</th>
+                <th className="pb-3 pr-2 font-semibold">Usuario</th>
+                <th className="pb-3 pr-2 font-semibold">Empresa</th>
+                <th className="pb-3 pr-2 font-semibold">Email</th>
+                <th className="pb-3 pr-2 font-semibold">Situación</th>
+                <th className="pb-3 pr-2 font-semibold">Score</th>
+                <th className="pb-3 pr-2 text-right font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {submissions.map((sub) => {
+                const dateStr = new Date(sub.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+                return (
+                  <tr key={sub._id} className="hover:bg-slate-50">
+                    <td className="py-3 pr-2 text-slate-600 font-mono">{dateStr}</td>
+                    <td className="py-3 pr-2 font-bold text-slate-900">{sub.nombre}</td>
+                    <td className="py-3 pr-2 text-slate-700">{sub.empresa}</td>
+                    <td className="py-3 pr-2 text-slate-600 font-mono">{sub.email}</td>
+                    <td className="py-3 pr-2">
+                      <span className="px-2 py-0.5 border text-[9px] uppercase font-bold tracking-wider rounded border-blue-200 text-blue-600 bg-blue-50">
+                        {sub.escenario === 'fusion-fallando' ? 'Fusion Fallando' : sub.escenario === 'migrando' ? 'Migrando a Oracle' : 'Greenfield'}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-2 font-bold text-slate-900 font-mono">{sub.totalScore ?? 0}</td>
+                    <td className="py-3 pr-2 text-right space-x-2">
+                      <button
+                        onClick={() => setSelectedSubmission(sub)}
+                        className="inline-flex items-center gap-1 border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-600 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer font-bold"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Ver Respuestas
+                      </button>
+                      <button
+                        onClick={() => handleDelete(sub._id)}
+                        className="inline-flex items-center gap-1 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {submissions.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-slate-400 font-mono">No hay evaluaciones registradas en el sistema.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedSubmission && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[99999]">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div>
+                <span className="text-[9px] font-mono text-blue-600 font-bold uppercase tracking-wider block">// RESPUESTAS DEL DIAGNÓSTICO</span>
+                <h4 className="text-sm font-bold text-slate-900 font-serif">{selectedSubmission.nombre} — {selectedSubmission.empresa}</h4>
+              </div>
+              <button 
+                onClick={() => setSelectedSubmission(null)}
+                className="p-1.5 border border-slate-200 hover:border-slate-300 text-slate-400 hover:text-slate-600 rounded-lg transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-5 text-slate-700">
+              <div className="grid grid-cols-2 gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50 font-mono text-[10px]">
+                <div>
+                  <span className="text-slate-400 block uppercase">Correo corporativo:</span>
+                  <span className="text-slate-900 font-bold">{selectedSubmission.email}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block uppercase">Puntaje total:</span>
+                  <span className="text-slate-900 font-bold">{selectedSubmission.totalScore} / 36</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block font-mono">Cuestionario Respondido</span>
+                <div className="space-y-3">
+                  {selectedSubmission.answers && selectedSubmission.answers.length > 0 ? (
+                    selectedSubmission.answers.map((ans: any, idx: number) => (
+                      <div key={idx} className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 space-y-1.5">
+                        <div className="flex justify-between items-start gap-3">
+                          <span className="font-semibold text-slate-900 text-xs">{idx + 1}. {ans.questionText || `Pregunta ID: ${ans.questionId}`}</span>
+                          <span className="font-mono text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded shrink-0">
+                            +{ans.score} pts
+                          </span>
+                        </div>
+                        <div className="text-xs text-blue-600 font-medium">
+                          Respuesta: <span className="text-slate-800">{ans.selectedOptionLabel || `Opción score: ${ans.score}`}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-slate-400 font-mono text-xs">No se enviaron respuestas detalladas.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setSelectedSubmission(null)}
+                className="border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer font-mono"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

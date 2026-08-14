@@ -23,6 +23,7 @@ const AdminOfficeHours = lazy(() => import('../pages/admin/AdminOfficeHours'));
 const AdminDocumentos = lazy(() => import('../pages/admin/AdminDocumentos'));
 const AdminValidacionDirecta = lazy(() => import('../pages/admin/AdminValidacionDirecta'));
 const AdminWaitlist = lazy(() => import('../pages/admin/AdminWaitlist'));
+const AdminRescueAssessment = lazy(() => import('../pages/admin/AdminRescueAssessment'));
 const AdminLogs = lazy(() => import('../pages/admin/AdminLogs'));
 
 // Páginas Públicas
@@ -200,6 +201,7 @@ export const AppRouter = () => {
               <Route path="documentos" element={<AdminDocumentos />} />
               <Route path="validacion-directa" element={<AdminValidacionDirecta />} />
               <Route path="waitlist" element={<AdminWaitlist />} />
+              <Route path="rescue-assessment" element={<AdminRescueAssessment />} />
               <Route path="logs" element={<AdminLogs />} />
             </Route>
           </Route>

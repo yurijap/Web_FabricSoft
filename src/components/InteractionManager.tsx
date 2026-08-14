@@ -693,7 +693,6 @@ export default function InteractionManager({
 
           <div style={{ padding: "12px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.1em" }}>Solo Días Hábiles (Lunes a Viernes) · CDMX</span>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.1em" }}>Sincronizado con MongoDB Atlas</span>
           </div>
         </div>
       )}

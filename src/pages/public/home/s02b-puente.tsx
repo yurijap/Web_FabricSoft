@@ -954,13 +954,7 @@ function AuditTrailInteractiveWidget() {
               </div>
 
               {/* Verifier block */}
-              <div className="border-t border-zinc-900 pt-6 mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <span className="text-[9px] text-zinc-500 block uppercase tracking-wider">Verificable bajo NDA</span>
-                  <span className="text-zinc-300 font-bold">{currentTrail.verifier}</span>
-                  <span className="text-zinc-500 text-[10px] font-sans ml-1">({currentTrail.verifierRole}, {currentTrail.verifierCompany})</span>
-                </div>
-
+              <div className="border-t border-zinc-900 pt-6 mt-6 flex flex-col sm:flex-row sm:items-center justify-end gap-4">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1264,6 +1258,46 @@ function RescueAssessmentInteractiveWidget() {
     return { level: 'CRÍTICO', color: 'text-red-500', desc: 'Crisis operativa activa. Tu implementación Oracle requiere intervención inmediata de ingenieros senior especializados en rescate.' };
   };
 
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = async () => {
+    console.log("Submit clicked", { email, nombre, empresa, escenario, totalScore });
+    const trimmedEmail = email.trim();
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+    if (!isEmailValid) {
+      console.warn("Invalid email for submission:", trimmedEmail);
+      return;
+    }
+    setSending(true);
+    const answersPayload = questions.map((question) => {
+      const score = answers[question.id] ?? 0;
+      const selectedOption = question.options.find(o => o.score === score);
+      return {
+        questionId: question.id,
+        questionText: question.text,
+        selectedOptionLabel: selectedOption ? selectedOption.label : '',
+        score: score
+      };
+    });
+    console.log("Answers payload prepared:", answersPayload);
+    try {
+      const response = await api.post('/rescue-assessment/submit', {
+        email: trimmedEmail,
+        nombre,
+        empresa,
+        escenario: escenario ?? 'fusion-fallando',
+        totalScore,
+        answers: answersPayload
+      });
+      console.log("Submit response success:", response.data);
+    } catch (err) {
+      console.error("Submit API error:", err);
+    } finally {
+      setSending(false);
+      setStep('result');
+    }
+  };
+
   const handleReset = () => {
     setStep('quiz');
     setStarted(false);
@@ -1304,11 +1338,24 @@ function RescueAssessmentInteractiveWidget() {
                   key={esc.id}
                   type="button"
                   onClick={() => setEscenario(esc.id)}
-                  className={`p-6 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                  className={`p-6 rounded-xl text-left flex flex-col justify-between transition-all cursor-pointer ${
                     isSelected
-                      ? 'border-[#C9A96E] bg-[#C9A96E]/10 shadow-[0_0_20px_rgba(201,169,110,0.15)]'
-                      : 'border-zinc-800 bg-zinc-950/60 hover:border-zinc-700'
+                      ? 'bg-[#C9A96E]/10 shadow-[0_0_20px_rgba(201,169,110,0.15)]'
+                      : 'bg-zinc-950/60'
                   }`}
+                  style={{
+                    border: isSelected ? '1px solid #C9A96E' : '1px solid rgba(255, 255, 255, 0.25)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                    }
+                  }}
                 >
                   <div className="space-y-3">
                     <span className={`text-[9px] uppercase tracking-widest font-bold block ${isSelected ? 'text-[#C9A96E]' : 'text-zinc-500'}`}>
@@ -1408,14 +1455,14 @@ function RescueAssessmentInteractiveWidget() {
             />
             <input
               type="text"
-              placeholder="Nombre (opcional)"
+              placeholder="Nombre"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               className="w-full p-3 bg-black border border-zinc-800 text-white rounded outline-none focus:border-[#C9A96E]"
             />
             <input
               type="text"
-              placeholder="Empresa (opcional)"
+              placeholder="Empresa"
               value={empresa}
               onChange={(e) => setEmpresa(e.target.value)}
               className="w-full p-3 bg-black border border-zinc-800 text-white rounded outline-none focus:border-[#C9A96E]"
@@ -1424,11 +1471,11 @@ function RescueAssessmentInteractiveWidget() {
 
           <button
             type="button"
-            onClick={() => setStep('result')}
-            disabled={!validEmail}
-            className={`fabric-btn-accent w-full py-3 text-xs font-bold uppercase ${!validEmail ? 'opacity-40 cursor-not-allowed border-zinc-800 text-zinc-600 bg-transparent' : ''}`}
+            onClick={handleSubmit}
+            disabled={!validEmail || sending}
+            className={`fabric-btn-accent w-full py-3 text-xs font-bold uppercase ${(!validEmail || sending) ? 'opacity-40 cursor-not-allowed border-zinc-800 text-zinc-600 bg-transparent' : ''}`}
           >
-            Ver diagnóstico →
+            {sending ? 'Procesando...' : 'Ver diagnóstico →'}
           </button>
         </div>
       )}
@@ -1443,9 +1490,13 @@ function RescueAssessmentInteractiveWidget() {
             {getSeverityLevel(totalScore).desc}
           </p>
           <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <a href="#office-hours" className="fabric-btn-accent text-xs px-6 py-3 font-bold uppercase">
+            <button
+              type="button"
+              data-interaction="office-hours"
+              className="fabric-btn-accent text-xs px-6 py-3 font-bold uppercase cursor-pointer"
+            >
               Solicitar evaluación detallada →
-            </a>
+            </button>
             <button
               type="button"
               onClick={handleReset}
@@ -2455,7 +2506,7 @@ export default function S02bPuente() {
       <div
         style={{
           position: 'relative',
-          maxWidth: 1180,
+          maxWidth: 1460,
           marginInline: 'auto',
           paddingInline: 'clamp(22px, 5vw, 56px)',
           opacity: 1,
@@ -2586,7 +2637,7 @@ export default function S02bPuente() {
               <button 
                 type="button"
                 data-interaction="office-hours"
-                className="fabric-btn-accent text-[10px] tracking-wider uppercase font-bold py-2 px-4 font-mono w-full sm:w-auto text-center cursor-pointer whitespace-nowrap"
+                className="fabric-btn-accent fabric-btn-radar-spec tracking-wider uppercase font-bold py-2 px-4 font-mono w-full sm:w-auto text-center cursor-pointer whitespace-nowrap"
               >
                 [ APLICAR A WAITLIST ]
               </button>
@@ -2659,7 +2710,7 @@ export default function S02bPuente() {
                 <button
                   type="button"
                   data-interaction="office-hours"
-                  className="fabric-btn-accent w-full justify-center gap-2 text-[10px] tracking-wider uppercase font-bold py-2.5 px-4 mt-2 font-mono flex items-center cursor-pointer whitespace-nowrap"
+                  className="fabric-btn-accent fabric-btn-radar-spec w-full justify-center gap-2 tracking-wider uppercase font-bold py-2.5 px-4 mt-2 font-mono flex items-center cursor-pointer whitespace-nowrap"
                 >
                   [ AGENDAR CITA DE INGENIERÍA ]
                   <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -3589,6 +3640,16 @@ export default function S02bPuente() {
           background: #C9A96E;
           color: #000;
           box-shadow: 0 0 20px rgba(201, 169, 110, 0.4);
+        }
+
+        .fabric-btn-radar-spec {
+          font-size: 10px;
+        }
+
+        @media (max-width: 640px) {
+          .fabric-btn-radar-spec {
+            font-size: 8px !important;
+          }
         }
       `}</style>
     </section>
