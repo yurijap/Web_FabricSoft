@@ -128,9 +128,6 @@ export default function AdminRescueAssessment() {
                 Listado de Diagnósticos Registrados ({filteredItems.length})
               </span>
             </div>
-            <span className="font-mono text-[9px] text-[#94A3B8] uppercase">
-              Colección: rescueassessments · MongoDB Atlas
-            </span>
           </div>
 
           <div className="overflow-x-auto">

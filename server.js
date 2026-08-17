@@ -107,6 +107,15 @@ const ReferenciaRequestSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const DoctrinaRequestSchema = new mongoose.Schema({
+  nombre: String,
+  email: String,
+  empresa: String,
+  cargo: String,
+  status: { type: String, default: 'Solicitado' },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const ReferenciaItemSchema = new mongoose.Schema({
   titulo: String,
   contexto: String,
@@ -162,6 +171,7 @@ const Lead = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);
 const OfficeHour = mongoose.models.OfficeHour || mongoose.model('OfficeHour', OfficeHourSchema);
 const PaperRequest = mongoose.models.PaperRequest || mongoose.model('PaperRequest', PaperRequestSchema);
 const ReferenciaRequest = mongoose.models.ReferenciaRequest || mongoose.model('ReferenciaRequest', ReferenciaRequestSchema);
+const DoctrinaRequest = mongoose.models.DoctrinaRequest || mongoose.model('DoctrinaRequest', DoctrinaRequestSchema);
 const ReferenciaItem = mongoose.models.ReferenciaItem || mongoose.model('ReferenciaItem', ReferenciaItemSchema);
 const CalendarSlot = mongoose.models.CalendarSlot || mongoose.model('CalendarSlot', CalendarSlotSchema);
 const GeneralMeeting = mongoose.models.GeneralMeeting || mongoose.model('GeneralMeeting', GeneralMeetingSchema);
@@ -300,6 +310,7 @@ app.post('/api/admin/clear-db', async (req, res) => {
     await ReferenciaRequest.deleteMany({});
     await WaitlistQuarter.deleteMany({});
     await RescueAssessment.deleteMany({});
+    await DoctrinaRequest.deleteMany({});
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
   } catch (err) {
@@ -316,6 +327,7 @@ app.delete('/api/admin/clear-db', async (req, res) => {
     await ReferenciaRequest.deleteMany({});
     await WaitlistQuarter.deleteMany({});
     await RescueAssessment.deleteMany({});
+    await DoctrinaRequest.deleteMany({});
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
   } catch (err) {
@@ -519,6 +531,53 @@ app.patch(['/api/admin/papers/:id/status', '/api/papers/admin/:id/status'], asyn
 app.delete(['/api/admin/papers/:id', '/api/papers/admin/:id'], async (req, res) => {
   try {
     await PaperRequest.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Solicitud eliminada' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= RUTAS API PARA DOCTRINA SOLICITADA =================
+app.get(['/api/admin/doctrina', '/api/doctrina/admin', '/api/doctrina/requests'], async (req, res) => {
+  try {
+    const requests = await DoctrinaRequest.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post(['/api/doctrina/solicitar', '/api/doctrina/request'], async (req, res) => {
+  try {
+    const { nombre, email, empresa, cargo } = req.body;
+    const newRequest = new DoctrinaRequest({
+      nombre: nombre || 'Solicitante',
+      email: email || '',
+      empresa: empresa || '',
+      cargo: cargo || '',
+      status: 'Solicitado'
+    });
+    const saved = await newRequest.save();
+    console.log(`📜 Solicitud de Doctrina guardada en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}]`);
+    res.status(201).json({ success: true, data: saved });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch(['/api/admin/doctrina/:id/status', '/api/doctrina/admin/:id/status'], async (req, res) => {
+  try {
+    const { status } = req.body;
+    const updated = await DoctrinaRequest.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete(['/api/admin/doctrina/:id', '/api/doctrina/admin/:id'], async (req, res) => {
+  try {
+    await DoctrinaRequest.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Solicitud eliminada' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

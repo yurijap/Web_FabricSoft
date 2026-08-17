@@ -3,7 +3,7 @@ import { api } from "../config/api";
 import { applyOfficeHoursFomoToMonth, applyOfficeHoursFomoToSlots, type MonthAvailability } from "../utils/officeHoursFomo";
 import { getInteractionTracking } from "../utils/tracking";
 
-type InteractionType = "proof" | "office-hours" | "reference" | "paper" | "waitlist" | "fabric-os" | "benchmark" | "nda-pdf" | "doctrina" | "case-ape" | "case-aplazo" | null;
+type InteractionType = "proof" | "office-hours" | "reference" | "paper" | "waitlist" | "fabric-os" | "benchmark" | "nda-pdf" | "doctrina" | "doctrina-detailed" | "case-ape" | "case-aplazo" | null;
 export type InteractionRequest = {
   type: Exclude<InteractionType, null>;
   date?: string | null;
@@ -138,7 +138,6 @@ export default function InteractionManager({
     let type: InteractionType = request.type;
     if (!type) return;
     if (type === "nda-pdf") type = "proof";
-    if (type === "doctrina") type = "reference";
     if (type === "benchmark") type = "reference";
     if (type === "waitlist") type = "reference";
 
@@ -781,17 +780,25 @@ export default function InteractionManager({
             </div>
           </div>
 
-          <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              onClick={() => {
+                openInteraction({ type: "doctrina-detailed", nonce: Date.now() });
+              }}
+              style={{ padding: "10px 18px", background: "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer" }}
+            >
+              Recibir Doctrina Detallada →
+            </button>
             <button
               onClick={() => {
                 close();
                 openInteraction({ type: "reference", nonce: Date.now() });
               }}
-              style={{ padding: "10px 18px", background: "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer" }}
+              style={{ padding: "10px 18px", background: "transparent", color: "var(--accent)", border: "1px solid var(--accent)", fontFamily: "var(--mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer" }}
             >
               Iniciar Evaluación →
             </button>
-            <button onClick={close} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.1em" }}>
+            <button onClick={close} style={{ marginLeft: "auto", padding: "8px 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.1em" }}>
               Cerrar
             </button>
           </div>
@@ -1220,6 +1227,107 @@ export default function InteractionManager({
                   Descargar PDF →
                 </a>
               )}
+              <button onClick={close} style={{ marginTop: 24, padding: "10px 24px", background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.2em", textTransform: "uppercase" }}>Cerrar</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── DOCTRINA DETALLADA ── */}
+      {active === "doctrina-detailed" && (
+        <div className="im-modal" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-strong)", maxWidth: 680, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "24px 28px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, width: 2, height: 40, background: "var(--accent)" }} />
+            <div style={{ paddingLeft: 16 }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 6 }}>Doctrina FABRIC · Acceso Completo</div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 26 }}>Recibir <em style={{ color: "var(--accent)" }}>doctrina detallada.</em></div>
+            </div>
+            <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 18, cursor: "pointer" }}>×</button>
+          </div>
+
+          {!submitted ? (
+            <>
+              <div style={{ padding: "24px 28px", flex: 1, overflowY: "auto" }}>
+                <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
+                  Ingresa tus datos corporativos para solicitar nuestra doctrina de ingeniería detallada.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Nombre Completo *</div>
+                      <input type="text" value={formData.nombre} onChange={e => setFormData(p => ({ ...p, nombre: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Cargo / Puesto *</div>
+                      <input type="text" value={formData.cargo} onChange={e => setFormData(p => ({ ...p, cargo: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Empresa *</div>
+                      <input type="text" value={formData.empresa} onChange={e => setFormData(p => ({ ...p, empresa: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Email Corporativo *</div>
+                      <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                        style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                {apiError && (
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#B85450", letterSpacing: "0.05em" }}>{apiError}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => openInteraction({ type: "doctrina", nonce: Date.now() })}
+                  style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.1em" }}
+                >
+                  ← Ver Cláusulas
+                </button>
+                <button
+                  disabled={loading}
+                  onClick={async () => {
+                    setApiError("");
+                    if (!formData.nombre || !formData.cargo || !formData.empresa || !formData.email) {
+                      setApiError("Completa todos los campos.");
+                      return;
+                    }
+                    setLoading(true);
+                    try {
+                      await api.post("/doctrina/solicitar", {
+                        nombre:  formData.nombre,
+                        cargo:   formData.cargo,
+                        empresa: formData.empresa,
+                        email:   formData.email
+                      });
+                      setSubmitted(true);
+                    } catch (err: unknown) {
+                      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+                      setApiError(msg ?? "Error al enviar. Intenta de nuevo.");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  style={{ marginLeft: "auto", padding: "13px 28px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
+                >
+                  {loading ? "Enviando..." : "Recibir doctrina detallada →"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: "48px 28px", textAlign: "center" }}>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 48, color: "var(--accent)", marginBottom: 16 }}>✓</div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 24, marginBottom: 12 }}>Solicitud <em>registrada.</em></div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.7 }}>
+                Tus datos han sido registrados en la consola de administración.<br />
+                Te enviaremos la doctrina detallada a <span style={{ color: "var(--accent)" }}>{formData.email}</span>.
+              </div>
               <button onClick={close} style={{ marginTop: 24, padding: "10px 24px", background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.2em", textTransform: "uppercase" }}>Cerrar</button>
             </div>
           )}

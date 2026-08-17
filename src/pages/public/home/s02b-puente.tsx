@@ -2863,7 +2863,7 @@ export default function S02bPuente() {
                 </p>
                 <button 
                   type="button"
-                  data-interaction="doctrina"
+                  data-interaction="doctrina-detailed"
                   className="fabric-btn-accent text-xs w-fit text-left cursor-pointer inline-flex items-center gap-2"
                 >
                   Ver doctrina detallada →

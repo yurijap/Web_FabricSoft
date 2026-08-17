@@ -25,6 +25,7 @@ const AdminValidacionDirecta = lazy(() => import('../pages/admin/AdminValidacion
 const AdminWaitlist = lazy(() => import('../pages/admin/AdminWaitlist'));
 const AdminRescueAssessment = lazy(() => import('../pages/admin/AdminRescueAssessment'));
 const AdminLogs = lazy(() => import('../pages/admin/AdminLogs'));
+const AdminDoctrina = lazy(() => import('../pages/admin/AdminDoctrina'));
 
 // Páginas Públicas
 import Home from '../pages/public/home/home';
@@ -203,6 +204,7 @@ export const AppRouter = () => {
               <Route path="waitlist" element={<AdminWaitlist />} />
               <Route path="rescue-assessment" element={<AdminRescueAssessment />} />
               <Route path="logs" element={<AdminLogs />} />
+              <Route path="doctrina" element={<AdminDoctrina />} />
             </Route>
           </Route>
 

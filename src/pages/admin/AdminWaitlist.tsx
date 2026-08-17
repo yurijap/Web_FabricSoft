@@ -221,9 +221,6 @@ export default function AdminWaitlist() {
                 Listado de Trimestres Registrados ({filteredItems.length})
               </span>
             </div>
-            <span className="font-mono text-[9px] text-[#94A3B8] uppercase">
-              Colección: waitlistquarters · MongoDB Atlas
-            </span>
           </div>
 
           <div className="overflow-x-auto">

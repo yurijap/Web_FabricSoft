@@ -1,30 +1,28 @@
 import { useState, useEffect } from 'react';
-import { FileText, Search, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, User, ShieldAlert, BookOpen } from 'lucide-react';
+import { FileText, Search, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, User, BookOpen } from 'lucide-react';
 import { useAuthApi } from '../../config/api';
 
-interface PaperRequestItem {
+interface DoctrinaRequestItem {
   _id: string;
   nombre: string;
   email: string;
   empresa: string;
   cargo?: string;
-  paperId: string;
   status: 'Solicitado' | 'Enviado' | string;
   createdAt: string;
 }
 
-export default function AdminDocumentos() {
+export default function AdminDoctrina() {
   const adminApi = useAuthApi();
-  const [requests, setRequests] = useState<PaperRequestItem[]>([]);
+  const [requests, setRequests] = useState<DoctrinaRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTab, setSelectedTab] = useState<'investigacion' | 'rescate' | 'todos'>('investigacion');
-  const [selected, setSelected] = useState<PaperRequestItem | null>(null);
+  const [selected, setSelected] = useState<DoctrinaRequestItem | null>(null);
   const [saving, setSaving] = useState(false);
 
   const fetchRequests = () => {
     setLoading(true);
-    adminApi.get('/admin/papers')
+    adminApi.get('/admin/doctrina')
       .then(res => {
         const data = res.data.data ?? [];
         setRequests(data);
@@ -40,7 +38,7 @@ export default function AdminDocumentos() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     setSaving(true);
     try {
-      await adminApi.patch(`/admin/papers/${id}/status`, { status: newStatus }).catch(() => null);
+      await adminApi.patch(`/admin/doctrina/${id}/status`, { status: newStatus }).catch(() => null);
       setRequests(prev => prev.map(r => r._id === id ? { ...r, status: newStatus } : r));
       if (selected?._id === id) setSelected(prev => prev ? { ...prev, status: newStatus } : null);
     } catch {
@@ -54,7 +52,7 @@ export default function AdminDocumentos() {
     if (!window.confirm('¿Estás seguro de eliminar este registro de la base de datos?')) return;
     setSaving(true);
     try {
-      await adminApi.delete(`/admin/papers/${id}`).catch(() => null);
+      await adminApi.delete(`/admin/doctrina/${id}`).catch(() => null);
       setRequests(prev => prev.filter(r => r._id !== id));
       if (selected?._id === id) setSelected(null);
     } catch {
@@ -65,37 +63,14 @@ export default function AdminDocumentos() {
     }
   };
 
-  // Filtrado según Tab seleccionada:
-  // - investigacion: Solicitudes de Papers desde la sección "Investigación"
-  // - rescate: Solicitudes desde "Rescate de Proyectos"
-  // - todos: Todas las solicitudes
-  const investigacionRequests = requests.filter(r => {
-    const p = (r.paperId || '').toLowerCase();
-    return !p.includes('rescate de proyecto');
-  });
-
-  const rescateRequests = requests.filter(r => {
-    const p = (r.paperId || '').toLowerCase();
-    return p.includes('rescate de proyecto');
-  });
-
-  const getListByTab = () => {
-    if (selectedTab === 'investigacion') return investigacionRequests;
-    if (selectedTab === 'rescate') return rescateRequests;
-    return requests;
-  };
-
-  const currentList = getListByTab();
-
-  const filteredRequests = currentList.filter(r => {
+  const filteredRequests = requests.filter(r => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return true;
     return (
       (r.nombre || '').toLowerCase().includes(term) ||
       (r.empresa || '').toLowerCase().includes(term) ||
       (r.email || '').toLowerCase().includes(term) ||
-      (r.cargo || '').toLowerCase().includes(term) ||
-      (r.paperId || '').toLowerCase().includes(term)
+      (r.cargo || '').toLowerCase().includes(term)
     );
   });
 
@@ -120,13 +95,13 @@ export default function AdminDocumentos() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 border border-[#C9A96E]/30 bg-[#C9A96E]/10 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-[#C9A96E] rounded-md">
-              <ShieldCheck size={13} /> FABRIC · SUPER ADMIN · SOLICITUDES DE DOCUMENTOS
+              <ShieldCheck size={13} /> FABRIC · SUPER ADMIN · SOLICITUDES DE DOCTRINA
             </div>
             <h1 className="text-2xl md:text-3xl font-serif font-bold text-white tracking-tight">
-              Solicitudes de Documentos y Papers
+              Solicitudes de Doctrina Detallada
             </h1>
             <p className="text-xs md:text-sm text-[#94A3B8] mt-1 font-sans">
-              Registro persistente en MongoDB Atlas de usuarios que solicitaron papers desde la sección "Investigación" y fichas de rescate de proyecto.
+              Registro persistente en MongoDB Atlas de usuarios que solicitaron la doctrina detallada.
             </p>
           </div>
 
@@ -148,45 +123,6 @@ export default function AdminDocumentos() {
       </div>
 
       <div className="p-6 md:p-8 space-y-6">
-        {/* Selector de Tablas */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-[#1E3A5F] pb-4">
-          <button
-            onClick={() => setSelectedTab('investigacion')}
-            className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-              selectedTab === 'investigacion'
-                ? 'bg-[#C9A96E] text-[#0B1F3A] shadow-md'
-                : 'bg-[#0E2747] border border-[#1E3A5F] text-[#94A3B8] hover:text-white'
-            }`}
-          >
-            <BookOpen size={15} />
-            <span>Tabla: Papers de Investigación ({investigacionRequests.length})</span>
-          </button>
-
-          <button
-            onClick={() => setSelectedTab('rescate')}
-            className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-              selectedTab === 'rescate'
-                ? 'bg-[#C9A96E] text-[#0B1F3A] shadow-md'
-                : 'bg-[#0E2747] border border-[#1E3A5F] text-[#94A3B8] hover:text-white'
-            }`}
-          >
-            <ShieldAlert size={15} />
-            <span>Tabla: Rescate de Proyectos ({rescateRequests.length})</span>
-          </button>
-
-          <button
-            onClick={() => setSelectedTab('todos')}
-            className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-              selectedTab === 'todos'
-                ? 'bg-[#C9A96E] text-[#0B1F3A] shadow-md'
-                : 'bg-[#0E2747] border border-[#1E3A5F] text-[#94A3B8] hover:text-white'
-            }`}
-          >
-            <FileText size={15} />
-            <span>Todas las Solicitudes ({requests.length})</span>
-          </button>
-        </div>
-
         {/* Buscador */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#0E2747] border border-[#1E3A5F] p-4 rounded-2xl shadow-lg">
           <div className="relative w-full sm:w-96">
@@ -195,7 +131,7 @@ export default function AdminDocumentos() {
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Buscar por cliente, empresa, email o paper..."
+              placeholder="Buscar por cliente, empresa, email..."
               className="w-full pl-10 pr-4 py-2.5 bg-[#07192F] border border-[#1E3A5F] rounded-xl text-xs text-white placeholder:text-[#94A3B8] font-mono focus:outline-none focus:border-[#C9A96E] transition"
             />
           </div>
@@ -215,19 +151,9 @@ export default function AdminDocumentos() {
         <div className="rounded-2xl border border-[#1E3A5F] bg-[#0E2747] shadow-xl overflow-hidden">
           <div className="p-4 border-b border-[#1E3A5F] bg-[#07192F] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {selectedTab === 'investigacion' ? (
-                <BookOpen size={16} className="text-[#C9A96E]" />
-              ) : selectedTab === 'rescate' ? (
-                <ShieldAlert size={16} className="text-[#C9A96E]" />
-              ) : (
-                <FileText size={16} className="text-[#C9A96E]" />
-              )}
+              <BookOpen size={16} className="text-[#C9A96E]" />
               <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">
-                {selectedTab === 'investigacion'
-                  ? 'Tabla: Papers de Investigación ("Lo que aprendemos en producción. Lo publicamos.")'
-                  : selectedTab === 'rescate'
-                  ? 'Tabla: Rescate de Proyectos'
-                  : 'Todas las Solicitudes de Documentos'} ({filteredRequests.length})
+                Tabla de Registrados ({filteredRequests.length})
               </span>
             </div>
           </div>
@@ -242,7 +168,7 @@ export default function AdminDocumentos() {
                 <BookOpen size={32} className="mx-auto text-[#1E3A5F]" />
                 <div className="font-serif text-base font-bold text-white">Sin registros en esta tabla</div>
                 <p className="text-xs text-[#94A3B8] font-mono max-w-sm mx-auto">
-                  {searchTerm ? 'No se encontraron resultados para la búsqueda.' : 'No hay solicitudes registradas en esta categoría todavía.'}
+                  {searchTerm ? 'No se encontraron resultados para la búsqueda.' : 'No hay solicitudes registradas todavía.'}
                 </p>
               </div>
             ) : (
@@ -252,7 +178,6 @@ export default function AdminDocumentos() {
                     <th className="py-3.5 px-5">Solicitante</th>
                     <th className="py-3.5 px-5">Empresa / Cargo</th>
                     <th className="py-3.5 px-5">Email Corporativo</th>
-                    <th className="py-3.5 px-5">Paper / Documento</th>
                     <th className="py-3.5 px-5">Fecha</th>
                     <th className="py-3.5 px-5">Estado</th>
                     <th className="py-3.5 px-5 text-right">Acciones</th>
@@ -286,10 +211,6 @@ export default function AdminDocumentos() {
                             <Mail size={12} className="text-[#94A3B8] shrink-0" />
                             <span className="truncate">{r.email}</span>
                           </div>
-                        </td>
-
-                        <td className="py-4 px-5 font-mono text-[#C9A96E] font-semibold">
-                          <div className="max-w-xs truncate">{r.paperId}</div>
                         </td>
 
                         <td className="py-4 px-5 font-mono text-[10px] text-[#94A3B8]">
@@ -354,7 +275,7 @@ export default function AdminDocumentos() {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-mono text-[9px] text-[#C9A96E] tracking-widest uppercase mb-1">
-                    Ficha de Solicitud de Paper / Documento
+                    Ficha de Solicitud de Doctrina Detallada
                   </div>
                   <div className="font-serif text-2xl font-bold text-white">{selected.nombre}</div>
                   <div className="font-mono text-xs text-[#94A3B8] mt-0.5">{selected.empresa}</div>
@@ -368,29 +289,17 @@ export default function AdminDocumentos() {
               </div>
             </div>
 
-            <div className="bg-[#07192F] border border-[#1E3A5F] rounded-2xl p-5 space-y-3">
-              <div className="font-mono text-[9px] font-bold text-[#94A3B8] tracking-widest uppercase">
-                Paper / Documento Requerido
-              </div>
-              <div className="font-serif text-xl font-bold text-[#C9A96E]">
-                {selected.paperId}
-              </div>
-              <div className="font-mono text-[10px] text-slate-400">
-                Fecha de registro: {fmtDate(selected.createdAt)}
-              </div>
-            </div>
-
             <div className="space-y-3 pt-2">
               <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#C9A96E] mb-2">
-                Datos del Solicitante Capturados
+                Datos Capturados
               </div>
               {([
                 ['Nombre completo', selected.nombre],
                 ['Empresa', selected.empresa],
                 ['Email corporativo', selected.email],
                 ['Cargo / Puesto', selected.cargo || '—'],
-                ['Paper Solicitado', selected.paperId],
                 ['Estado actual', selected.status || 'Solicitado'],
+                ['Fecha de registro', fmtDate(selected.createdAt)],
               ] as [string, string][]).map(([k, v]) => (
                 <div key={k} className="flex justify-between items-center py-2.5 border-b border-[#1E3A5F]/60 text-xs font-mono">
                   <span className="text-[#94A3B8] uppercase text-[9px]">{k}</span>

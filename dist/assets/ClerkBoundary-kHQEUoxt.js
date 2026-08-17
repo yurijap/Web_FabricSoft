@@ -1,1 +1,0 @@
-import{j as r,C as a,d as e,e as o}from"./react-B0MrAaLD.js";import{O as s}from"./react-router-CjqpA5D0.js";const t="pk_test_Y2hhcm1lZC1idW5ueS0xMy5jbGVyay5hY2NvdW50cy5kZXYk";function c(){return r.jsx(a,{publishableKey:t,localization:o,appearance:{baseTheme:e.dark,variables:{colorPrimary:"#ffffff",colorBackground:"#111111"}},children:r.jsx(s,{})})}export{c as default};

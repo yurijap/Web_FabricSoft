@@ -234,9 +234,6 @@ export default function AdminValidacionDirecta() {
                 Referencias Auditadas Mostradas en la Página Principal ({filteredItems.length} / 5)
               </span>
             </div>
-            <span className="font-mono text-[9px] text-[#94A3B8] uppercase">
-              Colección: referencias · MongoDB Atlas
-            </span>
           </div>
 
           <div className="overflow-x-auto">
