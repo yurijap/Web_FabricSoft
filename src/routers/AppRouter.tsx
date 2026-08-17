@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { useEffect, Suspense, lazy } from 'react';
 
 import PublicLayout from '../layouts/public/publicLayaout';
+import { ProtectorRoles } from '../auth/ProtecteRoles';
 
 // Lazy cargar ClerkBoundary y Pantallas de Login/Acceso
 const ClerkBoundary = lazy(() => import('../auth/ClerkBoundary'));
@@ -191,10 +192,24 @@ export const AppRouter = () => {
             <Route path="/admin/login" element={<Navigate to="/acceso" replace />} />
 
             {/* Dashboard General */}
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectorRoles rolesPermitidos={['admin', 'superadmin']}>
+                  <DashboardPage />
+                </ProtectorRoles>
+              } 
+            />
 
             {/* Consola de Administración FABRIC */}
-            <Route path="/admin" element={<AdminLayout />}>
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectorRoles rolesPermitidos={['admin', 'superadmin']}>
+                  <AdminLayout />
+                </ProtectorRoles>
+              }
+            >
               <Route index element={<AdminDashboard />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="leads" element={<AdminLeads />} />

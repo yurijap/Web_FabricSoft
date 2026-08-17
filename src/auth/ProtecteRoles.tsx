@@ -1,5 +1,6 @@
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { LoaderPersonalizado } from '../components/ui/LoaderPersonalizado';
 
 
 const normalizarRol = (rol?: string) => (rol || '').toLowerCase();
@@ -27,7 +28,7 @@ export const ProtectorRoles = ({
 
 
   if (!authLoaded || !userLoaded) {
-    return <div className="flex justify-center p-10">Verificando gafete...</div>;
+    return <LoaderPersonalizado mensaje="Verificando credenciales..." pantallaCompleta={true} />;
   }
 
   if (!isSignedIn) {
