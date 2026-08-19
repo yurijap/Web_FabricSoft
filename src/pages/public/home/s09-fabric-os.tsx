@@ -53,7 +53,7 @@ const fsos: FSOItem[] = [
     statusClass: "available",
     name: "Rapid GL Close",
     desc: "Cierre contable acelerado · 10-15 días → 3-5 días",
-    validation: "Validado · APE Plazas",
+    validation: "Validado en Producción",
     version: "v1.2",
     tiempo: "4 semanas",
     costo: "USD 35K"
@@ -64,7 +64,7 @@ const fsos: FSOItem[] = [
     statusClass: "available",
     name: "Multi-Entity Retail Ops",
     desc: "Operación multi-plaza · Consolidación multi-entidad",
-    validation: "Validado · APE Plazas",
+    validation: "Validado en Producción",
     version: "v1.0",
     tiempo: "6 semanas",
     costo: "USD 45K"
@@ -75,7 +75,7 @@ const fsos: FSOItem[] = [
     statusClass: "building",
     name: "Fintech Controls Pack",
     desc: "Compliance regulatorio · CNBV / CONDUSEF",
-    validation: "Aplicado · Aplazo",
+    validation: "Aplicado en Fintech",
     version: "v0.9 beta",
     tiempo: "8 semanas",
     costo: "USD 55K"

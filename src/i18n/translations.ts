@@ -23,7 +23,7 @@ export const translations = {
 'hero.h2.gold': 'Y no nos vamos hasta que tu primer cierre contable opere.',
 
 'hero.body.part1': 'El 73% de las implementaciones Oracle Fusion celebran el "go-live" y abandonan al cliente con cierres contables pesados, reportes manuales paralelos e incidencias críticas abiertas.',
-'hero.body.part2': 'Nosotros nos quedamos en tu trinchera operativa hasta que tu primer ciclo crítico —sea cierre contable o facturación masiva— opera en producción sin incidencias.',
+'hero.body.part2': 'Nosotros nos quedamos en tu trinchera operativa hasta que tu primer ciclo crítico —sea cierre contable o facturación masiva— opere en producción sin incidencias.',
 'hero.body.contract': '[ POR CONTRATO ]',
 
 'hero.migrations': 'Fusion Cloud · SAP/EBS/JDE Migration · Rescue · Stabilization',
@@ -31,7 +31,7 @@ export const translations = {
 'hero.type.1.base': 'No vendemos horas. ',
 'hero.type.1.gold': 'asumimos responsabilidad operativa.',
 
-'hero.type.2.base': 'No entregamos pantallas. ',
+'hero.type.2.base': 'No entregamos pantallas, ',
 'hero.type.2.gold': 'entregamos ciclos críticos funcionando.',
 
 'hero.type.3.base': 'Si queda operación manual atribuible a FABRIC, ',

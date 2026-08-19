@@ -8,20 +8,21 @@ type SectionItem = {
 };
 
 const sections: SectionItem[] = [
-  { id: "inicio", label: "Hero", number: "01" },
-  { id: "radar-admision", label: "Radar de Admisión", number: "02" },
-  { id: "comparadores", label: "Comparadores", number: "03" },
-  { id: "doctrina-operativa", label: "Doctrina Operativa", number: "04" },
-  { id: "casos-ancla", label: "Casos Ancla", number: "05" },
-  { id: "audit-trail-section", label: "Casos Auditables", number: "06" },
-  { id: "industrias-focales", label: "Industrias Focales", number: "07" },
-  { id: "rescue-assessment-section", label: "Rescue Assessment", number: "08" },
-  { id: "referencias", label: "Validación Directa", number: "09" },
-  { id: "transparencia", label: "Transparencia", number: "10" },
-  { id: "investigacion-section", label: "Investigación", number: "11" },
-  { id: "apply-reverse-section", label: "Evaluación Proyectos", number: "12" },
-  { id: "founder-manifesto-section", label: "Manifiesto Fundador", number: "13" },
-  { id: "waitlist-section", label: "Wait List 2026", number: "14" },
+  { id: "inicio", label: "Por qué FABRIC", number: "01" },
+  { id: "radar-admision", label: "MESA TÉCNICA 1-ON-1", number: "02" },
+  { id: "comparadores", label: "COMPARADOR", number: "03" },
+  { id: "infra-cost-simulator", label: "INFRASTRUCTURE LAYER", number: "04" },
+  { id: "doctrina-operativa", label: "DOCTRINA OPERATIVA", number: "05" },
+  { id: "casos-ancla", label: "CASOS ANCLA", number: "06" },
+  { id: "audit-trail-section", label: "CASOS DE ÉXITO AUDITABLES", number: "07" },
+  { id: "industrias-focales", label: "Industrias Focales", number: "08" },
+  { id: "rescue-assessment-section", label: "Oracle Fusion Rescue Assessment", number: "09" },
+  { id: "referencias", label: "VALIDACIÓN DIRECTA", number: "10" },
+  { id: "transparencia", label: "TRANSPARENCIA", number: "11" },
+  { id: "investigacion-section", label: "Investigación", number: "12" },
+  { id: "apply-reverse-section", label: "EVALUACIÓN DE PROYECTOS", number: "13" },
+  { id: "founder-manifesto-section", label: "Manifiesto del Fundador", number: "14" },
+  { id: "waitlist-section", label: "Wait List · Q4 2026", number: "15" },
 ];
 
 const legacyHashAliases: Record<string, string> = {
@@ -79,14 +80,7 @@ function DesktopSectionNavigator() {
     let ticking = false;
 
     const updateActiveSection = () => {
-      const hashId = getCanonicalHashId();
-      if (window.location.pathname === "/" && isKnownSection(hashId)) {
-        setActiveSection(hashId);
-        ticking = false;
-        return;
-      }
-
-      const scrollPosition = window.scrollY + getHeaderOffset() + 80;
+      const scrollPosition = window.scrollY + (window.innerHeight * 0.45);
       let nextSection = sections[0].id;
 
       sections.forEach((section) => {
@@ -144,31 +138,14 @@ function DesktopSectionNavigator() {
 
   return (
     <aside className="fixed right-4 lg:right-6 top-1/2 z-50 hidden -translate-y-1/2 lg:block pointer-events-none">
-      <nav className="relative flex flex-col items-center gap-4 py-6 pointer-events-auto">
+      <nav className="relative flex flex-col items-center gap-2 py-4 pointer-events-auto">
         <div className="absolute left-1/2 top-0 bottom-0 w-[1px] -translate-x-1/2 bg-gradient-to-b from-transparent via-[#2A2A2A] to-transparent opacity-80" />
 
         {sections.map((section) => {
           const isActive = activeSection === section.id;
 
           return (
-            <div key={section.id} className="relative group flex items-center justify-center w-6 h-6">
-              <div
-                className={`
-                  absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-3
-                  opacity-0 translate-x-2 pointer-events-none transition-all duration-300 ease-out
-                  group-hover:opacity-100 group-hover:translate-x-0
-                `}
-              >
-                <div className="bg-[#0A0A0A]/90 backdrop-blur-md border border-[#2A2A2A] px-3 py-2 rounded-sm flex flex-col items-end whitespace-nowrap shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
-                  <span className="font-mono text-[8px] text-[#C9A96E] font-bold tracking-[0.2em] uppercase leading-none mb-1.5">
-                    {section.number}
-                  </span>
-                  <span className="font-sans text-[11px] text-[#F5F5F5] leading-none">
-                    {section.label}
-                  </span>
-                </div>
-                <div className="w-4 h-[1px] bg-[#2A2A2A]" />
-              </div>
+            <div key={section.id} className="relative group flex items-center justify-center w-4 h-4">
 
               <button
                 type="button"
@@ -190,8 +167,8 @@ function DesktopSectionNavigator() {
                   className={`
                     rounded-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
                     ${isActive
-                      ? "w-1.5 h-1.5 bg-[#C9A96E] shadow-[0_0_8px_rgba(201,169,110,0.8)]"
-                      : "w-1 h-1 bg-[#444] group-hover:w-1.5 group-hover:h-1.5 group-hover:bg-[#C9A96E]"
+                      ? "w-1 h-1 bg-[#C9A96E] shadow-[0_0_8px_rgba(201,169,110,0.8)]"
+                      : "w-0.5 h-0.5 bg-[#444] group-hover:w-1 group-hover:h-1 group-hover:bg-[#C9A96E]"
                     }
                   `}
                 />

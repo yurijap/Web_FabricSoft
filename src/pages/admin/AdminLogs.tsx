@@ -45,8 +45,27 @@ export default function AdminLogs() {
   const [error, setError]     = useState('');
   const [page, setPage]       = useState(1);
   const [total, setTotal]     = useState(0);
+  const [statusInfo, setStatusInfo] = useState<{
+    dbStatus: string;
+    apiStatus: string;
+    authStatus: string;
+  } | null>(null);
   const limit = 50;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cargarStatus = async () => {
+    try {
+      const res = await api.get('/status/admin');
+      setStatusInfo(res.data);
+    } catch (e) {
+      console.error('Error cargando status del sistema', e);
+      setStatusInfo({
+        dbStatus: 'ERROR',
+        apiStatus: 'ERROR',
+        authStatus: 'ACTIVO'
+      });
+    }
+  };
 
   const cargar = async (cat: string, p: number) => {
     setLoading(true);
@@ -59,6 +78,7 @@ export default function AdminLogs() {
       const res = await api.get(`/logs/admin?${query}`);
       setLogs(res.data.data || []);
       setTotal(res.data.total || 0);
+      await cargarStatus();
     } catch {
       setError('Error cargando logs.');
     } finally {
@@ -69,6 +89,7 @@ export default function AdminLogs() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     cargar(filter, page);
+    cargarStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,7 +101,10 @@ export default function AdminLogs() {
 
   // Auto-refresh cada 30 s
   useEffect(() => {
-    timerRef.current = setInterval(() => cargar(filter, page), 30_000);
+    timerRef.current = setInterval(() => {
+      cargar(filter, page);
+      cargarStatus();
+    }, 30_000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [filter, page]);
 
@@ -99,6 +123,40 @@ export default function AdminLogs() {
             <p className="text-xs md:text-sm text-[#94A3B8] mt-1 font-sans">
               Registro no editable · {total} logs en el sistema. Autorefresco cada 30 segundos.
             </p>
+
+            <div className="mt-4 flex flex-wrap gap-3 items-center">
+              <div className="flex items-center gap-2 bg-[#0E2747] border border-[#1E3A5F] px-3 py-1.5 rounded-xl text-xs">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-[#94A3B8]">MongoDB:</span>
+                <span className={`inline-flex items-center gap-1.5 font-bold font-mono text-[10px] ${
+                  statusInfo?.dbStatus === 'CONECTADO' ? 'text-emerald-400' : 'text-rose-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    statusInfo?.dbStatus === 'CONECTADO' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                  }`} />
+                  {statusInfo?.dbStatus || 'CARGANDO'}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2 bg-[#0E2747] border border-[#1E3A5F] px-3 py-1.5 rounded-xl text-xs">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-[#94A3B8]">API Gateway:</span>
+                <span className={`inline-flex items-center gap-1.5 font-bold font-mono text-[10px] ${
+                  statusInfo?.apiStatus === 'OPERATIVO' ? 'text-emerald-400' : 'text-rose-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    statusInfo?.apiStatus === 'OPERATIVO' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                  }`} />
+                  {statusInfo?.apiStatus || 'CARGANDO'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#0E2747] border border-[#1E3A5F] px-3 py-1.5 rounded-xl text-xs">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-[#94A3B8]">Clerk Auth:</span>
+                <span className="inline-flex items-center gap-1.5 font-bold font-mono text-[10px] text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  ACTIVO
+                </span>
+              </div>
+            </div>
           </div>
           <div className="flex gap-3">
             <button

@@ -32,7 +32,7 @@ const cases: CaseData[] = [
   {
     id: "ape-plazas",
     tag: "Caso Ancla · Abril 2026",
-    title: "APE Plazas",
+    title: "Caso Inmobiliario",
     subtitle: "Implementación Oracle Fusion Cloud en operadora de centros comerciales",
     status: "En Producción",
     href: "/casos/ape-plazas",
@@ -54,7 +54,7 @@ const cases: CaseData[] = [
   {
     id: "aplazo",
     tag: "Caso de Rescate · Fintech",
-    title: "Aplazo",
+    title: "Caso Fintech",
     subtitle: "Rescate de implementación Oracle Fusion en fintech regulada de crédito al consumo",
     status: "Bajo NDA",
     href: "/casos/aplazo",

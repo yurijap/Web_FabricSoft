@@ -31,7 +31,7 @@ const FALLBACK_PAPERS: HomePaper[] = [
     tag: "Technical Framework · IA",
     title: "IA aplicada a cierre contable en Fusion Cloud",
     abstract: "Framework FABRIC con cuatro capas operativas. Casos de aplicación por industria. Arquitectura técnica reutilizable.",
-    toc: ["Anatomía del cierre contable", "Capa de agentes IA aplicables", "Casos APE Plazas + Aplazo"],
+    toc: ["Anatomía del cierre contable", "Capa de agentes IA aplicables", "Casos de éxito reales"],
     meta: [["10-12 pp", "Páginas"], ["PDF · ES", "Formato"], ["20 min", "Lectura"], ["May 2026", "Publicado"]]
   },
   {

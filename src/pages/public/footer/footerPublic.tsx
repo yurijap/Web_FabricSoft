@@ -13,44 +13,25 @@ const showComingSoon = () => {
 };
 
 const footerLinks: Record<string, FooterLink[]> = {
-  sitio: [
-    { label: 'Inicio',            path: '/#inicio' },
-    { label: 'Doctrina',          path: '/#doctrina-operativa' },
-    { label: 'Industrias',        path: '/#industrias-focales' },
-    { label: 'Transparencia',     path: '/transparencia' },
-    { label: 'Investigación',     path: '/#investigacion-section' },
-    { label: 'Modelos',           path: '/modelos' },
-    { label: 'Aplicar',           path: '/aplicar' },
+  doctrina: [
+    { label: 'Doctrina Operativa',      path: '/#doctrina-operativa' },
+    { label: 'Manifiesto del Fundador', path: '/#founder-manifesto-section' },
+    { label: 'Modelo de No-Alineación', path: '/doctrina/no-alineacion' },
   ],
-  casos: [
-    { label: 'Historial de casos',        path: '/#casos-ancla' },
-    { label: 'APE Plazas',               path: '/casos/ape-plazas' },
-    { label: 'Aplazo',                   path: '/casos/aplazo' },
-    { label: 'Referencias',              path: '/#referencias' },
-    { label: 'Rescue Assessment',        path: '/#rescue-assessment-section' },
-    { label: 'Apply Reverse',             path: '/rechazados' },
+  comparadores: [
+    { label: 'ERP TCO Calculator',      path: '/#comparadores' },
+    { label: 'Cloud Cost Comparator',   path: '/#infra-cost-simulator' },
+    { label: 'Optimizador de Nube OCI', path: '/optimizador-oci' },
   ],
-  herramientas: [
-    { label: 'Optimizador OCI',          path: '/optimizador-oci' },
-    { label: 'ERP TCO Comparator',       path: '/#comparadores' },
-    { label: 'Cloud Cost Comparator',    path: '/#infra-cost-simulator' },
-    { label: 'Migration Roadmap',      path: '/roadmap' },
-    { label: 'Readiness Score',        path: '/readiness' },
-    { label: 'RFP Template',           path: '/rfp-template' },
-    { label: 'Benchmark Index',        path: '/benchmark' },
+  evidencia: [
+    { label: 'Referencias Auditadas',   path: '/#referencias' },
+    { label: 'Transparencia Radical',   path: '/transparencia' },
+    { label: 'Investigación & Papers',  path: '/#investigacion-section' },
   ],
-  engagement: [
-    { label: 'Aplicar',                  path: '/aplicar' },
-    { label: 'Founder · Wait List',      path: '/#waitlist-section' },
-    { label: 'Office Hours',             path: '/office-hours' },
-    { label: 'Post-Mortem Privado',      path: '/post-mortem' },
-    { label: 'Confidential Roundtable',   path: '/roundtable' },
-    { label: 'Research Letters',          path: '/research-letters' },
-  ],
-  recursos: [
-    { label: 'Paper 01 — Go-live failures',         path: '/investigacion/paper/01' },
-    { label: 'Paper 02 — IA en Fusion',             path: '/investigacion/paper/02' },
-    { label: 'Paper 03 — Primer ciclo crítico',     path: '/investigacion/paper/03' },
+  admision: [
+    { label: 'Aplicar a Admisión',      path: '/aplicar' },
+    { label: 'Mesa Técnica 1-on-1',     path: '/#radar-admision' },
+    { label: 'Lugar en Wait List',      path: '/#waitlist-section' },
   ],
 };
 
@@ -112,11 +93,10 @@ const SocialIcons = {
 };
 
 const titleTranslations: Record<string, string> = {
-  sitio: 'Sitio',
-  casos: 'Portafolio',
-  herramientas: 'Herramientas',
-  engagement: 'Admisión',
-  recursos: 'Recursos',
+  doctrina: 'Doctrina',
+  comparadores: 'Simuladores',
+  evidencia: 'Evidencia',
+  admision: 'Admisión',
 };
 
 export default function Footer() {

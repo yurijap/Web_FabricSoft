@@ -6,7 +6,7 @@ const industries = [
     monogram: "S",
     num: "01 / Industria",
     name: <>Servicios<br />Financieros</>,
-    desc: "Bancos, fintech y crédito al consumo. Compliance, continuidad operativa, cierre contable regulatorio.",
+    desc: "Bancos, fintech y crédito al consumo, compliance, continuidad operativa, cierre contable regulatorio.",
     pillars: [
       "Compliance CNBV / CONDUSEF / Banxico",
       "Cierre contable diario regulatorio",

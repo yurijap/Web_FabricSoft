@@ -39,9 +39,9 @@ function metricMeta(p: Publicada) {
 // ---------------------------------------------------------------------------
 
 const FALLBACK_PUBLICADAS: Publicada[] = [
-  { id: '01', label: 'Go-live APE Plazas en fecha contractual',       valor: '✓',   unidad: 'Verificable', periodo: 'abr 2026' },
-  { id: '02', label: 'Primer cierre contable APE Plazas',             valor: '✓',   unidad: 'Verificable', periodo: 'abr–may 2026' },
-  { id: '03', label: 'Sin incidencias críticas post go-live',         valor: '✓',   unidad: 'APE Plazas',   periodo: 'abr 2026' },
+  { id: '01', label: 'Go-live en fecha contractual',                  valor: '✓',   unidad: 'Verificable', periodo: 'abr 2026' },
+  { id: '02', label: 'Primer cierre contable',                        valor: '✓',   unidad: 'Verificable', periodo: 'abr–may 2026' },
+  { id: '03', label: 'Sin incidencias críticas post go-live',         valor: '✓',   unidad: 'Cliente',     periodo: 'abr 2026' },
   { id: '04', label: 'Experiencia Oracle promedio del equipo',        valor: '15+', unidad: 'años',         periodo: 'auditado' },
   { id: '05', label: 'Plantilla 100% senior Oracle',                  valor: '100%', unidad: 'del equipo',  periodo: 'SOW' },
 ];

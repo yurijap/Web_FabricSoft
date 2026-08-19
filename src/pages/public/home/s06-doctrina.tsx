@@ -63,7 +63,7 @@ const clauses = [
     id: "01",
     title: "Entrega en primer ciclo crítico.",
     description: "El proyecto se entrega cuando tu primer cierre contable, primer ciclo operativo o primer ciclo regulatorio crítico opera en producción con estabilidad documentada.",
-    tag: "VALIDADO · APE PLAZAS",
+    tag: "VALIDADO EN PRODUCCIÓN",
     type: "validated"
   },
   {
@@ -84,14 +84,14 @@ const clauses = [
     id: "04",
     title: "Cero reportes manuales post go-live.",
     description: "Si subsiste un reporte manual paralelo por causa atribuible a FABRIC, se resuelve sin costo adicional hasta su eliminación.",
-    tag: "VALIDADO · APE PLAZAS",
+    tag: "VALIDADO EN PRODUCCIÓN",
     type: "validated"
   },
   {
     id: "05",
     title: "Transición formal con documentación viva.",
     description: "Acta firmada por todos los stakeholders, tablero de KPIs verificado, y documentación auditable y actualizable por el cliente sin dependencia de FABRIC.",
-    tag: "VALIDADO · APE PLAZAS",
+    tag: "VALIDADO EN PRODUCCIÓN",
     type: "validated"
   }
 ];

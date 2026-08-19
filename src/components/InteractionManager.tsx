@@ -16,14 +16,14 @@ const powDocs = [
   { icon: "ACTA",  title: "Acta de primer cierre contable",    meta: "6 pp · Firmada por CFO + CTO + FABRIC · may 2026",         size: "820 KB", access: "locked" },
   { icon: "KPI",   title: "Tablero KPI · primer ciclo crítico",meta: "Dashboard ejecutivo · Auditado externamente · may 2026",    size: "1.1 MB", access: "locked" },
   { icon: "TRANS", title: "Plan de transición a soporte",      meta: "Documentación viva · 142 pp · En firma · may 2026",        size: "4.2 MB", access: "locked" },
-  { icon: "PR",    title: "Comunicado público de go-live",     meta: "2 pp · ES · Aprobado por APE Plazas · 25 may 2026",        size: "340 KB", access: "public" },
+  { icon: "PR",    title: "Comunicado público de go-live",     meta: "2 pp · ES · Aprobado por el cliente · 25 may 2026",        size: "340 KB", access: "public" },
 ];
 
 // days se genera dinámicamente en el componente
 
 const FALLBACK_PAPERS = [
   { num: "Paper 01", paperId: "01", tag: "Research Note · Mercado", title: "Por qué fallan los go-live de Oracle Fusion", abstract: "Análisis de 47 implementaciones LATAM. Tres patrones recurrentes de fracaso, causas raíz documentadas, modelo alternativo de entrega.", meta: "8-10 pp · PDF ES · 15 min · May 2026" },
-  { num: "Paper 02", paperId: "02", tag: "Technical Framework · IA", title: "IA aplicada a cierre contable en Fusion Cloud", abstract: "Framework FABRIC con 4 capas operativas. Casos APE Plazas + Aplazo. Benchmarks de reducción de tiempo de cierre.", meta: "10-12 pp · PDF ES · 20 min · May 2026" },
+  { num: "Paper 02", paperId: "02", tag: "Technical Framework · IA", title: "IA aplicada a cierre contable en Fusion Cloud", abstract: "Framework FABRIC con 4 capas operativas. Casos de estudio reales. Benchmarks de reducción de tiempo de cierre.", meta: "10-12 pp · PDF ES · 20 min · May 2026" },
   { num: "Paper 03", paperId: "03", tag: "Doctrina Operativa · SOW", title: "Modelo de entrega en primer ciclo crítico", abstract: "Las 5 cláusulas doctrinales aplicadas. Redacción de RFP con criterios FABRIC. Validación post go-live documentada.", meta: "6-8 pp · PDF ES · 12 min · May 2026" },
 ];
 
@@ -160,6 +160,7 @@ export default function InteractionManager({
     setApiError("");
     setLoading(false);
     setPaperDownloadUrl("");
+    setFormData({ nombre: "", cargo: "", empresa: "", email: "", revenue: "", iniciativa: "", plazo: "" });
   }, []);
 
   // Cargar disponibilidad del mes desde la BD
@@ -381,8 +382,7 @@ export default function InteractionManager({
           <div style={{ padding: "24px 28px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
             <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "var(--accent)" }} />
             <div style={{ paddingLeft: 14 }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 4 }}>FABRIC Office Hours</div>
-              <div style={{ fontFamily: "var(--serif)", fontSize: 24 }}>Reservar <em style={{ color: "var(--accent)" }}>Conversación de Ingeniería.</em></div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.25em", textTransform: "uppercase" }}>FABRIC Office Hours</div>
             </div>
             <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 18, cursor: "pointer" }}>×</button>
           </div>
@@ -664,7 +664,7 @@ export default function InteractionManager({
                           }}
                           style={{ marginTop: 8, padding: "14px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
                         >
-                          {loading ? "Confirmando en BD..." : "Confirmar Reserva y Guardar en BD →"}
+                          {loading ? "Confirmando..." : "Confirmar y reservar"}
                         </button>
                         <button onClick={() => setSelectedSlot(null)} style={{ padding: "10px", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.1em" }}>
                           ← Cambiar horario / fecha
@@ -690,9 +690,6 @@ export default function InteractionManager({
             </div>
           </div>
 
-          <div style={{ padding: "12px 28px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.1em" }}>Solo Días Hábiles (Lunes a Viernes) · CDMX</span>
-          </div>
         </div>
       )}
 

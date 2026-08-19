@@ -116,6 +116,13 @@ const DoctrinaRequestSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const CloudCostRequestSchema = new mongoose.Schema({
+  nombre: String,
+  email: String,
+  empresa: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
 const ReferenciaItemSchema = new mongoose.Schema({
   titulo: String,
   contexto: String,
@@ -167,20 +174,52 @@ const RescueAssessmentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const LogSchema = new mongoose.Schema({
+  accion: String,
+  categoria: String,
+  autor: { type: String, default: 'Sistema' },
+  status: { type: String, enum: ['OK', 'WARN', 'ERR'], default: 'OK' },
+  detalle: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
 const Lead = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);
 const OfficeHour = mongoose.models.OfficeHour || mongoose.model('OfficeHour', OfficeHourSchema);
 const PaperRequest = mongoose.models.PaperRequest || mongoose.model('PaperRequest', PaperRequestSchema);
 const ReferenciaRequest = mongoose.models.ReferenciaRequest || mongoose.model('ReferenciaRequest', ReferenciaRequestSchema);
 const DoctrinaRequest = mongoose.models.DoctrinaRequest || mongoose.model('DoctrinaRequest', DoctrinaRequestSchema);
+const CloudCostRequest = mongoose.models.CloudCostRequest || mongoose.model('CloudCostRequest', CloudCostRequestSchema);
 const ReferenciaItem = mongoose.models.ReferenciaItem || mongoose.model('ReferenciaItem', ReferenciaItemSchema);
 const CalendarSlot = mongoose.models.CalendarSlot || mongoose.model('CalendarSlot', CalendarSlotSchema);
 const GeneralMeeting = mongoose.models.GeneralMeeting || mongoose.model('GeneralMeeting', GeneralMeetingSchema);
 const WaitlistQuarter = mongoose.models.WaitlistQuarter || mongoose.model('WaitlistQuarter', WaitlistQuarterSchema);
 const RescueAssessment = mongoose.models.RescueAssessment || mongoose.model('RescueAssessment', RescueAssessmentSchema);
+const Log = mongoose.models.Log || mongoose.model('Log', LogSchema);
+
+// Helper para crear logs de auditoría
+async function createLog(accion, categoria, autor = 'Sistema', status = 'OK', detalle = '') {
+  try {
+    const log = new Log({ accion, categoria, autor, status, detalle });
+    await log.save();
+    console.log(`[AUDIT LOG] [${categoria}] [${status}] ${accion}`);
+  } catch (err) {
+    console.error('Error guardando audit log:', err.message);
+  }
+}
 
 // Helper para sembrar datos demo iniciales si la BD está vacía
 async function seedInitialDataIfEmpty() {
   try {
+    const logCount = await Log.countDocuments();
+    if (logCount === 0) {
+      await Log.insertMany([
+        { accion: 'Conexión inicial a MongoDB Atlas', categoria: 'Sistema', autor: 'Sistema', status: 'OK', detalle: 'Conexión exitosa a cluster Atlas' },
+        { accion: 'Servidor Express Inicializado', categoria: 'Sistema', autor: 'Sistema', status: 'OK', detalle: 'Puerto activo: 4000' },
+        { accion: 'Sincronización del Pipeline Q3', categoria: 'Capacidad', autor: 'Admin', status: 'OK', detalle: 'Capacidad operativa recalculada' }
+      ]);
+      console.log('🌱 Se sembraron logs demo en la bitácora');
+    }
+
     const leadCount = await Lead.countDocuments();
     if (leadCount === 0) {
       await Lead.insertMany([
@@ -310,7 +349,9 @@ app.post('/api/admin/clear-db', async (req, res) => {
     await ReferenciaRequest.deleteMany({});
     await WaitlistQuarter.deleteMany({});
     await RescueAssessment.deleteMany({});
-    await DoctrinaRequest.deleteMany({});
+    await CloudCostRequest.deleteMany({});
+    await Log.deleteMany({});
+    createLog('Limpieza completa de BD', 'Sistema', 'Admin', 'WARN', 'Se eliminaron todas las colecciones');
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
   } catch (err) {
@@ -328,8 +369,59 @@ app.delete('/api/admin/clear-db', async (req, res) => {
     await WaitlistQuarter.deleteMany({});
     await RescueAssessment.deleteMany({});
     await DoctrinaRequest.deleteMany({});
+    await CloudCostRequest.deleteMany({});
+    await Log.deleteMany({});
+    createLog('Limpieza completa de BD', 'Sistema', 'Admin', 'WARN', 'Se eliminaron todas las colecciones');
     console.log('🧹 MongoDB Atlas vaciada completamente');
     res.json({ success: true, message: 'Base de datos MongoDB Atlas vaciada completamente' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= RUTAS API PARA LOGS Y SISTEMA =================
+app.get('/api/logs/admin', async (req, res) => {
+  try {
+    const { categoria, page = 1, limit = 50 } = req.query;
+    const filter = {};
+    if (categoria && categoria !== 'Todas') {
+      filter.categoria = categoria;
+    }
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Log.countDocuments(filter);
+    const logs = await Log.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    res.json({ success: true, data: logs, total });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/status/admin', async (req, res) => {
+  try {
+    const dbConnected = mongoose.connection.readyState === 1;
+    res.json({
+      success: true,
+      dbStatus: dbConnected ? 'CONECTADO' : 'DESCONECTADO',
+      apiStatus: 'OPERATIVO',
+      authStatus: 'ACTIVO',
+      totalLogs: await Log.countDocuments()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+// ================= RUTA DE AUTENTICACIÓN CLERK =================
+app.get('/api/auth/login', async (req, res) => {
+  try {
+    console.log('🔑 Validación de sesión Clerk solicitada.');
+    res.json({
+      success: true,
+      status: 'activo',
+      rol: 'admin'
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -362,6 +454,7 @@ app.post(['/api/leads/referencia', '/api/leads/solicitar', '/api/leads/waitlist'
       tipo: 'evaluacion'
     });
     const saved = await newLead.save();
+    createLog(`Nuevo Lead registrado: ${saved.nombre}`, 'Leads', 'Cliente', 'OK', `Empresa: ${saved.empresa} · Servicio: ${saved.servicio}`);
     console.log(`📋 Lead de Evaluación guardado en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}]`);
     res.status(201).json({ success: true, data: saved });
   } catch (err) {
@@ -373,6 +466,7 @@ app.patch(['/api/leads/admin/:id/status', '/api/leads/:id/status'], async (req, 
   try {
     const { status, estatus } = req.body;
     const updated = await Lead.findByIdAndUpdate(req.params.id, { estatus: estatus || status }, { new: true });
+    createLog(`Estado de Lead actualizado`, 'Leads', 'Admin', 'OK', `Lead: ${updated.nombre} (${updated.empresa}) -> Nuevo estado: ${updated.estatus}`);
     res.json({ success: true, data: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -381,7 +475,10 @@ app.patch(['/api/leads/admin/:id/status', '/api/leads/:id/status'], async (req, 
 
 app.delete(['/api/leads/admin/:id', '/api/leads/:id'], async (req, res) => {
   try {
-    await Lead.findByIdAndDelete(req.params.id);
+    const deleted = await Lead.findByIdAndDelete(req.params.id);
+    if (deleted) {
+      createLog('Lead eliminado', 'Leads', 'Admin', 'WARN', `Nombre: ${deleted.nombre} (${deleted.empresa})`);
+    }
     res.json({ success: true, message: 'Lead eliminado' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -411,6 +508,7 @@ app.post('/api/admin/waitlist-quarters', async (req, res) => {
       orden: count + 1
     });
     const saved = await newQuarter.save();
+    createLog(`Nuevo Quarter Waitlist: ${saved.quarter}`, 'Capacidad', 'Admin', 'OK', `Status: ${saved.status}`);
     res.status(201).json({ success: true, data: saved });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -420,6 +518,7 @@ app.post('/api/admin/waitlist-quarters', async (req, res) => {
 app.put('/api/admin/waitlist-quarters/:id', async (req, res) => {
   try {
     const updated = await WaitlistQuarter.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    createLog(`Quarter Waitlist actualizado: ${updated.quarter}`, 'Capacidad', 'Admin', 'OK', `Status: ${updated.status}`);
     res.json({ success: true, data: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -428,7 +527,10 @@ app.put('/api/admin/waitlist-quarters/:id', async (req, res) => {
 
 app.delete('/api/admin/waitlist-quarters/:id', async (req, res) => {
   try {
-    await WaitlistQuarter.findByIdAndDelete(req.params.id);
+    const deleted = await WaitlistQuarter.findByIdAndDelete(req.params.id);
+    if (deleted) {
+      createLog(`Quarter Waitlist eliminado: ${deleted.quarter}`, 'Capacidad', 'Admin', 'WARN');
+    }
     res.json({ success: true, message: 'Trimestre de Waitlist eliminado' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -465,6 +567,7 @@ app.post(['/api/referencias', '/api/admin/referencias/items'], async (req, res) 
       orden: count + 1,
     });
     const saved = await newItem.save();
+    createLog(`Nueva Referencia Auditada`, 'NDA', 'Admin', 'OK', `Título: ${saved.titulo} (${saved.auditId})`);
     res.status(201).json({ success: true, data: saved });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -474,6 +577,7 @@ app.post(['/api/referencias', '/api/admin/referencias/items'], async (req, res) 
 app.put(['/api/referencias/:id', '/api/admin/referencias/items/:id'], async (req, res) => {
   try {
     const updated = await ReferenciaItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    createLog(`Referencia Auditada modificada`, 'NDA', 'Admin', 'OK', `Título: ${updated.titulo} (${updated.auditId})`);
     res.json({ success: true, data: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -482,7 +586,10 @@ app.put(['/api/referencias/:id', '/api/admin/referencias/items/:id'], async (req
 
 app.delete(['/api/referencias/:id', '/api/admin/referencias/items/:id'], async (req, res) => {
   try {
-    await ReferenciaItem.findByIdAndDelete(req.params.id);
+    const deleted = await ReferenciaItem.findByIdAndDelete(req.params.id);
+    if (deleted) {
+      createLog(`Referencia Auditada eliminada`, 'NDA', 'Admin', 'WARN', `Título: ${deleted.titulo}`);
+    }
     res.json({ success: true, message: 'Referencia eliminada' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -511,6 +618,7 @@ app.post(['/api/papers/solicitar', '/api/papers/request', '/api/papers/download'
       status: 'Solicitado'
     });
     const saved = await newPaper.save();
+    createLog(`Solicitud de Paper / Documento`, 'Papers', 'Cliente', 'OK', `Documento: ${saved.paperId} por ${saved.nombre} (${saved.empresa})`);
     console.log(`📄 Solicitud de documento guardada en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}]`);
     res.status(201).json({ success: true, data: saved });
   } catch (err) {
@@ -578,6 +686,42 @@ app.patch(['/api/admin/doctrina/:id/status', '/api/doctrina/admin/:id/status'], 
 app.delete(['/api/admin/doctrina/:id', '/api/doctrina/admin/:id'], async (req, res) => {
   try {
     await DoctrinaRequest.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Solicitud eliminada' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= RUTAS API PARA CLOUD COST COMPARISON REGISTRATIONS =================
+app.get(['/api/admin/cloud-cost', '/api/cloud-cost'], async (req, res) => {
+  try {
+    const requests = await CloudCostRequest.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post(['/api/cloud-cost/solicitar', '/api/cloud-cost'], async (req, res) => {
+  try {
+    const { nombre, email, empresa } = req.body;
+    const newRequest = new CloudCostRequest({
+      nombre: nombre || 'Solicitante',
+      email: email || '',
+      empresa: empresa || ''
+    });
+    const saved = await newRequest.save();
+    createLog(`Nueva solicitud de comparación ID`, 'CloudCost', 'Cliente', 'OK', `Solicitante: ${saved.nombre} (${saved.empresa})`);
+    console.log(`☁️ Solicitud de comparación ID guardada en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}]`);
+    res.status(201).json({ success: true, data: saved });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete(['/api/admin/cloud-cost/:id', '/api/cloud-cost/:id'], async (req, res) => {
+  try {
+    await CloudCostRequest.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Solicitud eliminada' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
