@@ -4,22 +4,128 @@ import { useInViewOnce } from '../../../hooks/useInViewOnce';
 import { api } from '../../../config/api';
 
 function ErpTcoInteractiveWidget() {
-  const [currentLicenses, setCurrentLicenses] = useState(120000);
-  const [currentInfra, setCurrentInfra] = useState(80000);
-  const [currentSupport, setCurrentSupport] = useState(60000);
-  const [currentConsultants, setCurrentConsultants] = useState(150000);
+  const [selectedErp, setSelectedErp] = useState<'sap_s4' | 'dynamics' | 'sap_ecc' | 'oracle_ebs' | 'oracle_jde' | 'oracle_fusion'>('sap_ecc');
+  const [erpUsers, setErpUsers] = useState(580);
+  const [hoursL3, setHoursL3] = useState(80);
 
-  const currentAnnualTotal = currentLicenses + currentInfra + currentSupport + currentConsultants;
-  const oracleLicenses = Math.round(currentLicenses * 0.7);
-  const oracleInfra = 0;
-  const oracleSupport = Math.round(oracleLicenses * 0.22);
-  const oracleConsultants = Math.round(currentConsultants * 0.35);
+  // Inputs específicos por opción de ERP
+  const [sapEccPerpetualValue, setSapEccPerpetualValue] = useState(3500000);
+  const [sapEccInfra, setSapEccInfra] = useState(350000);
 
+  const [ebsPerpetualValue, setEbsPerpetualValue] = useState(2800000);
+  const [ebsInfra, setEbsInfra] = useState(280000);
+
+  const [jdePerpetualValue, setJdePerpetualValue] = useState(1500000);
+  const [jdeInfra, setJdeInfra] = useState(150000);
+
+  const [sapS4InfraExtra, setSapS4InfraExtra] = useState(15000);
+  const [dynamicsInfraExtra, setDynamicsInfraExtra] = useState(5000);
+  const [oracleFusionInfraExtra, setOracleFusionInfraExtra] = useState(0);
+
+  // 2. ASIGNACIÓN FIJA DE MESES DE IMPLEMENTACIÓN POR ERP
+  let implMonths = 12;
+  if (selectedErp === 'sap_s4') implMonths = 18;
+  else if (selectedErp === 'dynamics') implMonths = 18;
+  else if (selectedErp === 'sap_ecc') implMonths = 24;
+  else if (selectedErp === 'oracle_ebs') implMonths = 24;
+  else if (selectedErp === 'oracle_jde') implMonths = 15;
+  else if (selectedErp === 'oracle_fusion') implMonths = 12;
+
+  // 3. MODELO OBJETIVO: ORACLE FUSION CLOUD (Destino del cálculo)
+  const oracleLicenses = erpUsers * 425 * 12;            // Tarifa SaaS: $425 USD / usuario / mes
+  const oracleInfra = oracleFusionInfraExtra;
+  const oracleSupport = 0;                               // SaaS incluye soporte base
+  const oracleConsultants = hoursL3 * 12 * 180;          // Consultoría L3: $180 USD / hora
   const oracleAnnualTotal = oracleLicenses + oracleInfra + oracleSupport + oracleConsultants;
+
+  // 4. CÁLCULO DE LA SITUACIÓN ACTUAL SEGÚN EL ERP SELECCIONADO
+  let currentLicenses = 0;
+  let currentInfra = 0;
+  let currentSupport = 0;
+  let currentConsultants = 0;
+  let migrationCost = 0;
+
+  if (selectedErp === 'oracle_fusion') {
+    currentLicenses = oracleLicenses;
+    currentInfra = oracleInfra;
+    currentSupport = 0;
+    currentConsultants = oracleConsultants;
+    migrationCost = Math.round(oracleLicenses * 1.0);
+  } 
+  else if (selectedErp === 'sap_s4') {
+    currentLicenses = erpUsers * 450 * 12;
+    currentInfra = sapS4InfraExtra;
+    currentSupport = 0;
+    currentConsultants = hoursL3 * 12 * 220;
+    migrationCost = Math.round(currentLicenses * 1.5);
+  } 
+  else if (selectedErp === 'dynamics') {
+    currentLicenses = erpUsers * 210 * 12;
+    currentInfra = dynamicsInfraExtra;
+    currentSupport = 0;
+    currentConsultants = hoursL3 * 12 * 150;
+    migrationCost = Math.round(currentLicenses * 1.2);
+  } 
+  else if (selectedErp === 'sap_ecc') {
+    currentLicenses = 0;
+    currentInfra = sapEccInfra;
+    currentSupport = sapEccPerpetualValue * 0.22;
+    currentConsultants = hoursL3 * 12 * 200;
+    migrationCost = Math.round(oracleLicenses * 1.8);
+  } 
+  else if (selectedErp === 'oracle_ebs') {
+    currentLicenses = 0;
+    currentInfra = ebsInfra;
+    currentSupport = ebsPerpetualValue * 0.22;
+    currentConsultants = hoursL3 * 12 * 190;
+    migrationCost = Math.round(oracleLicenses * 1.7);
+  } 
+  else if (selectedErp === 'oracle_jde') {
+    currentLicenses = 0;
+    currentInfra = jdeInfra;
+    currentSupport = jdePerpetualValue * 0.20;
+    currentConsultants = hoursL3 * 12 * 180;
+    migrationCost = Math.round(oracleLicenses * 1.4);
+  }
+
+  // 5. TOTALES Y FLUJOS FINANCIEROS
+  const currentAnnualTotal = currentLicenses + currentInfra + currentSupport + currentConsultants;
   const annualSavings = currentAnnualTotal - oracleAnnualTotal;
-  const migrationCost = Math.round(currentAnnualTotal * 1.1);
-  const savings5Yr = annualSavings * 5 - migrationCost;
-  const breakEvenMonth = annualSavings > 0 ? Math.round((migrationCost / (annualSavings / 12))) : 0;
+
+  const costMigrationMonthly = migrationCost / implMonths;
+  const costErpActualMonthly = currentAnnualTotal / 12;
+  const costOracleCloudMonthly = oracleAnnualTotal / 12;
+  const monthlySavingsRecurrent = costErpActualMonthly - costOracleCloudMonthly;
+
+  let cumulativeFlow = 0;
+  let breakEvenMonth: number | null = null;
+  let savings5Yr = 0;
+
+  for (let m = 1; m <= 240; m++) {
+    let flow = 0;
+    if (m <= implMonths) {
+      flow = -(costMigrationMonthly + costErpActualMonthly);
+    } else {
+      flow = monthlySavingsRecurrent;
+    }
+    
+    cumulativeFlow += flow;
+    
+    if (m === 60) {
+      savings5Yr = Math.round(cumulativeFlow); 
+    }
+    if (breakEvenMonth === null && cumulativeFlow >= 0) {
+      breakEvenMonth = m; 
+    }
+  }
+
+  const breakEvenMonthText = (monthlySavingsRecurrent > 0 && breakEvenMonth !== null)
+    ? `Mes ${breakEvenMonth}`
+    : 'N/A (Sin Ahorro Operativo)';
+
+  const handleErpChange = (erp: typeof selectedErp) => {
+    setSelectedErp(erp);
+  };
 
   return (
     <div className="space-y-8 font-mono text-xs">
@@ -29,78 +135,263 @@ function ErpTcoInteractiveWidget() {
         <p className="text-zinc-500 text-xs mt-1">Proyecta los costos de licenciamiento, soporte e infraestructura actual frente a Oracle Fusion Cloud.</p>
       </div>
 
+      {/* Selector Menu */}
+      <div className="flex flex-wrap gap-2 border-b border-zinc-900 pb-5">
+        {(
+          [
+            { id: 'sap_s4', label: 'SAP S/4HANA (RISE)' },
+            { id: 'dynamics', label: 'Dynamics 365' },
+            { id: 'sap_ecc', label: 'SAP ECC' },
+            { id: 'oracle_ebs', label: 'Oracle EBS R12' },
+            { id: 'oracle_jde', label: 'Oracle JDE' },
+            { id: 'oracle_fusion', label: 'Oracle Fusion Cloud' },
+          ] as const
+        ).map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => handleErpChange(opt.id)}
+            className={`px-3 py-2 border text-[10px] font-bold uppercase tracking-wider rounded transition-all duration-300 cursor-pointer ${
+              selectedErp === opt.id
+                ? 'border-[#C9A96E] text-[#C9A96E] bg-[#C9A96E]/10'
+                : 'border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 bg-transparent'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         <div className="md:col-span-7 space-y-6">
+          {/* Usuarios ERP */}
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-mono">
-              <label htmlFor="range-licenses" className="text-zinc-400">Licencias Anuales ERP (USD)</label>
-              <span className="text-white font-bold">${currentLicenses.toLocaleString('en-US')}</span>
+              <label htmlFor="range-users" className="text-zinc-400">Usuarios ERP (Activos/Mes)</label>
+              <span className="text-white font-bold">{erpUsers} Usuarios</span>
             </div>
             <input
-              id="range-licenses"
-              aria-label="Licencias Anuales ERP"
+              id="range-users"
+              aria-label="Usuarios ERP"
               type="range"
-              min="20000"
-              max="800000"
-              step="10000"
-              value={currentLicenses}
-              onChange={(e) => setCurrentLicenses(Number(e.target.value))}
+              min="10"
+              max="2000"
+              step="10"
+              value={erpUsers}
+              onChange={(e) => setErpUsers(Number(e.target.value))}
               className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
             />
           </div>
 
+          {/* Horas L3 por Mes */}
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-mono">
-              <label htmlFor="range-infra" className="text-zinc-400">Servidores / Cloud / Data Center (USD/año)</label>
-              <span className="text-white font-bold">${currentInfra.toLocaleString('en-US')}</span>
+              <label htmlFor="range-hours-l3" className="text-zinc-400">Horas de Soporte L3 / Consultoría (Mes)</label>
+              <span className="text-white font-bold">{hoursL3} Horas</span>
             </div>
             <input
-              id="range-infra"
-              aria-label="Costo de Servidores o Data Center"
+              id="range-hours-l3"
+              aria-label="Horas Soporte L3"
               type="range"
-              min="10000"
-              max="500000"
-              step="5000"
-              value={currentInfra}
-              onChange={(e) => setCurrentInfra(Number(e.target.value))}
+              min="10"
+              max="500"
+              step="10"
+              value={hoursL3}
+              onChange={(e) => setHoursL3(Number(e.target.value))}
               className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-mono">
-              <label htmlFor="range-support" className="text-zinc-400">Soporte Anual / Mantenimiento Base (USD)</label>
-              <span className="text-white font-bold">${currentSupport.toLocaleString('en-US')}</span>
-            </div>
-            <input
-              id="range-support"
-              aria-label="Soporte Anual o Mantenimiento"
-              type="range"
-              min="10000"
-              max="300000"
-              step="5000"
-              value={currentSupport}
-              onChange={(e) => setCurrentSupport(Number(e.target.value))}
-              className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
-            />
-          </div>
+          {/* Sliders específicos según el ERP */}
+          {selectedErp === 'sap_ecc' && (
+            <>
+              <div className="space-y-2 animate-fadeIn">
+                <div className="flex justify-between text-xs font-mono">
+                  <label htmlFor="range-ecc-perpetual" className="text-zinc-400">Valor Inicial de Licencia Perpetua SAP ECC (USD)</label>
+                  <span className="text-white font-bold">${sapEccPerpetualValue.toLocaleString('en-US')}</span>
+                </div>
+                <input
+                  id="range-ecc-perpetual"
+                  type="range"
+                  min="100000"
+                  max="10000000"
+                  step="50000"
+                  value={sapEccPerpetualValue}
+                  onChange={(e) => setSapEccPerpetualValue(Number(e.target.value))}
+                  className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+                />
+              </div>
+              <div className="space-y-2 animate-fadeIn">
+                <div className="flex justify-between text-xs font-mono">
+                  <label htmlFor="range-ecc-infra" className="text-zinc-400">Infraestructura Física SAP ECC / Data Center (USD/año)</label>
+                  <span className="text-white font-bold">${sapEccInfra.toLocaleString('en-US')}</span>
+                </div>
+                <input
+                  id="range-ecc-infra"
+                  type="range"
+                  min="10000"
+                  max="1000000"
+                  step="10000"
+                  value={sapEccInfra}
+                  onChange={(e) => setSapEccInfra(Number(e.target.value))}
+                  className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+                />
+              </div>
+            </>
+          )}
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-mono">
-              <label htmlFor="range-consultants" className="text-zinc-400">Consultores Externos / Soporte L3 (USD/año)</label>
-              <span className="text-white font-bold">${currentConsultants.toLocaleString('en-US')}</span>
+          {selectedErp === 'oracle_ebs' && (
+            <>
+              <div className="space-y-2 animate-fadeIn">
+                <div className="flex justify-between text-xs font-mono">
+                  <label htmlFor="range-ebs-perpetual" className="text-zinc-400">Valor Inicial de Licencia Perpetua EBS R12 (USD)</label>
+                  <span className="text-white font-bold">${ebsPerpetualValue.toLocaleString('en-US')}</span>
+                </div>
+                <input
+                  id="range-ebs-perpetual"
+                  type="range"
+                  min="100000"
+                  max="10000000"
+                  step="50000"
+                  value={ebsPerpetualValue}
+                  onChange={(e) => setEbsPerpetualValue(Number(e.target.value))}
+                  className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+                />
+              </div>
+              <div className="space-y-2 animate-fadeIn">
+                <div className="flex justify-between text-xs font-mono">
+                  <label htmlFor="range-ebs-infra" className="text-zinc-400">Infraestructura EBS / Cloud Corporativa (USD/año)</label>
+                  <span className="text-white font-bold">${ebsInfra.toLocaleString('en-US')}</span>
+                </div>
+                <input
+                  id="range-ebs-infra"
+                  type="range"
+                  min="10000"
+                  max="1000000"
+                  step="10000"
+                  value={ebsInfra}
+                  onChange={(e) => setEbsInfra(Number(e.target.value))}
+                  className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+                />
+              </div>
+            </>
+          )}
+
+          {selectedErp === 'oracle_jde' && (
+            <>
+              <div className="space-y-2 animate-fadeIn">
+                <div className="flex justify-between text-xs font-mono">
+                  <label htmlFor="range-jde-perpetual" className="text-zinc-400">Valor Inicial de Licencia Perpetua JDE (USD)</label>
+                  <span className="text-white font-bold">${jdePerpetualValue.toLocaleString('en-US')}</span>
+                </div>
+                <input
+                  id="range-jde-perpetual"
+                  type="range"
+                  min="100000"
+                  max="5000000"
+                  step="50000"
+                  value={jdePerpetualValue}
+                  onChange={(e) => setJdePerpetualValue(Number(e.target.value))}
+                  className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+                />
+              </div>
+              <div className="space-y-2 animate-fadeIn">
+                <div className="flex justify-between text-xs font-mono">
+                  <label htmlFor="range-jde-infra" className="text-zinc-400">Infraestructura JDE / Servidores (USD/año)</label>
+                  <span className="text-white font-bold">${jdeInfra.toLocaleString('en-US')}</span>
+                </div>
+                <input
+                  id="range-jde-infra"
+                  type="range"
+                  min="10000"
+                  max="500000"
+                  step="10000"
+                  value={jdeInfra}
+                  onChange={(e) => setJdeInfra(Number(e.target.value))}
+                  className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+                />
+              </div>
+            </>
+          )}
+
+          {selectedErp === 'sap_s4' && (
+            <div className="space-y-2 animate-fadeIn">
+              <div className="flex justify-between text-xs font-mono">
+                <label htmlFor="range-sap-s4-infra" className="text-zinc-400">Almacenamiento o Ambientes Extra (USD/año)</label>
+                <span className="text-white font-bold">${sapS4InfraExtra.toLocaleString('en-US')}</span>
+              </div>
+              <input
+                id="range-sap-s4-infra"
+                type="range"
+                min="0"
+                max="100000"
+                step="1000"
+                value={sapS4InfraExtra}
+                onChange={(e) => setSapS4InfraExtra(Number(e.target.value))}
+                className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+              />
             </div>
-            <input
-              id="range-consultants"
-              aria-label="Costo de Consultores Externos"
-              type="range"
-              min="20000"
-              max="1000000"
-              step="10000"
-              value={currentConsultants}
-              onChange={(e) => setCurrentConsultants(Number(e.target.value))}
-              className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
-            />
+          )}
+
+          {selectedErp === 'dynamics' && (
+            <div className="space-y-2 animate-fadeIn">
+              <div className="flex justify-between text-xs font-mono">
+                <label htmlFor="range-dynamics-infra" className="text-zinc-400">Azure Add-ons / Infraestructura Extra (USD/año)</label>
+                <span className="text-white font-bold">${dynamicsInfraExtra.toLocaleString('en-US')}</span>
+              </div>
+              <input
+                id="range-dynamics-infra"
+                type="range"
+                min="0"
+                max="100000"
+                step="1000"
+                value={dynamicsInfraExtra}
+                onChange={(e) => setDynamicsInfraExtra(Number(e.target.value))}
+                className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+              />
+            </div>
+          )}
+
+          {selectedErp === 'oracle_fusion' && (
+            <div className="space-y-2 animate-fadeIn">
+              <div className="flex justify-between text-xs font-mono">
+                <label htmlFor="range-fusion-infra" className="text-zinc-400">Infraestructura Extra Oracle Fusion (USD/año)</label>
+                <span className="text-white font-bold">${oracleFusionInfraExtra.toLocaleString('en-US')}</span>
+              </div>
+              <input
+                id="range-fusion-infra"
+                type="range"
+                min="0"
+                max="50000"
+                step="1000"
+                value={oracleFusionInfraExtra}
+                onChange={(e) => setOracleFusionInfraExtra(Number(e.target.value))}
+                className="w-full accent-[#C9A96E] bg-zinc-900 cursor-pointer"
+              />
+            </div>
+          )}
+
+          {/* Breakdown / Costos Desglosados */}
+          <div className="border border-zinc-900 p-4 rounded-lg bg-zinc-950/40 space-y-3">
+            <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">// desglose de costos anuales calculados</span>
+            <div className="grid grid-cols-2 gap-4 text-[11px]">
+              <div>
+                <span className="text-zinc-500 block">Licenciamiento Anual:</span>
+                <span className="text-white font-mono">${currentLicenses.toLocaleString('en-US')} USD</span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block">Infraestructura / Servidores:</span>
+                <span className="text-white font-mono">${currentInfra.toLocaleString('en-US')} USD</span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block">Soporte Base / Mantenimiento:</span>
+                <span className="text-white font-mono">${currentSupport.toLocaleString('en-US')} USD</span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block">Soporte L3 / Consultoría:</span>
+                <span className="text-white font-mono">${currentConsultants.toLocaleString('en-US')} USD</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -116,7 +407,9 @@ function ErpTcoInteractiveWidget() {
             </div>
             <div className="border-t border-[#C9A96E]/20 pt-3">
               <span className="text-[10px] text-zinc-500 block uppercase">Ahorro Neto Recurrente</span>
-              <span className="text-2xl text-emerald-500 font-bold">${annualSavings.toLocaleString('en-US')} USD/año</span>
+              <span className={`text-2xl font-bold ${annualSavings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                ${annualSavings.toLocaleString('en-US')} USD/año
+              </span>
             </div>
           </div>
 
@@ -127,11 +420,15 @@ function ErpTcoInteractiveWidget() {
             </div>
             <div className="flex justify-between">
               <span>Punto de Retorno (ROI)</span>
-              <span className="text-emerald-500 font-bold">Mes {breakEvenMonth}</span>
+              <span className={`font-bold ${annualSavings > 0 ? 'text-emerald-500' : 'text-zinc-500'}`}>
+                {breakEvenMonthText}
+              </span>
             </div>
             <div className="flex justify-between border-t border-zinc-800 pt-2">
               <span>Ahorro Acumulado 5 Años</span>
-              <span className="text-[#C9A96E] font-bold">${savings5Yr.toLocaleString('en-US')} USD</span>
+              <span className={`font-bold ${savings5Yr >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                ${savings5Yr.toLocaleString('en-US')} USD
+              </span>
             </div>
           </div>
         </div>
@@ -225,9 +522,9 @@ const DEMO_WORKLOADS: Record<string, Workload> = {
 
 const MULTIPLIERS = {
   OCI: { compute: 1.0, storage: 1.0, database: 1.0, egress: 1.0 },
-  AWS: { compute: 1.43, storage: 1.66, database: 2.0, egress: 10.0 },
-  Azure: { compute: 1.35, storage: 1.50, database: 1.8, egress: 9.0 },
-  GCP: { compute: 1.30, storage: 1.40, database: 1.6, egress: 8.5 }
+  AWS: { compute: 1.54, storage: 1.88, database: 1.91, egress: 10.59 },
+  Azure: { compute: 1.47, storage: 1.79, database: 1.77, egress: 10.24 },
+  GCP: { compute: 1.42, storage: 1.88, database: 1.70, egress: 10.00 }
 };
 
 const PROVIDER_TECH_HIGHS: Record<string, string[]> = {
@@ -277,10 +574,10 @@ function CloudCostInteractiveWidget() {
 
   // Tab 1 calculations
   const currentMonthlyTotal = computeCost + storageCost + databaseCost + egressCost;
-  const ociCompute = Math.round(computeCost * 0.7);
-  const ociStorage = Math.round(storageCost * 0.6);
-  const ociDatabase = Math.round(databaseCost * 0.5);
-  const ociEgress = Math.round(egressCost * 0.1);
+  const ociCompute = Math.round(computeCost / MULTIPLIERS[provider].compute);
+  const ociStorage = Math.round(storageCost / MULTIPLIERS[provider].storage);
+  const ociDatabase = Math.round(databaseCost / MULTIPLIERS[provider].database);
+  const ociEgress = Math.round(egressCost / MULTIPLIERS[provider].egress);
   const ociMonthlyTotal = ociCompute + ociStorage + ociDatabase + ociEgress;
   const monthlySavings = currentMonthlyTotal - ociMonthlyTotal;
   const annualSavings = monthlySavings * 12;
