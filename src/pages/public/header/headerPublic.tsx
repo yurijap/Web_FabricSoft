@@ -115,6 +115,21 @@ export default function Header() {
     navigate({ pathname: '/', hash: targetHash });
   };
 
+  const isFusionRescuePage = location.pathname.startsWith('/fusion-rescue');
+
+  const fusionRescueLink = !isFusionRescuePage ? (
+    <Link
+      to="/fusion-rescue"
+      className="hidden sm:inline-flex items-center gap-2 relative group font-mono font-semibold text-[10px] tracking-[0.22em] uppercase px-0 py-2 transition-colors duration-300 active:scale-[0.98]"
+      style={{ color: 'var(--accent)' }}
+    >
+      <span className="relative">
+        Fusion Rescue
+        <span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-right scale-x-100 transition-transform duration-300 ease-out group-hover:scale-x-0" style={{ background: 'var(--accent)' }} />
+      </span>
+    </Link>
+  ) : null;
+
   const startLink = (
     <Link
       to="/#radar-admision"
@@ -168,12 +183,13 @@ export default function Header() {
 
           <div
             className={`
-              flex items-center gap-4 shrink-0
+              flex items-center gap-6 shrink-0
               transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
               ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}
             `}
             style={{ transitionDelay: '180ms' }}
           >
+            {fusionRescueLink}
             {startLink}
             <ThemeToggle />
             {/* Traductor desactivado temporalmente por rendimiento. */}

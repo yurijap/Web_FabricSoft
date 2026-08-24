@@ -82,6 +82,12 @@ const seoByPath: Record<string, SeoConfig> = {
       'Reporte ejecutivo con indicadores y benchmarks de implementaciones Oracle Fusion y proyectos criticos.',
     path: '/benchmark',
   },
+  '/fusion-rescue': {
+    title: 'FABRIC Fusion Rescue Health Check™ | Oracle Fusion ERP Health Assessment',
+    description:
+      'Evalua en pocos minutos el estado de tu implementacion de Oracle Fusion Cloud ERP e identifica posibles riesgos en procesos, finanzas, datos, integraciones, adopcion y soporte.',
+    path: '/fusion-rescue',
+  },
   '/post-mortem': {
     title: 'Post-Mortem Oracle privado | FABRIC',
     description:

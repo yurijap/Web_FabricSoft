@@ -4489,4 +4489,38 @@ html, body {
   -ms-overflow-style: none !important; /* IE y Edge */
 }
 
+/* Custom Gold Scrollbar Styling for Fabric Admin */
+.custom-scrollbar::-webkit-scrollbar,
+.custom-scrollbar-gold::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar-gold::-webkit-scrollbar-track {
+  background: #07192F !important;
+  border-radius: 4px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.custom-scrollbar-gold::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #C9A96E 0%, #A07845 100%) !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(201, 169, 110, 0.5) !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar-gold::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FFE8A3 0%, #C9A96E 100%) !important;
+}
+
+/* Firefox support for Custom Gold Scrollbar */
+.custom-scrollbar,
+.custom-scrollbar-gold {
+  scrollbar-width: thin !important;
+  scrollbar-color: #C9A96E #07192F !important;
+}
+
+
 

@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   UsersRound,
   Sliders,
+  Target,
 } from 'lucide-react';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -53,8 +54,17 @@ const NAV_GROUPS: NavGroup[] = [
       { path: '/admin/documentos', label: 'Solicitudes de Documentos', icon: FileText },
       { path: '/admin/validacion-directa', label: 'VALIDACIÓN DIRECTA', icon: ShieldCheck },
       { path: '/admin/waitlist', label: 'Wait List', icon: Sliders },
-      { path: '/admin/rescue-assessment', label: 'Rescue Assessment', icon: ClipboardList },
       { path: '/admin/doctrina', label: 'Doctrina', icon: FileText },
+    ],
+  },
+  {
+    group: 'Rescue Fusion',
+    defaultOpen: true,
+    items: [
+      { path: '/admin/rescue-fusion/leads', label: 'Leads Fusion Rescue', icon: Target },
+      { path: '/admin/rescue-fusion/dashboard', label: 'Dashboard General', icon: BarChart3 },
+      { path: '/admin/rescue-fusion/campaigns', label: 'Campañas & UTMs', icon: GitBranch },
+      { path: '/admin/rescue-fusion/settings', label: 'Configuración', icon: Sliders },
     ],
   },
   {

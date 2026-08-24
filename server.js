@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import { Resend } from 'resend';
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -159,20 +163,96 @@ const WaitlistQuarterSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const FusionRescueLeadSchema = new mongoose.Schema({
+  // Contact
+  nombre: String,
+  first_name: String,
+  last_name: String,
+  email: String,
+  telefono: String,
+  phone: String,
+  cargo: String,
+  job_title: String,
+  role: String,
+  country: String,
+
+  // Company / Environment
+  empresa: String,
+  company_name: String,
+  industry: String,
+  erp: { type: String, default: 'Oracle Fusion Cloud' },
+  fusion_products: String,
+  go_live_age: String,
+
+  // Assessment Engine Data
+  assessment_type: { type: String, default: 'FUSION_RESCUE_MVP' },
+  assessment_date: { type: Date, default: Date.now },
+  answers: mongoose.Schema.Types.Mixed,
+  process_score: Number,
+  finance_score: Number,
+  data_score: Number,
+  integration_score: Number,
+  adoption_score: Number,
+  governance_score: Number,
+  health_score: Number,
+  totalScore: Number,
+  health_classification: String,
+  recommended_path: String,
+  critical_flags: [String],
+  main_problem: String,
+  problem_description: String,
+  timing: String,
+
+  // Review request
+  review_requested: { type: Boolean, default: false },
+  contact_preference: String,
+
+  // Progress Tracking
+  status: { type: String, default: 'Incompleto' }, // 'Incompleto', 'Preguntas Respondidas', 'Completado'
+  questions_answered_count: { type: Number, default: 0 },
+
+  // UTM Attribution
+  utm_source: String,
+  utm_medium: String,
+  utm_campaign: String,
+  utm_content: String,
+  utm_term: String,
+  landing_page: String,
+  referrer: String,
+  first_touch_date: String,
+  content_id: String
+}, { timestamps: true });
+
+const FusionRescueAnalyticsSchema = new mongoose.Schema({
+  ip: { type: String, default: '127.0.0.1' },
+  event_type: String, // 'landing_visit', 'assessment_start', 'lead_capture', 'question_answered', 'assessment_complete', 'review_request'
+  question_id: String, // e.g. 'q01' .. 'q25'
+  user_agent: String,
+  path: { type: String, default: '/fusion-rescue' },
+  utm_source: String,
+  utm_medium: String,
+  utm_campaign: String,
+  utm_content: String,
+  content_id: String
+}, { timestamps: true });
+
+const FusionRescueAnalytics = mongoose.models.FusionRescueAnalytics || mongoose.model('FusionRescueAnalytics', FusionRescueAnalyticsSchema, 'fusion_rescue_analytics');
+
+const FusionRescueLead = mongoose.models.FusionRescueLead || mongoose.model('FusionRescueLead', FusionRescueLeadSchema, 'fusion_rescue_leads');
+
 const RescueAssessmentSchema = new mongoose.Schema({
   nombre: String,
   email: String,
   empresa: String,
-  escenario: String,
   totalScore: Number,
-  answers: [{
-    questionId: String,
-    questionText: String,
-    selectedOptionLabel: String,
-    score: Number
-  }],
-  createdAt: { type: Date, default: Date.now }
-});
+  answers: Array,
+  escenario: String,
+  utm_source: String,
+  utm_medium: String,
+  utm_campaign: String,
+  utm_content: String,
+  content_id: String
+}, { timestamps: true });
 
 const LogSchema = new mongoose.Schema({
   accion: String,
@@ -1085,39 +1165,548 @@ app.post('/api/office-hours/slots', async (req, res) => {
   }
 });
 
-// ================= RUTAS API PARA RESCUE ASSESSMENT =================
-app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit'], async (req, res) => {
+// ================= RUTAS API PARA FUSION RESCUE =================
+app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit', '/api/rescue-assessment', '/api/fusion-rescue', '/api/fusion-rescue/submit'], async (req, res) => {
   try {
-    const { nombre, email, empresa, escenario, totalScore, answers } = req.body;
-    const newSubmission = new RescueAssessment({
-      nombre: nombre || 'Anónimo',
-      email: email || '',
-      empresa: empresa || 'Empresa',
-      escenario: escenario || 'fusion-fallando',
-      totalScore: totalScore || 0,
-      answers: answers || []
-    });
-    const saved = await newSubmission.save();
-    console.log(`📋 Rescue Assessment guardado en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}]`);
-    res.status(201).json({ success: true, data: saved });
+    const data = req.body;
+    const submissionId = data.submission_id || data._id || data.id;
+    const firstName = data.first_name || (data.nombre ? data.nombre.split(' ')[0] : 'Cliente');
+    const lastName = data.last_name || (data.nombre ? data.nombre.split(' ').slice(1).join(' ') : '');
+    const fullName = data.nombre || `${firstName} ${lastName}`.trim();
+    const email = data.email || '';
+    const company = data.company_name || data.empresa || 'Empresa';
+    const jobTitle = data.job_title || data.cargo || 'Ejecutivo';
+    const role = data.role || data.cargo || 'Usuario';
+    const country = data.country || 'México';
+    const healthScore = data.health_score ?? data.totalScore ?? 0;
+    const classification = data.health_classification || 'AT RISK';
+    const recommendedPath = data.recommended_path || 'RESCUE';
+    const mainProblem = data.problema_principal || data.main_problem || 'General';
+    const problemDescription = data.descripcion_problema || data.problem_description || '';
+    const timing = data.timing_prioridad || data.timing || '3 meses';
+    const source = data.utm_source || 'direct';
+    const contentId = data.content_id || data.utm_content || 'N/A';
+
+    const answersObj = data.answers || {};
+    const answeredCount = Object.keys(answersObj).length;
+    let computedStatus = 'Incompleto';
+    if (!data.is_draft && answeredCount === 25) {
+      computedStatus = 'Completado';
+    } else if (answeredCount > 0 && answeredCount < 25) {
+      computedStatus = 'Incompleto';
+    } else if (answeredCount === 25) {
+      computedStatus = 'Preguntas Respondidas';
+    }
+
+    const payloadObj = {
+      nombre: fullName,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      telefono: data.telefono || data.phone || '',
+      phone: data.phone || data.telefono || '',
+      cargo: jobTitle,
+      job_title: jobTitle,
+      role,
+      country,
+
+      empresa: company,
+      company_name: company,
+      industry: data.industry || 'General',
+      erp: data.erp || 'Oracle Fusion Cloud',
+      fusion_products: data.fusion_products || data.solution || 'Oracle Fusion Cloud ERP',
+      go_live_age: data.go_live_age || '1-2 años',
+
+      assessment_type: 'FUSION_RESCUE_MVP',
+      answers: answersObj,
+      questions_answered_count: answeredCount,
+      status: computedStatus,
+
+      process_score: data.process_score || data.dimension_results?.procesos?.score || 0,
+      finance_score: data.finance_score || data.dimension_results?.finanzas?.score || 0,
+      data_score: data.data_score || data.dimension_results?.datos?.score || 0,
+      integration_score: data.integration_score || data.dimension_results?.integraciones?.score || 0,
+      adoption_score: data.adoption_score || data.dimension_results?.adopcion?.score || 0,
+      governance_score: data.governance_score || data.dimension_results?.governance?.score || 0,
+      health_score: healthScore,
+      totalScore: healthScore,
+      health_classification: classification,
+      recommended_path: recommendedPath,
+      critical_flags: data.critical_flags || [],
+      main_problem: mainProblem,
+      problema_principal: mainProblem,
+      problem_description: problemDescription,
+      descripcion_problema: problemDescription,
+      timing: timing,
+      timing_prioridad: timing,
+
+      review_requested: data.review_requested || false,
+      contact_preference: data.contact_preference || '',
+
+      utm_source: data.utm_source || '',
+      utm_medium: data.utm_medium || '',
+      utm_campaign: data.utm_campaign || '',
+      utm_content: data.utm_content || '',
+      utm_term: data.utm_term || '',
+      landing_page: data.landing_page || '/fusion-rescue',
+      referrer: data.referrer || '',
+      first_touch_date: data.first_touch_date || new Date().toISOString(),
+      content_id: contentId
+    };
+
+    let saved;
+    if (submissionId) {
+      saved = await FusionRescueLead.findByIdAndUpdate(submissionId, payloadObj, { new: true });
+    }
+    if (!saved) {
+      const newSubmission = new FusionRescueLead(payloadObj);
+      saved = await newSubmission.save();
+    }
+
+    // Internal notification in audit log
+    const auditDetail = `FUSION RESCUE LEAD (${saved.status})\nNombre: ${fullName}\nEmpresa: ${company}\nEmail: ${email}\nPreguntas respondidas: ${answeredCount}/25\nHealth Score: ${healthScore}/100\nSolicitó revisión: ${saved.review_requested ? 'Sí' : 'No'}`;
+
+    createLog(`FUSION RESCUE LEAD (${saved.status}): ${fullName}`, 'FusionRescueLead', 'Cliente', 'OK', auditDetail);
+    console.log(`📋 Fusion Rescue Lead actualizado en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}, status=${saved.status}, preguntas=${answeredCount}/25]`);
+
+    // Disparar Alerta de Correo a Destinatarios Internos de Settings usando Resend API
+    sendLeadAlertEmail(saved).catch(err => console.error('Error enviando alerta de correo:', err));
+
+    res.status(200).json({ success: true, data: saved });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.get(['/api/rescue-assessment/submissions', '/rescue-assessment/submissions'], async (req, res) => {
+// Helper Function to Send Email Alerts via Resend API
+async function sendLeadAlertEmail(savedLead) {
   try {
-    const submissions = await RescueAssessment.find().sort({ createdAt: -1 });
+    if (!resend) {
+      console.warn('⚠️ RESEND_API_KEY no configurada en las variables de entorno. Omite envío de correo.');
+      return;
+    }
+    let settings = await RescueSettings.findOne();
+    const recipientEmails = (settings && Array.isArray(settings.notification_emails) && settings.notification_emails.length > 0)
+      ? settings.notification_emails
+      : ['fabrizio@fabricsoft.com.mx', 'antonio@fabricsoft.com.mx'];
+
+    const fullName = `${savedLead.first_name || savedLead.nombre || 'Prospecto'} ${savedLead.last_name || savedLead.apellidos || ''}`.trim();
+    const company = savedLead.empresa || savedLead.company_name || 'Empresa';
+    const email = savedLead.email || 'N/A';
+    const phone = savedLead.phone || savedLead.telefono || 'N/A';
+    const jobTitle = savedLead.cargo || savedLead.job_title || 'Ejecutivo';
+    const score = savedLead.health_score ?? savedLead.totalScore ?? 0;
+    const classification = savedLead.health_classification || 'AT RISK';
+    const path = savedLead.recommended_path || 'RESCUE';
+    const problem = savedLead.problema_principal || savedLead.main_problem || 'N/A';
+    const timing = savedLead.timing_prioridad || savedLead.timing || 'N/A';
+    const source = savedLead.utm_source || 'Directo';
+    const campaign = savedLead.utm_campaign || 'N/A';
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background-color: #07192F; color: #ffffff; padding: 30px; border-radius: 16px;">
+        <div style="border-bottom: 2px solid #C9A96E; padding-bottom: 15px; margin-bottom: 20px;">
+          <span style="font-size: 11px; font-weight: bold; color: #C9A96E; letter-spacing: 2px; text-transform: uppercase;">
+            FABRIC FUSION RESCUE · ALERTA INSTANTÁNEA DE LEAD
+          </span>
+          <h1 style="color: #ffffff; font-size: 22px; margin: 8px 0 0 0;">
+            🚨 Nuevo Diagnóstico Concluido: ${fullName} (${company})
+          </h1>
+        </div>
+
+        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+          Un nuevo prospecto ha respondido todo el formulario de <strong>Fusion Rescue Health Check</strong> y ha hecho clic en <em>Ver mi diagnóstico</em>.
+        </p>
+
+        <div style="background-color: #0E2747; border: 1px solid #C9A96E; padding: 20px; border-radius: 12px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #f8fafc;">
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold; width: 140px;">Nombre Lead:</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${fullName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Empresa:</td>
+              <td style="padding: 8px 0; color: #ffffff;">${company}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Email:</td>
+              <td style="padding: 8px 0; color: #38bdf8; font-weight: bold;"><a href="mailto:${email}" style="color: #38bdf8;">${email}</a></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Teléfono / WA:</td>
+              <td style="padding: 8px 0; color: #ffffff;">${phone}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Cargo:</td>
+              <td style="padding: 8px 0; color: #ffffff;">${jobTitle}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Health Score:</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #C9A96E;">${score} / 100 (${classification})</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Ruta Recomendada:</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #fbbf24;">${path}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Problema Principal:</td>
+              <td style="padding: 8px 0; color: #ffffff;">${problem}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Timing Atención:</td>
+              <td style="padding: 8px 0; color: #34d399;">${timing}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Origen Traffic / UTM:</td>
+              <td style="padding: 8px 0; color: #a7f3d0;">${source} (Campaña: ${campaign})</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="https://fabricsoft.mx/admin/rescue-fusion/leads" style="display: inline-block; background-color: #C9A96E; color: #050203; padding: 14px 28px; font-weight: bold; text-decoration: none; border-radius: 12px; font-size: 14px;">
+            Acceder al Expediente Completo en el Panel Admin
+          </a>
+        </div>
+      </div>
+    `;
+
+    let sendRes = await resend.emails.send({
+      from: 'FABRIC Rescue <onboarding@resend.dev>',
+      to: recipientEmails,
+      subject: `🚨 NUEVO LEAD DIAGNÓSTICO: ${fullName} (${company}) — Score: ${score}/100`,
+      html: htmlContent
+    });
+
+    if (sendRes.error && sendRes.error.name === 'validation_error') {
+      console.warn('⚠️ Resend en modo pruebas sin dominio verificado. Reenviando a saalzarantonio@gmail.com...');
+      sendRes = await resend.emails.send({
+        from: 'FABRIC Rescue <onboarding@resend.dev>',
+        to: ['saalzarantonio@gmail.com'],
+        subject: `🚨 [MODO TEST] NUEVO LEAD DIAGNÓSTICO: ${fullName} (${company}) — Score: ${score}/100`,
+        html: htmlContent
+      });
+    }
+
+    if (sendRes.error) {
+      console.error('❌ Error enviando notificación vía Resend:', sendRes.error);
+      createLog('Error envío correo Resend', 'NotificationEmail', 'Sistema', 'ERR', sendRes.error.message || JSON.stringify(sendRes.error));
+    } else {
+      console.log(`📧 Notificación de correo enviada exitosamente vía Resend [id=${sendRes.data?.id}] a: ${recipientEmails.join(', ')}`);
+      createLog(`Alerta de correo enviada para lead: ${fullName}`, 'NotificationEmail', 'Sistema', 'OK', `Enviado a: ${recipientEmails.join(', ')}`);
+    }
+  } catch (err) {
+    console.error('❌ Excepción enviando correo con Resend API:', err.message);
+  }
+}
+
+// Update Progress on Answer Selection
+app.patch(['/api/fusion-rescue/:id/progress', '/api/rescue-assessment/:id/progress'], async (req, res) => {
+  try {
+    const { answers } = req.body;
+    const answersObj = answers || {};
+    const answeredCount = Object.keys(answersObj).length;
+    const computedStatus = answeredCount === 25 ? 'Preguntas Respondidas' : 'Incompleto';
+
+    const updated = await FusionRescueLead.findByIdAndUpdate(
+      req.params.id,
+      {
+        answers: answersObj,
+        questions_answered_count: answeredCount,
+        status: computedStatus
+      },
+      { new: true }
+    );
+
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch(['/api/rescue-assessment/:id/review', '/rescue-assessment/:id/review', '/api/fusion-rescue/:id/review'], async (req, res) => {
+  try {
+    const { review_requested, contact_preference, phone } = req.body;
+    const updateObj = { review_requested: review_requested ?? true };
+    if (contact_preference) updateObj.contact_preference = contact_preference;
+    if (phone) {
+      updateObj.phone = phone;
+      updateObj.telefono = phone;
+    }
+
+    const updated = await FusionRescueLead.findByIdAndUpdate(req.params.id, updateObj, { new: true });
+    if (updated) {
+      createLog(`Solicitud de Revisión 30 min: ${updated.nombre}`, 'FusionRescueLead', 'Cliente', 'OK', `Empresa: ${updated.empresa} · Método: ${contact_preference || 'Email'}`);
+    }
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+const recentEventsCache = new Map();
+
+// Tracking Event (IP & Click Counter with 2s Server Deduplication)
+app.post(['/api/fusion-rescue/track', '/api/rescue-assessment/track'], async (req, res) => {
+  try {
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || req.ip || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || '';
+    const { event_type, question_id, path, utm_source, utm_medium, utm_campaign, utm_content, content_id } = req.body;
+
+    const dedupeKey = `${clientIp}_${event_type}_${question_id || ''}_${utm_source || ''}`;
+    const now = Date.now();
+    const lastSeen = recentEventsCache.get(dedupeKey);
+
+    // Deduplicate identical events from the same IP within 2000ms (prevents React 18 StrictMode double counts)
+    if (lastSeen && (now - lastSeen) < 2000) {
+      return res.json({ success: true, message: 'Event deduplicated' });
+    }
+
+    recentEventsCache.set(dedupeKey, now);
+    if (recentEventsCache.size > 2000) {
+      for (const [k, v] of recentEventsCache.entries()) {
+        if (now - v > 10000) recentEventsCache.delete(k);
+      }
+    }
+
+    const eventObj = new FusionRescueAnalytics({
+      ip: clientIp,
+      event_type: event_type || 'landing_visit',
+      question_id: question_id || null,
+      user_agent: userAgent,
+      path: path || '/fusion-rescue',
+      utm_source: utm_source || undefined,
+      utm_medium: utm_medium || undefined,
+      utm_campaign: utm_campaign || undefined,
+      utm_content: utm_content || undefined,
+      content_id: content_id || utm_content || undefined
+    });
+
+    await eventObj.save();
+    console.log(`📊 Evento rastreado (+1): ${event_type} [IP: ${clientIp}, source: ${utm_source || 'direct'}, question: ${question_id || 'N/A'}]`);
+    res.json({ success: true, message: 'Event tracked' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Campaign Stats Aggregation (UTM Traffic & Social Networks Breakdown)
+app.get(['/api/fusion-rescue/campaign-stats', '/api/rescue-assessment/campaign-stats'], async (req, res) => {
+  try {
+    const analyticsVisits = await FusionRescueAnalytics.find({ event_type: 'landing_visit' });
+    const leads = await FusionRescueLead.find();
+
+    const campaignMap = {};
+
+    // 1. Group landing visits by content_id or utm_source
+    analyticsVisits.forEach(v => {
+      const cid = v.content_id || v.utm_content || (v.utm_source ? `${v.utm_source.toUpperCase()}-GENERAL` : 'DIRECT-VISIT');
+      const source = v.utm_source || 'direct';
+      const medium = v.utm_medium || 'organic';
+      const campaign = v.utm_campaign || 'general';
+
+      if (!campaignMap[cid]) {
+        campaignMap[cid] = {
+          content_id: cid,
+          utm_source: source,
+          utm_medium: medium,
+          utm_campaign: campaign,
+          visitas: 0,
+          leads_completados: 0,
+          total_score: 0,
+          revisiones_generadas: 0
+        };
+      }
+      campaignMap[cid].visitas += 1;
+    });
+
+    // 2. Group leads & scores by content_id or utm_source
+    leads.forEach(lead => {
+      const cid = lead.content_id || lead.utm_content || (lead.utm_source ? `${lead.utm_source.toUpperCase()}-GENERAL` : 'DIRECT-VISIT');
+      const source = lead.utm_source || 'direct';
+      const medium = lead.utm_medium || 'organic';
+      const campaign = lead.utm_campaign || 'general';
+      const score = lead.health_score ?? lead.totalScore ?? 0;
+      const rev = lead.review_requested ? 1 : 0;
+
+      if (!campaignMap[cid]) {
+        campaignMap[cid] = {
+          content_id: cid,
+          utm_source: source,
+          utm_medium: medium,
+          utm_campaign: campaign,
+          visitas: 1,
+          leads_completados: 0,
+          total_score: 0,
+          revisiones_generadas: 0
+        };
+      }
+
+      campaignMap[cid].leads_completados += 1;
+      campaignMap[cid].total_score += score;
+      campaignMap[cid].revisiones_generadas += rev;
+
+      if (campaignMap[cid].visitas < campaignMap[cid].leads_completados) {
+        campaignMap[cid].visitas = campaignMap[cid].leads_completados;
+      }
+    });
+
+    const result = Object.values(campaignMap).map((c) => {
+      const avgScore = c.leads_completados > 0 ? Math.round(c.total_score / c.leads_completados) : 0;
+      const convRate = c.visitas > 0 ? ((c.leads_completados / c.visitas) * 100).toFixed(1) + '%' : '0.0%';
+      return {
+        content_id: c.content_id,
+        utm_source: c.utm_source,
+        utm_medium: c.utm_medium,
+        utm_campaign: c.utm_campaign,
+        visitas: c.visitas,
+        leads_completados: c.leads_completados,
+        score_promedio: avgScore,
+        revisiones_generadas: c.revisiones_generadas,
+        conversion_rate: convRate
+      };
+    });
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Clear Analytics Metrics (Reset counters to 0)
+app.delete(['/api/fusion-rescue/analytics/clear', '/api/rescue-assessment/analytics/clear'], async (req, res) => {
+  try {
+    await FusionRescueAnalytics.deleteMany({});
+    createLog('Limpieza de Analítica de Fusion Rescue', 'FusionRescueAnalytics', 'Admin', 'WARNING', 'Se restablecieron a cero todos los eventos de interacción y contadores de la base de datos.');
+    console.log('🗑️ Se limpiaron exitosamente todos los registros de analítica en fusion_rescue_analytics');
+    res.json({ success: true, message: 'Se han limpiado todos los datos de analítica exitosamente' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Dashboard Stats Aggregation
+app.get(['/api/fusion-rescue/dashboard-stats', '/api/rescue-assessment/dashboard-stats'], async (req, res) => {
+  try {
+    const pathFilter = { $regex: /fusion-rescue/i };
+    const landingVisits = await FusionRescueAnalytics.countDocuments({ event_type: 'landing_visit', path: pathFilter });
+    const assessmentStarts = await FusionRescueAnalytics.countDocuments({ event_type: 'assessment_start', path: pathFilter });
+    const assessmentCompletes = await FusionRescueAnalytics.countDocuments({ event_type: 'assessment_complete', path: pathFilter });
+    const leadCaptures = await FusionRescueLead.countDocuments({ landing_page: pathFilter });
+    const reviewRequests = await FusionRescueLead.countDocuments({ landing_page: pathFilter, review_requested: true });
+
+    const questionsList = [
+      { id: 'q01', label: 'P01 - Procesos principales en Fusion' },
+      { id: 'q02', label: 'P02 - Manualidad fuera de Fusion' },
+      { id: 'q03', label: 'P03 - Conciliaciones manuales' },
+      { id: 'q04', label: 'P04 - Cierre mensual' },
+      { id: 'q05', label: 'P05 - Carga de asientos contables' },
+      { id: 'q06', label: 'P06 - Variación de saldos' },
+      { id: 'q07', label: 'P07 - Calidad de datos maestros' },
+      { id: 'q08', label: 'P08 - Datos duplicados o incompletos' },
+      { id: 'q09', label: 'P09 - Fallas en integraciones' },
+      { id: 'q10', label: 'P10 - Intervención manual en interfaces' },
+      { id: 'q11', label: 'P11 - Adopción real de usuarios' },
+      { id: 'q12', label: 'P12 - Uso de Excel paralelo' },
+      { id: 'q13', label: 'P13 - Backlog de tickets' },
+      { id: 'q14', label: 'P14 - Tiempo de respuesta de soporte' },
+      { id: 'q15', label: 'P15 - Pruebas de updates trimestrales' },
+      { id: 'q16', label: 'P16 - Documentación de procesos' },
+      { id: 'q17', label: 'P17 - Reportes de BI/OTBI' },
+      { id: 'q18', label: 'P18 - Gobernanza de cambios' },
+      { id: 'q19', label: 'P19 - Seguridad y roles de Fusion' },
+      { id: 'q20', label: 'P20 - Capacidad del equipo interno' },
+      { id: 'q21', label: 'P21 - Dependencia del partner actual' },
+      { id: 'q22', label: 'P22 - Visibilidad del roadmap OCI' },
+      { id: 'q23', label: 'P23 - Impacto financiero de fallas' },
+      { id: 'q24', label: 'P24 - Grado de urgencia del negocio' },
+      { id: 'q25', label: 'P25 - Expectativa de resolución' }
+    ];
+
+    const questionDropOffs = [];
+    for (const q of questionsList) {
+      const qCount = await FusionRescueAnalytics.countDocuments({ event_type: 'question_answered', question_id: q.id });
+      let rateStr = '0.0%';
+      if (assessmentStarts > 0) {
+        const dropRatio = Math.max(0, ((assessmentStarts - qCount) / assessmentStarts) * 100);
+        rateStr = dropRatio.toFixed(1) + '%';
+      }
+      questionDropOffs.push({
+        question: q.label,
+        dropOffRate: rateStr,
+        answeredCount: qCount
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        landing_visits: landingVisits,
+        assessment_starts: assessmentStarts,
+        assessment_completes: assessmentCompletes,
+        lead_captures: leadCaptures,
+        review_requests: reviewRequests,
+        questionDropOffs
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get(['/api/fusion-rescue/submissions', '/api/rescue-assessment/submissions', '/rescue-assessment/submissions', '/api/rescue-assessments', '/api/admin/rescue-assessments'], async (req, res) => {
+  try {
+    const submissions = await FusionRescueLead.find().sort({ createdAt: -1 });
     res.json({ success: true, data: submissions });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.delete(['/api/rescue-assessment/submissions/:id', '/rescue-assessment/submissions/:id'], async (req, res) => {
+app.delete(['/api/fusion-rescue/submissions/:id', '/api/rescue-assessment/submissions/:id', '/rescue-assessment/submissions/:id', '/api/rescue-assessment/:id'], async (req, res) => {
   try {
-    await RescueAssessment.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Registro de Rescue Assessment eliminado' });
+    await FusionRescueLead.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Registro de Fusion Rescue eliminado' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Settings para Rescue Fusion
+const RescueSettingsSchema = new mongoose.Schema({
+  crm_webhook_url: { type: String, default: 'https://api.fabricsoft.com.mx/webhook/crm-fusion' },
+  notification_emails: { type: [String], default: ['fabrizio@fabricsoft.com.mx', 'antonio@fabricsoft.com.mx'] }
+}, { timestamps: true });
+const RescueSettings = mongoose.models.RescueSettings || mongoose.model('RescueSettings', RescueSettingsSchema);
+
+app.get(['/api/fusion-rescue/settings', '/api/rescue-assessment/settings', '/rescue-assessment/settings'], async (req, res) => {
+  try {
+    let settings = await RescueSettings.findOne();
+    if (!settings) {
+      settings = await RescueSettings.create({
+        crm_webhook_url: 'https://api.fabricsoft.com.mx/webhook/crm-fusion',
+        notification_emails: ['fabrizio@fabricsoft.com.mx', 'antonio@fabricsoft.com.mx']
+      });
+    }
+    res.json({ success: true, data: settings });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post(['/api/fusion-rescue/settings', '/api/rescue-assessment/settings', '/rescue-assessment/settings'], async (req, res) => {
+  try {
+    const { crm_webhook_url, notification_emails } = req.body;
+    let settings = await RescueSettings.findOne();
+    if (!settings) {
+      settings = new RescueSettings({ crm_webhook_url, notification_emails });
+    } else {
+      if (crm_webhook_url !== undefined) settings.crm_webhook_url = crm_webhook_url;
+      if (notification_emails !== undefined) settings.notification_emails = notification_emails;
+    }
+    await settings.save();
+    createLog(`Configuración de Notificaciones actualizada`, 'RescueSettings', 'Admin', 'OK', `Emails: ${settings.notification_emails.join(', ')}`);
+    res.json({ success: true, data: settings, message: 'Configuración guardada exitosamente' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

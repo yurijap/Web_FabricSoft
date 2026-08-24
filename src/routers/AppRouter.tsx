@@ -28,6 +28,12 @@ const AdminRescueAssessment = lazy(() => import('../pages/admin/AdminRescueAsses
 const AdminLogs = lazy(() => import('../pages/admin/AdminLogs'));
 const AdminDoctrina = lazy(() => import('../pages/admin/AdminDoctrina'));
 
+// Rescue Fusion Admin Pages
+const AdminRescueLeads = lazy(() => import('../pages/admin/rescue-fusion/AdminRescueLeads'));
+const AdminRescueDashboard = lazy(() => import('../pages/admin/rescue-fusion/AdminRescueDashboard'));
+const AdminRescueCampaigns = lazy(() => import('../pages/admin/rescue-fusion/AdminRescueCampaigns'));
+const AdminRescueSettings = lazy(() => import('../pages/admin/rescue-fusion/AdminRescueSettings'));
+
 // Páginas Públicas
 import Home from '../pages/public/home/home';
 const CasoPage = lazy(() => import('../pages/public/casos/CasoPage'));
@@ -55,6 +61,9 @@ const OfficeHoursPage = lazy(() => import('../pages/public/office-hours/OfficeHo
 
 // Optimizador OCI
 const OptimizadorOciPage = lazy(() => import('../pages/public/optimizador-oci/OptimizadorOciPage'));
+
+// Fusion Rescue
+const FusionRescuePage = lazy(() => import('../pages/public/fusion-rescue/FusionRescuePage'));
 
 // Páginas de Investigación
 const ResearchLettersPage = lazy(() => import('../pages/public/investigacion/ResearchLettersPage'));
@@ -179,6 +188,10 @@ export const AppRouter = () => {
             {/* Optimizador OCI */}
             <Route path="optimizador-oci" element={<OptimizadorOciPage />} />
 
+            {/* Fusion Rescue Health Check */}
+            <Route path="fusion-rescue" element={<FusionRescuePage />} />
+            <Route path="fusion-rescue/assessment" element={<FusionRescuePage />} />
+
             {/* Investigación */}
             <Route path="research-letters" element={<ResearchLettersPage />} />
             <Route path="investigacion/paper/:num" element={<PaperPage />} />
@@ -217,7 +230,11 @@ export const AppRouter = () => {
               <Route path="documentos" element={<AdminDocumentos />} />
               <Route path="validacion-directa" element={<AdminValidacionDirecta />} />
               <Route path="waitlist" element={<AdminWaitlist />} />
-              <Route path="rescue-assessment" element={<AdminRescueAssessment />} />
+              <Route path="rescue-assessment" element={<Navigate to="/admin/rescue-fusion/leads" replace />} />
+              <Route path="rescue-fusion/leads" element={<AdminRescueLeads />} />
+              <Route path="rescue-fusion/dashboard" element={<AdminRescueDashboard />} />
+              <Route path="rescue-fusion/campaigns" element={<AdminRescueCampaigns />} />
+              <Route path="rescue-fusion/settings" element={<AdminRescueSettings />} />
               <Route path="logs" element={<AdminLogs />} />
               <Route path="doctrina" element={<AdminDoctrina />} />
             </Route>
