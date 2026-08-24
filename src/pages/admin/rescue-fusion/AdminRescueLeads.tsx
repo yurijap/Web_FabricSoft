@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, RefreshCw, Trash2, Eye, Target, Check, Minus, Filter, ArrowUpRight, AlertTriangle, ChevronRight, X, FileText } from 'lucide-react';
+import { Search, RefreshCw, Trash2, Eye, Target, Check, Minus, Filter, ArrowUpRight, AlertTriangle, ChevronRight, X, FileText, Printer, Download, Mail } from 'lucide-react';
 import { useAuthApi } from '../../../config/api';
 import { QUESTIONS, ANSWER_OPTIONS, calculateAssessmentResult } from '../../../utils/fusionRescueEngine';
 
@@ -46,6 +46,8 @@ interface SubmissionItem {
   utm_campaign?: string;
   utm_content?: string;
   content_id?: string;
+  questions_answered_count?: number;
+  status?: string;
   answers?: AnswerItem[] | Record<string, any>;
   createdAt: string;
 }
@@ -63,7 +65,161 @@ export default function AdminRescueLeads() {
   const [reviewFilter, setReviewFilter] = useState<string>('ALL');
 
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionItem | null>(null);
+  const [pdfReportSubmission, setPdfReportSubmission] = useState<SubmissionItem | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const closeAllModals = () => {
+    setSelectedSubmission(null);
+    setPdfReportSubmission(null);
+  };
+
+  const handleSendResumeEmail = async (item: SubmissionItem) => {
+    if (!item.email) {
+      alert('Este prospecto no cuenta con un correo electrónico registrado.');
+      return;
+    }
+    setSendingEmailId(item._id);
+    try {
+      const res = await adminApi.post('/fusion-rescue/send-resume-email', { leadId: item._id });
+      if (res.data && res.data.success) {
+        alert(`¡Correo enviado con éxito a ${item.email}!\n\nEnlace personalizado generado con su ID:\n${res.data.resumeUrl}`);
+      } else {
+        alert(`Error al enviar correo: ${res.data?.error || 'Desconocido'}`);
+      }
+    } catch (err: any) {
+      alert(`Error enviando correo: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
+  const getFullDocumentCss = () => {
+    let css = '';
+    try {
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          Array.from(sheet.cssRules || []).forEach((rule) => {
+            css += rule.cssText + '\n';
+          });
+        } catch (e) {}
+      });
+    } catch (e) {}
+    return css;
+  };
+
+  const handlePrintPdf = () => {
+    const element = document.getElementById('pdf-report-document');
+    if (!element) return;
+
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document;
+    if (!frameDoc) return;
+
+    const fullCss = getFullDocumentCss();
+
+    frameDoc.open();
+    frameDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Reporte Fusion Rescue</title>
+          <style>
+            @page { size: A4 portrait; margin: 8mm; }
+            html, body {
+              background: #ffffff !important;
+              color: #000000 !important;
+              font-family: "JetBrains Mono", "Inter", system-ui, -apple-system, sans-serif !important;
+              margin: 0;
+              padding: 0;
+              width: 100%;
+            }
+            * { box-sizing: border-box; }
+            ${fullCss}
+            #pdf-report-document {
+              width: 100% !important;
+              max-width: 100% !important;
+              box-shadow: none !important;
+              border: none !important;
+              background: #ffffff !important;
+              color: #000000 !important;
+              padding: 16px !important;
+              margin: 0 !important;
+            }
+          </style>
+        </head>
+        <body style="background: white !important; color: black !important;">
+          <div id="pdf-report-document" style="background: white !important; color: black !important; padding: 16px;">
+            ${element.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    frameDoc.close();
+
+    setTimeout(() => {
+      printFrame.contentWindow?.focus();
+      printFrame.contentWindow?.print();
+      setTimeout(() => {
+        if (document.body.contains(printFrame)) {
+          document.body.removeChild(printFrame);
+        }
+      }, 1000);
+    }, 400);
+  };
+
+  const handleDirectPdfDownload = (submission: SubmissionItem) => {
+    const element = document.getElementById('pdf-report-document');
+    if (!element) return;
+    setIsDownloadingPdf(true);
+
+    const cleanName = (submission.empresa || submission.nombre || 'Lead').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const opt = {
+      margin: [8, 8, 8, 8],
+      filename: `Reporte-Fusion-Rescue-${cleanName}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    const executeDownload = () => {
+      try {
+        (window as any).html2pdf().set(opt).from(element).save().then(() => {
+          setIsDownloadingPdf(false);
+        }).catch((err: any) => {
+          console.error('Error generating PDF:', err);
+          setIsDownloadingPdf(false);
+          handlePrintPdf();
+        });
+      } catch (err) {
+        console.error(err);
+        setIsDownloadingPdf(false);
+        handlePrintPdf();
+      }
+    };
+
+    if ((window as any).html2pdf) {
+      executeDownload();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = () => executeDownload();
+      script.onerror = () => {
+        setIsDownloadingPdf(false);
+        handlePrintPdf();
+      };
+      document.body.appendChild(script);
+    }
+  };
 
   const fetchItems = () => {
     setLoading(true);
@@ -82,9 +238,9 @@ export default function AdminRescueLeads() {
     fetchItems();
   }, []);
 
-  // Lock body scroll when Expediente modal is open
+  // Lock body scroll when Expediente or PDF Report modal is open
   useEffect(() => {
-    if (selectedSubmission) {
+    if (selectedSubmission || pdfReportSubmission) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -92,7 +248,7 @@ export default function AdminRescueLeads() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [selectedSubmission]);
+  }, [selectedSubmission, pdfReportSubmission]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('¿Estás seguro de eliminar este expediente de prospecto?')) return;
@@ -229,93 +385,102 @@ export default function AdminRescueLeads() {
 
       <div className="p-6 md:p-8 space-y-6">
         {/* Quick Filters Bar */}
-        <div className="bg-[var(--bg-panel)] border border-[#1E3A5F] p-4 rounded-2xl shadow-lg space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Search */}
-            <div className="relative w-full lg:w-96">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={16} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre, cargo, empresa, país..."
-                className="w-full pl-10 pr-4 py-2.5 bg-[#07192F] border border-[#1E3A5F] rounded-xl text-xs text-white placeholder:text-[#94A3B8] font-mono focus:outline-none focus:border-[#C9A96E] transition"
-              />
-            </div>
-
-            {/* Quick Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Path Filter */}
-              <div className="flex items-center gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-1.5 rounded-xl">
-                <Filter size={12} className="text-[#94A3B8]" />
-                <span className="font-mono text-[10px] text-[#94A3B8] uppercase">Path:</span>
-                <select
-                  value={pathFilter}
-                  onChange={e => setPathFilter(e.target.value)}
-                  className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL" className="bg-[#0E2747]">Todos</option>
-                  <option value="OPTIMIZE" className="bg-[#0E2747]">OPTIMIZE</option>
-                  <option value="REMEDIATE" className="bg-[#0E2747]">REMEDIATE</option>
-                  <option value="RESCUE" className="bg-[#0E2747]">RESCUE</option>
-                  <option value="REASSESS" className="bg-[#0E2747]">REASSESS</option>
-                </select>
-              </div>
-
-              {/* Status Filter */}
-              <div className="flex items-center gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-1.5 rounded-xl">
-                <span className="font-mono text-[10px] text-[#94A3B8] uppercase">Estado:</span>
-                <select
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                  className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL" className="bg-[#0E2747]">Todos</option>
-                  <option value="OPTIMIZED" className="bg-[#0E2747]">Optimizado</option>
-                  <option value="STABLE" className="bg-[#0E2747]">Estable</option>
-                  <option value="AT RISK" className="bg-[#0E2747]">At Risk</option>
-                  <option value="CRITICAL" className="bg-[#0E2747]">Critical</option>
-                </select>
-              </div>
-
-              {/* Timing Filter */}
-              <div className="flex items-center gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-1.5 rounded-xl">
-                <span className="font-mono text-[10px] text-[#94A3B8] uppercase">Timing:</span>
-                <select
-                  value={timingFilter}
-                  onChange={e => setTimingFilter(e.target.value)}
-                  className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL" className="bg-[#0E2747]">Todos</option>
-                  <option value="Lo antes posible (Urgente)" className="bg-[#0E2747]">Urgente</option>
-                  <option value="En los próximos 3 meses" className="bg-[#0E2747]">3 meses</option>
-                  <option value="En los próximos 6 meses" className="bg-[#0E2747]">6 meses</option>
-                  <option value="Sólo evaluando opciones" className="bg-[#0E2747]">Evaluando</option>
-                </select>
-              </div>
-
-              {/* Review Requested Filter */}
-              <div className="flex items-center gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-1.5 rounded-xl">
-                <span className="font-mono text-[10px] text-[#94A3B8] uppercase">¿Revisión?:</span>
-                <select
-                  value={reviewFilter}
-                  onChange={e => setReviewFilter(e.target.value)}
-                  className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL" className="bg-[#0E2747]">Todos</option>
-                  <option value="YES" className="bg-[#0E2747]">Sí Solicitó</option>
-                  <option value="NO" className="bg-[#0E2747]">Sólo Resultado</option>
-                </select>
-              </div>
-
+        <div className="bg-[#0E2747] border border-[#1E3A5F] p-4 rounded-2xl shadow-lg space-y-3">
+          {/* Row 1: Search Input (Full Width - Zero Truncation) */}
+          <div className="relative w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={16} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nombre, cargo, empresa, país..."
+              className="w-full pl-10 pr-8 py-2.5 bg-[#07192F] border border-[#1E3A5F] rounded-xl text-xs text-white placeholder:text-[#94A3B8] font-mono focus:outline-none focus:border-[#C9A96E] transition shadow-inner"
+            />
+            {searchTerm && (
               <button
-                onClick={fetchItems}
-                className="px-4 py-2 bg-[#07192F] border border-[#1E3A5F] hover:border-[#C9A96E]/50 text-[#C9A96E] font-mono text-xs font-bold rounded-xl flex items-center gap-2 transition cursor-pointer"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-white text-xs font-mono cursor-pointer"
               >
-                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-                <span>Refrescar</span>
+                ✕
               </button>
+            )}
+          </div>
+
+          {/* Row 2: 5 Filter Controls in Equal Aligned Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {/* Path Filter */}
+            <div className="flex items-center justify-between gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-2 rounded-xl hover:border-[#C9A96E]/50 transition">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Filter size={12} className="text-[#C9A96E]" />
+                <span className="font-mono text-[10px] text-[#94A3B8] uppercase font-bold">Path</span>
+              </div>
+              <select
+                value={pathFilter}
+                onChange={e => setPathFilter(e.target.value)}
+                className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer text-right min-w-0 flex-1"
+              >
+                <option value="ALL" className="bg-[#0E2747]">Todos</option>
+                <option value="OPTIMIZE" className="bg-[#0E2747]">OPTIMIZE</option>
+                <option value="REMEDIATE" className="bg-[#0E2747]">REMEDIATE</option>
+                <option value="RESCUE" className="bg-[#0E2747]">RESCUE</option>
+                <option value="REASSESS" className="bg-[#0E2747]">REASSESS</option>
+              </select>
             </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center justify-between gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-2 rounded-xl hover:border-[#C9A96E]/50 transition">
+              <span className="font-mono text-[10px] text-[#94A3B8] uppercase font-bold shrink-0">Estado</span>
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer text-right min-w-0 flex-1"
+              >
+                <option value="ALL" className="bg-[#0E2747]">Todos</option>
+                <option value="OPTIMIZED" className="bg-[#0E2747]">Optimizado</option>
+                <option value="STABLE" className="bg-[#0E2747]">Estable</option>
+                <option value="AT RISK" className="bg-[#0E2747]">At Risk</option>
+                <option value="CRITICAL" className="bg-[#0E2747]">Critical</option>
+              </select>
+            </div>
+
+            {/* Timing Filter */}
+            <div className="flex items-center justify-between gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-2 rounded-xl hover:border-[#C9A96E]/50 transition">
+              <span className="font-mono text-[10px] text-[#94A3B8] uppercase font-bold shrink-0">Timing</span>
+              <select
+                value={timingFilter}
+                onChange={e => setTimingFilter(e.target.value)}
+                className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer text-right min-w-0 flex-1"
+              >
+                <option value="ALL" className="bg-[#0E2747]">Todos</option>
+                <option value="Lo antes posible (Urgente)" className="bg-[#0E2747]">Urgente</option>
+                <option value="En los próximos 3 meses" className="bg-[#0E2747]">3 meses</option>
+                <option value="En los próximos 6 meses" className="bg-[#0E2747]">6 meses</option>
+                <option value="Sólo evaluando opciones" className="bg-[#0E2747]">Evaluando</option>
+              </select>
+            </div>
+
+            {/* Review Requested Filter */}
+            <div className="flex items-center justify-between gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-2 rounded-xl hover:border-[#C9A96E]/50 transition">
+              <span className="font-mono text-[10px] text-[#94A3B8] uppercase font-bold shrink-0">¿Revisión?</span>
+              <select
+                value={reviewFilter}
+                onChange={e => setReviewFilter(e.target.value)}
+                className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer text-right min-w-0 flex-1"
+              >
+                <option value="ALL" className="bg-[#0E2747]">Todos</option>
+                <option value="YES" className="bg-[#0E2747]">Sí Solicitó</option>
+                <option value="NO" className="bg-[#0E2747]">Sólo Resultado</option>
+              </select>
+            </div>
+
+            {/* Refresh Button */}
+            <button
+              onClick={fetchItems}
+              className="w-full h-full min-h-[38px] px-3 py-2 bg-[#07192F] hover:bg-[#123254] border border-[#1E3A5F] hover:border-[#C9A96E]/50 text-[#C9A96E] hover:text-white font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+            >
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              <span>Refrescar</span>
+            </button>
           </div>
         </div>
 
@@ -427,9 +592,28 @@ export default function AdminRescueLeads() {
                         </td>
                         <td className="py-4 px-5 text-right" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
+                            {((item.questions_answered_count !== undefined && item.questions_answered_count < 25) || (item.status !== 'Completado' && item.status !== 'Preguntas Respondidas')) && (
+                              <button
+                                onClick={() => handleSendResumeEmail(item)}
+                                disabled={sendingEmailId === item._id}
+                                className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:border-amber-400 font-mono text-[11px] font-bold rounded-lg flex items-center gap-1.5 transition shadow-sm cursor-pointer disabled:opacity-50"
+                                title="Enviar correo con el link personalizado para continuar el formulario en donde se quedó"
+                              >
+                                <Mail size={13} className={sendingEmailId === item._id ? 'animate-bounce' : ''} />
+                                <span>{sendingEmailId === item._id ? 'Enviando...' : 'Enviar Link'}</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setPdfReportSubmission(item)}
+                              className="px-3 py-1.5 bg-[#07192F] hover:bg-[#0E2747] text-[#C9A96E] hover:text-white border border-[#C9A96E]/40 hover:border-[#FFE8A3] font-mono text-[11px] font-bold rounded-lg flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                              title="Generar Vista Previa del Reporte PDF"
+                            >
+                              <Printer size={13} />
+                              <span>Generar Reporte</span>
+                            </button>
                             <button
                               onClick={() => setSelectedSubmission(item)}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-[11px] font-bold rounded-lg flex items-center gap-1.5 transition shadow-sm"
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-[11px] font-bold rounded-lg flex items-center gap-1.5 transition shadow-sm cursor-pointer"
                             >
                               <Eye size={13} />
                               <span>Ver Expediente</span>
@@ -437,7 +621,7 @@ export default function AdminRescueLeads() {
                             <button
                               onClick={() => handleDelete(item._id)}
                               disabled={saving}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10"
+                              className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10 cursor-pointer"
                               title="Eliminar expediente"
                             >
                               <Trash2 size={13} />
@@ -457,7 +641,7 @@ export default function AdminRescueLeads() {
       {/* Expediente Modal / Drawer (Rendered via React Portal at document.body for absolute viewport centering) */}
       {selectedSubmission && createPortal(
         <div 
-          onClick={() => setSelectedSubmission(null)}
+          onClick={closeAllModals}
           className="fixed inset-0 bg-black/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4 md:p-6 overflow-y-auto"
         >
           <div
@@ -480,12 +664,25 @@ export default function AdminRescueLeads() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setSelectedSubmission(null)}
-                className="w-9 h-9 rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:text-white flex items-center justify-center cursor-pointer transition"
-              >
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const sub = selectedSubmission;
+                    setSelectedSubmission(null);
+                    setPdfReportSubmission(sub);
+                  }}
+                  className="px-3 py-1.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Printer size={13} />
+                  <span>Generar Reporte PDF</span>
+                </button>
+                <button
+                  onClick={closeAllModals}
+                  className="w-9 h-9 rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:text-white flex items-center justify-center cursor-pointer transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content Scrollable */}
@@ -771,11 +968,308 @@ export default function AdminRescueLeads() {
             {/* Modal Footer */}
             <div className="p-4 border-t border-[#1E3A5F] bg-[#07192F] flex justify-end gap-3 shrink-0">
               <button
-                onClick={() => setSelectedSubmission(null)}
+                onClick={closeAllModals}
                 className="px-6 py-2.5 border border-[#1E3A5F] text-[#94A3B8] hover:text-white font-mono text-xs rounded-xl cursor-pointer transition"
               >
                 Cerrar Expediente
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* PDF Report Preview Modal (Rendered via React Portal at document.body for print-ready vector PDF view) */}
+      {pdfReportSubmission && createPortal(
+        <div 
+          onClick={closeAllModals}
+          className="fixed inset-0 bg-black/90 backdrop-blur-md z-[999999] flex flex-col items-center justify-start p-2 sm:p-6 overflow-y-auto print:p-0 print:bg-white print:static"
+        >
+          {/* Floating Action Header Bar (Hidden during print) */}
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-4xl bg-[#0E2747] border border-[#C9A96E]/50 rounded-2xl p-4 mb-4 flex justify-between items-center shadow-2xl print:hidden shrink-0"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#C9A96E]/20 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center font-bold font-mono">
+                <Printer size={18} />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono text-[#C9A96E] font-bold uppercase tracking-widest block">
+                  VISTA PREVIA DEL REPORTE PDF
+                </span>
+                <h3 className="text-sm font-bold text-white font-serif">
+                  {pdfReportSubmission.nombre} — {pdfReportSubmission.empresa}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleDirectPdfDownload(pdfReportSubmission)}
+                disabled={isDownloadingPdf}
+                className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-xs font-extrabold rounded-xl flex items-center gap-2 transition cursor-pointer shadow-lg disabled:opacity-50"
+              >
+                <Download size={15} className={isDownloadingPdf ? 'animate-bounce' : ''} />
+                <span>{isDownloadingPdf ? 'Generando PDF...' : 'Descargar PDF'}</span>
+              </button>
+              <button
+                onClick={closeAllModals}
+                className="w-9 h-9 rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:text-white flex items-center justify-center cursor-pointer transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Printable White PDF Document Sheet */}
+          <div
+            onClick={e => e.stopPropagation()}
+            id="pdf-report-document"
+            className="w-full max-w-4xl bg-white text-black rounded-lg shadow-2xl p-8 sm:p-12 space-y-8 font-sans print:max-w-none print:w-full print:p-0 print:shadow-none print:rounded-none shrink-0"
+          >
+            {/* Header Document Banner */}
+            <div className="border-b-2 border-black pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-mono font-black text-black uppercase tracking-widest mb-1">
+                  <span>FABRIC SOFT MÉXICO</span>
+                  <span>•</span>
+                  <span>PREMIUM DIAGNOSTIC SERVICES</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight" style={{ color: '#000000', fontWeight: 900 }}>
+                  REPORTE DE DIAGNÓSTICO FUSION RESCUE™
+                </h1>
+                <p className="text-xs text-black font-mono font-bold mt-1">
+                  Evaluación de Salud Operativa, Técnica y Financiera de Entorno Oracle Fusion
+                </p>
+              </div>
+
+              <div className="text-left sm:text-right font-mono text-xs text-black bg-slate-100 border border-black p-3 rounded-lg">
+                <div><strong className="text-black">FECHA:</strong> {new Date(pdfReportSubmission.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div><strong className="text-black">EXPEDIENTE ID:</strong> #{pdfReportSubmission._id.slice(-8).toUpperCase()}</div>
+                <div><strong className="text-black">ESTADO:</strong> {pdfReportSubmission.status || 'Completado'}</div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 1: DATOS DEL USUARIO / PROSPECTO */}
+            <div className="bg-slate-50 border border-black rounded-xl p-6 space-y-4">
+              <h2 className="text-xs font-mono font-black text-black uppercase tracking-wider border-b border-black pb-2">
+                1. Datos del Usuario & Información de Contacto
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-mono">
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Nombre Completo</span>
+                  <span className="font-black text-black text-sm">{pdfReportSubmission.nombre} {pdfReportSubmission.last_name || ''}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Correo Corporativo</span>
+                  <span className="font-black text-black">{pdfReportSubmission.email}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Teléfono</span>
+                  <span className="font-black text-black">{pdfReportSubmission.telefono || pdfReportSubmission.phone || 'No especificado'}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Cargo / Rol</span>
+                  <span className="font-black text-black">{pdfReportSubmission.cargo || pdfReportSubmission.job_title || 'No especificado'}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Empresa</span>
+                  <span className="font-black text-black">{pdfReportSubmission.empresa}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">País</span>
+                  <span className="font-black text-black">{pdfReportSubmission.country || 'México'}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Solución Oracle</span>
+                  <span className="font-black text-black">{pdfReportSubmission.fusion_products || 'Oracle Fusion Cloud ERP'}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Antigüedad Go-Live</span>
+                  <span className="font-black text-black">{pdfReportSubmission.go_live_age || '1-2 años'}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Origen Traffic (UTM)</span>
+                  <span className="font-black text-black">{pdfReportSubmission.utm_source || 'direct'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 2: RESUMEN EJECUTIVO DE RESULTADOS */}
+            <div className="space-y-4">
+              <h2 className="text-xs font-mono font-black text-black uppercase tracking-wider border-b border-black pb-2">
+                2. Resumen Ejecutivo de Diagnóstico
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 bg-slate-100 border-2 border-black text-black rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-black uppercase font-bold">Fusion Health Score</span>
+                  <div className="text-3xl font-black font-mono text-black my-1">
+                    {pdfReportSubmission.health_score ?? pdfReportSubmission.totalScore ?? 0} / 100
+                  </div>
+                  <span className="text-xs font-mono font-black text-black">
+                    Clasificación: {pdfReportSubmission.health_classification || 'AT RISK'}
+                  </span>
+                </div>
+
+                <div className="p-4 bg-slate-100 border-2 border-black text-black rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-black uppercase font-bold">Ruta Recomendada</span>
+                  <div className="text-xl font-black font-mono text-black my-1">
+                    {pdfReportSubmission.recommended_path || 'RESCUE'}
+                  </div>
+                  <span className="text-xs font-sans font-bold text-black">
+                    Intervención recomendada
+                  </span>
+                </div>
+
+                <div className="p-4 bg-slate-100 border-2 border-black text-black rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-black uppercase font-bold">Urgencia / Prioridad</span>
+                  <div className="text-sm font-black font-mono text-black my-1">
+                    {pdfReportSubmission.timing_prioridad || pdfReportSubmission.timing || 'En 3 meses'}
+                  </div>
+                  <span className="text-xs font-sans font-bold text-black">
+                    Ventana de atención sugerida
+                  </span>
+                </div>
+              </div>
+
+              {(pdfReportSubmission.problema_principal || pdfReportSubmission.main_problem) && (
+                <div className="p-4 bg-slate-50 border border-black rounded-xl text-xs font-mono space-y-1">
+                  <span className="text-black font-black uppercase text-[10px]">Problema Principal Declarado:</span>
+                  <div className="font-black text-black text-sm">
+                    {pdfReportSubmission.problema_principal || pdfReportSubmission.main_problem}
+                  </div>
+                  {(pdfReportSubmission.descripcion_problema || pdfReportSubmission.problem_description) && (
+                    <p className="text-black font-sans font-medium mt-2 text-xs leading-relaxed italic">
+                      "{pdfReportSubmission.descripcion_problema || pdfReportSubmission.problem_description}"
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Scores por 6 Dimensiones Table */}
+              {(() => {
+                const answersMap = (pdfReportSubmission.answers && typeof pdfReportSubmission.answers === 'object' && !Array.isArray(pdfReportSubmission.answers))
+                  ? pdfReportSubmission.answers
+                  : {};
+                const hasAnswers = Object.keys(answersMap).length > 0;
+                const computed = hasAnswers ? calculateAssessmentResult(answersMap as any) : null;
+                const dims = computed?.dimensionResults;
+
+                const pScore = hasAnswers ? ((pdfReportSubmission.process_score && pdfReportSubmission.process_score > 0) ? pdfReportSubmission.process_score : (dims?.procesos?.score ?? 0)) : 0;
+                const fScore = hasAnswers ? ((pdfReportSubmission.finance_score && pdfReportSubmission.finance_score > 0) ? pdfReportSubmission.finance_score : (dims?.finanzas?.score ?? 0)) : 0;
+                const dScore = hasAnswers ? ((pdfReportSubmission.data_score && pdfReportSubmission.data_score > 0) ? pdfReportSubmission.data_score : (dims?.datos?.score ?? 0)) : 0;
+                const iScore = hasAnswers ? ((pdfReportSubmission.integration_score && pdfReportSubmission.integration_score > 0) ? pdfReportSubmission.integration_score : (dims?.integraciones?.score ?? 0)) : 0;
+                const aScore = hasAnswers ? ((pdfReportSubmission.adoption_score && pdfReportSubmission.adoption_score > 0) ? pdfReportSubmission.adoption_score : (dims?.adopcion?.score ?? 0)) : 0;
+                const gScore = hasAnswers ? ((pdfReportSubmission.governance_score && pdfReportSubmission.governance_score > 0) ? pdfReportSubmission.governance_score : (dims?.governance?.score ?? 0)) : 0;
+
+                return (
+                  <div className="border border-black rounded-xl overflow-hidden text-xs">
+                    <div className="bg-slate-200 px-4 py-2 font-mono font-black text-black uppercase tracking-wider text-[11px] border-b border-black">
+                      Puntajes Obtenidos por 6 Dimensiones
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-black font-mono text-center">
+                      <div className="p-3">
+                        <span className="text-[10px] text-black font-bold block">PROCESOS</span>
+                        <span className="font-black text-black text-sm">{pScore} pts</span>
+                      </div>
+                      <div className="p-3">
+                        <span className="text-[10px] text-black font-bold block">FINANZAS</span>
+                        <span className="font-black text-black text-sm">{fScore} pts</span>
+                      </div>
+                      <div className="p-3">
+                        <span className="text-[10px] text-black font-bold block">DATOS</span>
+                        <span className="font-black text-black text-sm">{dScore} pts</span>
+                      </div>
+                      <div className="p-3">
+                        <span className="text-[10px] text-black font-bold block">INTEGRACIONES</span>
+                        <span className="font-black text-black text-sm">{iScore} pts</span>
+                      </div>
+                      <div className="p-3">
+                        <span className="text-[10px] text-black font-bold block">ADOPCIÓN</span>
+                        <span className="font-black text-black text-sm">{aScore} pts</span>
+                      </div>
+                      <div className="p-3">
+                        <span className="text-[10px] text-black font-bold block">GOVERNANCE</span>
+                        <span className="font-black text-black text-sm">{gScore} pts</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* SECCIÓN 3: DETALLE DE PREGUNTAS Y RESPUESTAS RESPONDIDAS */}
+            <div className="space-y-4 pt-2">
+              <div className="flex justify-between items-center border-b border-black pb-2">
+                <h2 className="text-xs font-mono font-black text-black uppercase tracking-wider">
+                  3. Detalle Completo de Preguntas & Respuestas ({pdfReportSubmission.questions_answered_count ?? (pdfReportSubmission.answers ? Object.keys(pdfReportSubmission.answers).length : 0)} / 25)
+                </h2>
+                <span className="text-[10px] font-mono font-black text-black uppercase bg-slate-100 px-2.5 py-1 rounded border border-black">
+                  Cuestionario Completo
+                </span>
+              </div>
+
+              <div className="space-y-3 font-mono text-xs">
+                {QUESTIONS.map((q) => {
+                  const userAnsVal = pdfReportSubmission.answers ? pdfReportSubmission.answers[q.id] : undefined;
+                  const optionObj = ANSWER_OPTIONS.find((opt) => opt.value === userAnsVal);
+                  const isAnswered = !!userAnsVal;
+
+                  return (
+                    <div 
+                      key={q.id} 
+                      className={`p-3.5 rounded-lg border text-xs ${
+                        isAnswered ? 'bg-white border-slate-400' : 'bg-slate-100 border-slate-300 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-1.5">
+                        <div className="font-sans font-black text-black text-xs flex items-start gap-2">
+                          <span className="px-2 py-0.5 rounded bg-black text-white font-mono text-[10px] font-bold shrink-0 mt-0.5">
+                            P{q.number < 10 ? `0${q.number}` : q.number}
+                          </span>
+                          <span>{q.text}</span>
+                        </div>
+                        <span className="text-[9px] font-mono text-black font-bold uppercase bg-slate-200 px-2 py-0.5 rounded border border-black shrink-0">
+                          {q.dimensionId}
+                        </span>
+                      </div>
+
+                      <div className="pl-8 pt-1.5 border-t border-slate-200 flex items-center justify-between font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-black font-bold text-[10px] uppercase">Respuesta:</span>
+                          {isAnswered ? (
+                            <span className="font-black text-black font-sans">
+                              {optionObj ? optionObj.label : String(userAnsVal)}
+                            </span>
+                          ) : (
+                            <span className="italic text-slate-600 font-sans text-xs">
+                              (Sin responder)
+                            </span>
+                          )}
+                        </div>
+                        {optionObj && (
+                          <span className="font-black text-black bg-slate-100 border border-black px-2 py-0.5 rounded text-[10px]">
+                            +{optionObj.points} pts
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Document Footer Disclaimer */}
+            <div className="border-t-2 border-black pt-4 font-mono text-[10px] text-black font-bold flex justify-between items-center">
+              <div>
+                FABRIC SOFT MÉXICO © {new Date().getFullYear()} — Confidential & Proprietary Report
+              </div>
+              <div>
+                Reporte de Diagnóstico Fusion Rescue™
+              </div>
             </div>
           </div>
         </div>,

@@ -30,6 +30,8 @@
     "express": "^5.2.1",
     "framer-motion": "^12.39.0",
     "googleapis": "^174.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "luxon": "^3.7.2",
     "mongoose": "^9.9.1",

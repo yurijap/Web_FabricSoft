@@ -45,12 +45,13 @@ export const FusionRescuePage: React.FC = () => {
     }
   }, []);
 
-  // If path is /fusion-rescue/assessment, start assessment directly
+  // If path is /fusion-rescue/assessment or URL contains resumeId, start assessment directly
   useEffect(() => {
-    if (location.pathname.includes('/assessment')) {
+    const params = new URLSearchParams(location.search);
+    if (params.get('resumeId') || location.pathname.includes('/assessment')) {
       setShowAssessment(true);
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const handleStartAssessment = () => {
     fetch('/api/fusion-rescue/track', {
@@ -112,7 +113,7 @@ export const FusionRescuePage: React.FC = () => {
               <div className="flex flex-col items-center gap-3">
                 <button
                   onClick={handleStartAssessment}
-                  className="px-10 py-5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-black rounded-2xl text-base md:text-lg transition-all border-2 border-[#FFE8A3] hover:scale-[1.03] active:scale-[0.98] flex items-center gap-3 group cursor-pointer"
+                  className="btn-primary cursor-pointer"
                 >
                   <span>Realizar Fusion Health Check</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-[#050203]" />
@@ -168,10 +169,10 @@ export const FusionRescuePage: React.FC = () => {
               <div className="text-center">
                 <button
                   onClick={handleStartAssessment}
-                  className="px-8 py-4 bg-[#C9A96E]/15 hover:bg-[#C9A96E]/30 text-[#C9A96E] font-extrabold rounded-2xl text-sm md:text-base transition-all border-2 border-[#C9A96E] inline-flex items-center gap-2 group cursor-pointer"
+                  className="btn-primary cursor-pointer"
                 >
                   <span>Evaluar mi implementación</span>
-                  <ChevronRight className="w-4 h-4 text-[#C9A96E] group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-4 h-4 text-[#C9A96E] group-hover:translate-x-1 transition-transform group-hover:text-white" />
                 </button>
               </div>
             </div>
@@ -295,10 +296,10 @@ export const FusionRescuePage: React.FC = () => {
                   <div className="pt-4">
                     <button
                       onClick={handleStartAssessment}
-                      className="px-8 py-4 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-black rounded-2xl text-sm md:text-base transition-all border-2 border-[#FFE8A3] flex items-center gap-2 group cursor-pointer"
+                      className="btn-primary cursor-pointer"
                     >
                       <span>Realizar mi Fusion Health Check</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-[#050203]" />
+                      <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -371,7 +372,7 @@ export const FusionRescuePage: React.FC = () => {
 
               <button
                 onClick={handleStartAssessment}
-                className="px-10 py-5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-black rounded-2xl text-base md:text-lg transition-all border-2 border-[#FFE8A3] hover:scale-[1.03] flex items-center gap-3 mx-auto group cursor-pointer"
+                className="btn-primary cursor-pointer"
               >
                 <span>Evaluar mi implementación</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-[#050203]" />

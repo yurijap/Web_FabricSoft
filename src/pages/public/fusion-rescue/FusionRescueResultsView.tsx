@@ -409,7 +409,7 @@ export const FusionRescueResultsView: React.FC<FusionRescueResultsViewProps> = (
                 <button
                   type="submit"
                   disabled={submittingReview}
-                  className="w-full py-4 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-black rounded-2xl text-sm transition-all border-2 border-[#FFE8A3] flex items-center justify-center gap-2 cursor-pointer"
+                  className="btn-primary cursor-pointer w-full"
                 >
                   <span>{submittingReview ? 'Enviando solicitud...' : 'Solicitar revisión'}</span>
                   <ArrowRight className="w-4 h-4 text-[#050203]" />

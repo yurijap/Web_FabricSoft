@@ -220,7 +220,8 @@ const FusionRescueLeadSchema = new mongoose.Schema({
   landing_page: String,
   referrer: String,
   first_touch_date: String,
-  content_id: String
+  content_id: String,
+  session_id: { type: String, index: true }
 }, { timestamps: true });
 
 const FusionRescueAnalyticsSchema = new mongoose.Schema({
@@ -1251,15 +1252,23 @@ app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit', '/api/re
       landing_page: data.landing_page || '/fusion-rescue',
       referrer: data.referrer || '',
       first_touch_date: data.first_touch_date || new Date().toISOString(),
-      content_id: contentId
+      content_id: contentId,
+      session_id: data.session_id || null
     };
 
     let saved;
-    if (submissionId) {
+    const sessionId = data.session_id || null;
+    if (submissionId && mongoose.Types.ObjectId.isValid(submissionId)) {
       saved = await FusionRescueLead.findByIdAndUpdate(submissionId, payloadObj, { new: true });
     }
+    if (!saved && sessionId) {
+      saved = await FusionRescueLead.findOneAndUpdate({ session_id: sessionId }, payloadObj, { new: true });
+    }
     if (!saved) {
-      const newSubmission = new FusionRescueLead(payloadObj);
+      const newSubmission = new FusionRescueLead({
+        ...payloadObj,
+        session_id: sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+      });
       saved = await newSubmission.save();
     }
 
@@ -1267,10 +1276,12 @@ app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit', '/api/re
     const auditDetail = `FUSION RESCUE LEAD (${saved.status})\nNombre: ${fullName}\nEmpresa: ${company}\nEmail: ${email}\nPreguntas respondidas: ${answeredCount}/25\nHealth Score: ${healthScore}/100\nSolicitó revisión: ${saved.review_requested ? 'Sí' : 'No'}`;
 
     createLog(`FUSION RESCUE LEAD (${saved.status}): ${fullName}`, 'FusionRescueLead', 'Cliente', 'OK', auditDetail);
-    console.log(`📋 Fusion Rescue Lead actualizado en MongoDB Atlas [id=${saved._id}, cliente=${saved.nombre}, status=${saved.status}, preguntas=${answeredCount}/25]`);
+    console.log(`📋 Fusion Rescue Lead actualizado en MongoDB Atlas [id=${saved._id}, session=${saved.session_id}, cliente=${saved.nombre}, status=${saved.status}, preguntas=${answeredCount}/25]`);
 
-    // Disparar Alerta de Correo a Destinatarios Internos de Settings usando Resend API
-    sendLeadAlertEmail(saved).catch(err => console.error('Error enviando alerta de correo:', err));
+    // Disparar Alerta de Correo a Destinatarios Internos de Settings únicamente cuando concluya las preguntas
+    if (saved.status === 'Preguntas Respondidas' || saved.status === 'Completado') {
+      sendLeadAlertEmail(saved).catch(err => console.error('Error enviando alerta de correo:', err));
+    }
 
     res.status(200).json({ success: true, data: saved });
   } catch (err) {
@@ -1421,6 +1432,107 @@ app.patch(['/api/fusion-rescue/:id/progress', '/api/rescue-assessment/:id/progre
     res.json({ success: true, data: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get Single Lead / Submission by ID (Public for resuming assessment)
+app.get(['/api/fusion-rescue/submission/:id', '/api/rescue-assessment/submission/:id'], async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'ID de expediente no válido' });
+    }
+    const lead = await FusionRescueLead.findById(req.params.id);
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Expediente no encontrado' });
+    }
+    res.json({ success: true, data: lead });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Send Resume Assessment Email to Prospect with Unique Link
+app.post(['/api/fusion-rescue/send-resume-email', '/api/admin/fusion-rescue/send-resume-email'], async (req, res) => {
+  try {
+    const { leadId } = req.body;
+    if (!leadId || !mongoose.Types.ObjectId.isValid(leadId)) {
+      return res.status(400).json({ success: false, error: 'ID de lead no válido' });
+    }
+
+    const lead = await FusionRescueLead.findById(leadId);
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Lead no encontrado' });
+    }
+
+    if (!lead.email) {
+      return res.status(400).json({ success: false, error: 'El lead no tiene correo registrado' });
+    }
+
+    const origin = req.get('origin') || req.get('referer')?.split('/admin')[0] || 'https://fabricsoft.mx';
+    const resumeUrl = `${origin.replace(/\/$/, '')}/fusion-rescue?resumeId=${lead._id}`;
+    const answeredCount = lead.questions_answered_count ?? (lead.answers ? Object.keys(lead.answers).length : 0);
+
+    const fullName = `${lead.first_name || lead.nombre || 'Estimado(a)'} ${lead.last_name || lead.apellidos || ''}`.trim();
+    const company = lead.empresa || lead.company_name || 'su empresa';
+
+    if (resend) {
+      const htmlContent = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #07192F; color: #ffffff; padding: 35px; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #1E3A5F;">
+          <div style="text-align: center; border-bottom: 2px solid #C9A96E; padding-bottom: 20px; margin-bottom: 25px;">
+            <span style="font-size: 11px; font-weight: bold; color: #C9A96E; letter-spacing: 2px; text-transform: uppercase; font-family: monospace;">FABRIC SOFT MÉXICO</span>
+            <h1 style="font-size: 22px; margin: 10px 0 0 0; color: #ffffff; font-weight: 800;">Continúa tu Evaluación Fusion Rescue™</h1>
+          </div>
+
+          <p style="font-size: 15px; color: #e2e8f0; line-height: 1.6;">Hola <strong style="color: #FFE28A;">${fullName}</strong>,</p>
+          <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
+            Notamos que iniciaste el diagnóstico de salud operativa y técnica de Oracle Fusion para <strong style="color: #ffffff;">${company}</strong> y avanzaste <strong style="color: #FFE28A;">${answeredCount} de 25 preguntas</strong>.
+          </p>
+          <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
+            Hemos guardado tus respuestas previas para que puedas retomar la evaluación justo donde te quedaste sin tener que volver a ingresar tus datos.
+          </p>
+
+          <div style="text-align: center; margin: 35px 0;">
+            <a href="${resumeUrl}" style="display: inline-block; background-color: #FFE28A; color: #07192F; padding: 16px 32px; font-weight: 900; text-decoration: none; border-radius: 12px; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; font-family: monospace; border: 2px solid #FFE28A;">
+              ⚡ RETOMAR MI EVALUACIÓN AQUÍ
+            </a>
+          </div>
+
+          <p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 30px; border-top: 1px solid #1E3A5F; padding-top: 20px;">
+            Si el botón no funciona, copia y pega este enlace en tu navegador:<br/>
+            <a href="${resumeUrl}" style="color: #C9A96E; word-break: break-all;">${resumeUrl}</a>
+          </p>
+        </div>
+      `;
+
+      let sendRes = await resend.emails.send({
+        from: 'FABRIC Rescue <onboarding@resend.dev>',
+        to: [lead.email],
+        subject: `⚡ Continúa tu Diagnóstico Fusion Rescue™ (${answeredCount}/25 completadas) — ${company}`,
+        html: htmlContent
+      });
+
+      if (sendRes.error && sendRes.error.name === 'validation_error') {
+        console.warn('⚠️ Resend en modo test: reenviando recordatorio a saalzarantonio@gmail.com');
+        sendRes = await resend.emails.send({
+          from: 'FABRIC Rescue <onboarding@resend.dev>',
+          to: ['saalzarantonio@gmail.com'],
+          subject: `⚡ [RECORDATORIO TEST a ${lead.email}] Continúa tu Diagnóstico Fusion Rescue™ (${answeredCount}/25 completadas)`,
+          html: htmlContent
+        });
+      }
+
+      if (sendRes.error) {
+        throw new Error(sendRes.error.message || 'Error al enviar correo vía Resend');
+      }
+
+      createLog(`Recordatorio enviado a prospecto: ${lead.email}`, 'FusionRescueLead', 'Admin', 'OK', `Lead ID: ${lead._id} · ${answeredCount}/25 preguntas`);
+    } else {
+      console.log(`📧 Simulation Mode: Recordatorio generado para ${lead.email}: ${resumeUrl}`);
+    }
+
+    res.json({ success: true, message: 'Correo con enlace de continuación enviado correctamente', resumeUrl });
+  } catch (err) {
+    console.error('Error enviando correo de recordatorio:', err);
   }
 });
 

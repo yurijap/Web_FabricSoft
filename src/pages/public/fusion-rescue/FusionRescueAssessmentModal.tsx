@@ -98,6 +98,49 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     } catch (e) {
       console.error('Error loading cached user data:', e);
     }
+
+    // Load submission data if URL contains resumeId
+    const params = new URLSearchParams(window.location.search);
+    const resumeIdParam = params.get('resumeId');
+    if (resumeIdParam) {
+      fetch(`/api/fusion-rescue/submission/${resumeIdParam}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.data) {
+            const lead = json.data;
+            setSubmissionId(lead._id);
+            if (lead.session_id) {
+              sessionStorage.setItem('fusion_rescue_session_id', lead.session_id);
+            }
+            // Pre-fill contact details
+            setContact((prev) => ({
+              ...prev,
+              firstName: lead.first_name || lead.nombre || prev.firstName,
+              lastName: lead.last_name || lead.apellidos || prev.lastName,
+              company: lead.empresa || lead.company_name || prev.company,
+              jobTitle: lead.cargo || lead.job_title || prev.jobTitle,
+              email: lead.email || prev.email,
+              phone: lead.telefono || lead.phone || prev.phone
+            }));
+            // Pre-fill environment details
+            setEnvironment((prev) => ({
+              ...prev,
+              company: lead.empresa || lead.company_name || prev.company,
+              country: lead.country || prev.country,
+              solution: lead.fusion_products || prev.solution,
+              goLiveAge: lead.go_live_age || prev.goLiveAge,
+              role: lead.cargo || lead.job_title || prev.role
+            }));
+            // Pre-fill answers
+            if (lead.answers && typeof lead.answers === 'object' && !Array.isArray(lead.answers)) {
+              setAnswers(lead.answers);
+            }
+            // Jump directly to Step 1
+            setCurrentStep(1);
+          }
+        })
+        .catch((e) => console.error('Error resuming assessment:', e));
+    }
   }, []);
 
   // Sync state between environment and contact forms
@@ -148,6 +191,16 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
   // Step 0 validation
   const isStep0Valid = contact.firstName.trim() !== '' && contact.email.trim() !== '' && environment.company.trim() !== '';
 
+  const getRegistrationSessionId = () => {
+    if (typeof window === 'undefined') return '';
+    let sid = sessionStorage.getItem('fusion_rescue_session_id');
+    if (!sid) {
+      sid = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      sessionStorage.setItem('fusion_rescue_session_id', sid);
+    }
+    return sid;
+  };
+
   // Handle Step 0 Submit (Save to DB as lead initial & cache)
   const handleStep0Submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +219,12 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     }
 
     const utmParams = parseUTMParameters();
+    const sessionId = getRegistrationSessionId();
+    const activeSubmissionId = submissionId || sessionStorage.getItem('fusion_rescue_submission_id');
+
     const payload = {
+      session_id: sessionId,
+      submissionId: activeSubmissionId,
       nombre: contact.firstName,
       apellidos: contact.lastName,
       empresa: environment.company || contact.company,
@@ -192,6 +250,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
       const data = await res.json();
       if (data.success && data.data?._id) {
         setSubmissionId(data.data._id);
+        sessionStorage.setItem('fusion_rescue_submission_id', data.data._id);
       }
     } catch (err) {
       console.error('Error saving step 0 draft to DB:', err);
@@ -245,8 +304,12 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     const computedResult = calculateAssessmentResult(answers);
     setResult(computedResult);
 
+    const sessionId = getRegistrationSessionId();
+    const activeSubmissionId = submissionId || sessionStorage.getItem('fusion_rescue_submission_id');
+
     const payload = {
-      submissionId: submissionId,
+      session_id: sessionId,
+      submissionId: activeSubmissionId,
       nombre: contact.firstName,
       apellidos: contact.lastName,
       empresa: contact.company || environment.company,
@@ -283,10 +346,13 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
         setSubmissionId(data.data._id);
       }
     } catch (err) {
-      console.error('Error submitting assessment:', err);
+      console.error('Error submitting final lead:', err);
     } finally {
       setIsSubmitting(false);
+      sessionStorage.removeItem('fusion_rescue_session_id');
+      sessionStorage.removeItem('fusion_rescue_submission_id');
       setCurrentStep(9);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -468,11 +534,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
               <button
                 type="submit"
                 disabled={!isStep0Valid || isDrafting}
-                className={`px-8 py-4 rounded-2xl text-sm font-extrabold transition-all flex items-center gap-3 ${
-                  isStep0Valid && !isDrafting
-                    ? 'bg-[#C9A96E] hover:bg-[#b8985d] text-[#050203] border-2 border-[#C9A96E] hover:scale-[1.02] cursor-pointer'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                }`}
+                className="btn-primary cursor-pointer"
               >
                 <span>{isDrafting ? 'Guardando entorno...' : 'Comenzar evaluación (25 preguntas)'}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -591,7 +653,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                   setCurrentStep((prev) => Math.max(0, prev - 1));
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 cursor-pointer"
+                className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 cursor-pointer border-2 border-[#C9A96E]/40 hover:border-[#C9A96E]"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>{currentStep === 1 ? 'Volver a Entorno' : 'Anterior'}</span>
@@ -609,10 +671,10 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }
                 }}
-                className={`px-7 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-7 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-2 ${
                   isCurrentDimensionComplete
-                    ? 'bg-[#C9A96E] hover:bg-[#b8985d] text-[#050203] font-black border-2 border-[#C9A96E]'
-                    : 'bg-[#C9A96E]/40 hover:bg-[#C9A96E] text-slate-200'
+                    ? 'bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-black border-[#C9A96E] hover:border-[#FFE8A3]'
+                    : 'bg-[#C9A96E]/20 hover:bg-[#C9A96E]/40 text-slate-200 border-[#C9A96E]/50'
                 }`}
               >
                 <span>{currentStep === 6 ? 'Siguiente: Problema & Prioridad' : 'Siguiente Dimensión'}</span>
@@ -902,7 +964,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-4 bg-[#C9A96E] hover:bg-[#b8985d] text-[#050203] font-black rounded-xl text-sm transition-all border-2 border-[#C9A96E] flex items-center justify-center gap-2 cursor-pointer"
+                  className="btn-primary cursor-pointer w-full"
                 >
                   <Lock className="w-4 h-4" />
                   <span>{isSubmitting ? 'Procesando diagnóstico...' : 'Consultar mi Diagnóstico'}</span>
