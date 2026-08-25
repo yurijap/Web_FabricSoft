@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import FusionRescueAssessmentModal from './FusionRescueAssessmentModal';
 
+import { api } from '../../../config/api';
 import { parseUTMParameters } from '../../../utils/fusionRescueEngine';
 
 export const FusionRescuePage: React.FC = () => {
@@ -33,14 +34,10 @@ export const FusionRescuePage: React.FC = () => {
     if (!trackedVisitRef.current) {
       trackedVisitRef.current = true;
       const utmParams = parseUTMParameters();
-      fetch('/api/fusion-rescue/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: 'landing_visit',
-          path: '/fusion-rescue',
-          ...utmParams
-        })
+      api.post('/fusion-rescue/track', {
+        event_type: 'landing_visit',
+        path: '/fusion-rescue',
+        ...utmParams
       }).catch(() => {});
     }
   }, []);
@@ -54,11 +51,7 @@ export const FusionRescuePage: React.FC = () => {
   }, [location.pathname, location.search]);
 
   const handleStartAssessment = () => {
-    fetch('/api/fusion-rescue/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: 'assessment_start', path: '/fusion-rescue' })
-    }).catch(() => {});
+    api.post('/fusion-rescue/track', { event_type: 'assessment_start', path: '/fusion-rescue' }).catch(() => {});
     setShowAssessment(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

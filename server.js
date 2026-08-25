@@ -1359,6 +1359,10 @@ async function sendLeadAlertEmail(savedLead) {
       ? `Un prospecto ha hecho clic en el botón <strong>Solicitar revisión de 30 minutos</strong> y requiere una sesión directa con el equipo técnico de FABRIC.`
       : `Un prospecto ha respondido todo el formulario de <strong>Fusion Rescue Health Check</strong> y ha hecho clic en <em>Consultar mi Diagnóstico</em>.`;
 
+    const adminRouteUrl = process.env.APP_URL 
+      ? `${process.env.APP_URL.replace(/\/$/, '')}/admin/rescue-fusion/leads` 
+      : (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/admin/rescue-fusion/leads` : 'https://fabricsoft.mx/admin');
+
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; background-color: #07192F; color: #ffffff; padding: 30px; border-radius: 16px;">
         <div style="border-bottom: 2px solid #C9A96E; padding-bottom: 15px; margin-bottom: 20px;">
@@ -1424,8 +1428,8 @@ async function sendLeadAlertEmail(savedLead) {
         </div>
 
         <div style="text-align: center; margin-top: 25px;">
-          <a href="https://fabricsoft.mx/admin/rescue-fusion/leads" style="display: inline-block; background-color: #C9A96E; color: #050203; padding: 14px 28px; font-weight: bold; text-decoration: none; border-radius: 12px; font-size: 14px;">
-            Acceder al Expediente Completo en el Panel Admin
+          <a href="${adminRouteUrl}" style="display: inline-block; background-color: #C9A96E; color: #050203; padding: 14px 28px; font-weight: bold; text-decoration: none; border-radius: 12px; font-size: 14px;">
+            Acceder al Panel Administrador (/admin)
           </a>
         </div>
       </div>

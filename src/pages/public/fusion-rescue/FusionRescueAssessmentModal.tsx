@@ -104,8 +104,8 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     const params = new URLSearchParams(window.location.search);
     const resumeIdParam = params.get('resumeId');
     if (resumeIdParam) {
-      fetch(`/api/fusion-rescue/submission/${resumeIdParam}`)
-        .then((res) => res.json())
+      api.get(`/fusion-rescue/submission/${resumeIdParam}`)
+        .then((res) => res.data)
         .then((json) => {
           if (json.success && json.data) {
             const lead = json.data;
@@ -165,26 +165,18 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     const updatedAnswers = { ...answers, [questionId]: value };
     setAnswers(updatedAnswers);
 
-    fetch('/api/fusion-rescue/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_type: 'question_answered',
-        question_id: questionId,
-        path: '/fusion-rescue'
-      })
+    api.post('/fusion-rescue/track', {
+      event_type: 'question_answered',
+      question_id: questionId,
+      path: '/fusion-rescue'
     }).catch(() => {});
 
     if (submissionId) {
       const currentAnswersCount = Object.keys(updatedAnswers).length;
-      fetch(`/api/fusion-rescue/${submissionId}/progress`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers: updatedAnswers,
-          questions_answered_count: currentAnswersCount,
-          status: currentAnswersCount >= 25 ? 'Preguntas Respondidas' : 'Incompleto'
-        })
+      api.patch(`/fusion-rescue/${submissionId}/progress`, {
+        answers: updatedAnswers,
+        questions_answered_count: currentAnswersCount,
+        status: currentAnswersCount >= 25 ? 'Preguntas Respondidas' : 'Incompleto'
       }).catch((err) => console.error('Error auto-syncing progress to DB:', err));
     }
   };
@@ -285,17 +277,8 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
       console.error('Error saving cache:', e);
     }
 
-    fetch('/api/fusion-rescue/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: 'assessment_complete', path: '/fusion-rescue' })
-    }).catch(() => {});
-
-    fetch('/api/fusion-rescue/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: 'lead_capture', path: '/fusion-rescue' })
-    }).catch(() => {});
+    api.post('/fusion-rescue/track', { event_type: 'assessment_complete', path: '/fusion-rescue' }).catch(() => {});
+    api.post('/fusion-rescue/track', { event_type: 'lead_capture', path: '/fusion-rescue' }).catch(() => {});
 
     const utmParams = parseUTMParameters();
     const computedResult = calculateAssessmentResult(answers);
