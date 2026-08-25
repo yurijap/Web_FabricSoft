@@ -1219,13 +1219,11 @@ app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit', '/api/re
 
     const answersObj = data.answers || {};
     const answeredCount = Object.keys(answersObj).length;
-    let computedStatus = 'Incompleto';
-    if (!data.is_draft && answeredCount === 25) {
-      computedStatus = 'Completado';
-    } else if (answeredCount > 0 && answeredCount < 25) {
+    let computedStatus = data.status || 'Incompleto';
+    if (data.is_draft) {
       computedStatus = 'Incompleto';
-    } else if (answeredCount === 25) {
-      computedStatus = 'Preguntas Respondidas';
+    } else if (data.status === 'Preguntas Respondidas' || data.status === 'Completado' || answeredCount === 25) {
+      computedStatus = 'Completado';
     }
 
     const payloadObj = {
@@ -1307,8 +1305,8 @@ app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit', '/api/re
     createLog(`FUSION RESCUE LEAD (${saved.status}): ${fullName}`, 'FusionRescueLead', 'Cliente', 'OK', auditDetail);
     console.log(`📋 Fusion Rescue Lead actualizado en MongoDB Atlas [id=${saved._id}, session=${saved.session_id}, cliente=${saved.nombre}, status=${saved.status}, preguntas=${answeredCount}/25]`);
 
-    // Disparar Alerta de Correo a Destinatarios Internos de Settings únicamente cuando concluya las preguntas
-    if (saved.status === 'Preguntas Respondidas' || saved.status === 'Completado') {
+    // Disparar Alerta de Correo a Destinatarios Internos de Settings siempre que concluya el diagnóstico
+    if (!data.is_draft) {
       sendLeadAlertEmail(saved).catch(err => console.error('Error enviando alerta de correo:', err));
     }
 
@@ -1429,7 +1427,7 @@ async function sendLeadAlertEmail(savedLead) {
 
         <div style="text-align: center; margin-top: 25px;">
           <a href="${adminRouteUrl}" style="display: inline-block; background-color: #C9A96E; color: #050203; padding: 14px 28px; font-weight: bold; text-decoration: none; border-radius: 12px; font-size: 14px;">
-            Acceder al Panel Administrador (/admin)
+            Acceder al Panel Administrador
           </a>
         </div>
       </div>
