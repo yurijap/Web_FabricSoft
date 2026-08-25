@@ -2,6 +2,25 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import { Resend } from 'resend';
+import fs from 'fs';
+import path from 'path';
+
+// Cargar variables de .env localmente sin dependencias externas
+try {
+  const envPath = path.resolve(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envFile = fs.readFileSync(envPath, 'utf8');
+    envFile.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        const [key, ...vals] = trimmed.split('=');
+        process.env[key.trim()] = vals.join('=').trim();
+      }
+    });
+  }
+} catch (e) {
+  // Ignorar si falla lectura
+}
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
@@ -316,6 +335,16 @@ async function seedInitialDataIfEmpty() {
         { nombre: 'Roberto Garza', email: 'rgarza@femsa.com', empresa: 'FEMSA Comercio', cargo: 'Director de Sistemas', paperId: 'Paper 01 - Fórmulas Oracle Fusion', status: 'Solicitado' }
       ]);
       console.log('🌱 Se sembró solicitud de paper demo');
+    }
+
+    // Garantizar creación de Colección rescue_settings y Documento Inicial en MongoDB Atlas
+    let settings = await RescueSettings.findOne();
+    if (!settings) {
+      settings = await RescueSettings.create({
+        crm_webhook_url: 'https://api.fabricsoft.com.mx/webhook/crm-fusion',
+        notification_emails: ['fabrizio@fabricsoft.com.mx', 'antonio@fabricsoft.com.mx']
+      });
+      console.log('🌱 Colección "rescue_settings" y registro inicial de notificaciones creados en MongoDB Atlas');
     }
 
     const refCount = await ReferenciaRequest.countDocuments();
@@ -1299,7 +1328,7 @@ async function sendLeadAlertEmail(savedLead) {
     let settings = await RescueSettings.findOne();
     const recipientEmails = (settings && Array.isArray(settings.notification_emails) && settings.notification_emails.length > 0)
       ? settings.notification_emails
-      : ['fabrizio@fabricsoft.com.mx', 'antonio@fabricsoft.com.mx'];
+      : ['antonio.salazar@fabricsoft.com.mx'];
 
     const fullName = `${savedLead.first_name || savedLead.nombre || 'Prospecto'} ${savedLead.last_name || savedLead.apellidos || ''}`.trim();
     const company = savedLead.empresa || savedLead.company_name || 'Empresa';
@@ -1313,26 +1342,42 @@ async function sendLeadAlertEmail(savedLead) {
     const timing = savedLead.timing_prioridad || savedLead.timing || 'N/A';
     const source = savedLead.utm_source || 'Directo';
     const campaign = savedLead.utm_campaign || 'N/A';
+    const isReviewRequest = Boolean(savedLead.review_requested);
+
+    // Subject titles as requested:
+    // 1. "Consultar mi Diagnóstico": "Lead Completo el formulario"
+    // 2. "Solicitar revisión de 30 minutos": "Lead requiere reunion de 30 minutos"
+    const subjectText = isReviewRequest
+      ? `Lead requiere reunion de 30 minutos: ${fullName} (${company})`
+      : `Lead Completo el formulario: ${fullName} (${company})`;
+
+    const headerBadge = isReviewRequest
+      ? `📅 SOLICITUD DE REUNIÓN DE 30 MINUTOS`
+      : `📋 FORMULARIO DE DIAGNÓSTICO COMPLETO`;
+
+    const descriptionText = isReviewRequest
+      ? `Un prospecto ha hecho clic en el botón <strong>Solicitar revisión de 30 minutos</strong> y requiere una sesión directa con el equipo técnico de FABRIC.`
+      : `Un prospecto ha respondido todo el formulario de <strong>Fusion Rescue Health Check</strong> y ha hecho clic en <em>Consultar mi Diagnóstico</em>.`;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; background-color: #07192F; color: #ffffff; padding: 30px; border-radius: 16px;">
         <div style="border-bottom: 2px solid #C9A96E; padding-bottom: 15px; margin-bottom: 20px;">
           <span style="font-size: 11px; font-weight: bold; color: #C9A96E; letter-spacing: 2px; text-transform: uppercase;">
-            FABRIC FUSION RESCUE · ALERTA INSTANTÁNEA DE LEAD
+            FABRIC FUSION RESCUE · ${headerBadge}
           </span>
           <h1 style="color: #ffffff; font-size: 22px; margin: 8px 0 0 0;">
-            🚨 Nuevo Diagnóstico Concluido: ${fullName} (${company})
+            ${isReviewRequest ? '📅' : '📋'} ${fullName} (${company})
           </h1>
         </div>
 
         <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
-          Un nuevo prospecto ha respondido todo el formulario de <strong>Fusion Rescue Health Check</strong> y ha hecho clic en <em>Ver mi diagnóstico</em>.
+          ${descriptionText}
         </p>
 
         <div style="background-color: #0E2747; border: 1px solid #C9A96E; padding: 20px; border-radius: 12px; margin: 20px 0;">
           <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #f8fafc;">
             <tr style="border-bottom: 1px solid #1E3A5F;">
-              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold; width: 140px;">Nombre Lead:</td>
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold; width: 150px;">Nombre Lead:</td>
               <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${fullName}</td>
             </tr>
             <tr style="border-bottom: 1px solid #1E3A5F;">
@@ -1350,6 +1395,10 @@ async function sendLeadAlertEmail(savedLead) {
             <tr style="border-bottom: 1px solid #1E3A5F;">
               <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Cargo:</td>
               <td style="padding: 8px 0; color: #ffffff;">${jobTitle}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Solicitó Reunión 30m:</td>
+              <td style="padding: 8px 0; font-weight: bold; color: ${isReviewRequest ? '#34d399' : '#cbd5e1'};">${isReviewRequest ? 'SÍ (Reunión de 30 Minutos solicitada)' : 'NO (Solo consultó diagnóstico)'}</td>
             </tr>
             <tr style="border-bottom: 1px solid #1E3A5F;">
               <td style="padding: 8px 0; color: #94a3b8; font-weight: bold;">Health Score:</td>
@@ -1383,18 +1432,18 @@ async function sendLeadAlertEmail(savedLead) {
     `;
 
     let sendRes = await resend.emails.send({
-      from: 'FABRIC Rescue <onboarding@resend.dev>',
+      from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
       to: recipientEmails,
-      subject: `🚨 NUEVO LEAD DIAGNÓSTICO: ${fullName} (${company}) — Score: ${score}/100`,
+      subject: subjectText,
       html: htmlContent
     });
 
     if (sendRes.error && sendRes.error.name === 'validation_error') {
-      console.warn('⚠️ Resend en modo pruebas sin dominio verificado. Reenviando a saalzarantonio@gmail.com...');
+      console.warn('⚠️ Resend en modo pruebas. Reenviando a saalzarantonio@gmail.com...');
       sendRes = await resend.emails.send({
-        from: 'FABRIC Rescue <onboarding@resend.dev>',
+        from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
         to: ['saalzarantonio@gmail.com'],
-        subject: `🚨 [MODO TEST] NUEVO LEAD DIAGNÓSTICO: ${fullName} (${company}) — Score: ${score}/100`,
+        subject: `[MODO TEST] ${subjectText}`,
         html: htmlContent
       });
     }
@@ -1404,7 +1453,7 @@ async function sendLeadAlertEmail(savedLead) {
       createLog('Error envío correo Resend', 'NotificationEmail', 'Sistema', 'ERR', sendRes.error.message || JSON.stringify(sendRes.error));
     } else {
       console.log(`📧 Notificación de correo enviada exitosamente vía Resend [id=${sendRes.data?.id}] a: ${recipientEmails.join(', ')}`);
-      createLog(`Alerta de correo enviada para lead: ${fullName}`, 'NotificationEmail', 'Sistema', 'OK', `Enviado a: ${recipientEmails.join(', ')}`);
+      createLog(`Alerta de correo enviada (${isReviewRequest ? 'Reunión 30m' : 'Formulario Completo'}): ${fullName}`, 'NotificationEmail', 'Sistema', 'OK', `Enviado a: ${recipientEmails.join(', ')}`);
     }
   } catch (err) {
     console.error('❌ Excepción enviando correo con Resend API:', err.message);
@@ -1480,43 +1529,40 @@ app.post(['/api/fusion-rescue/send-resume-email', '/api/admin/fusion-rescue/send
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #07192F; color: #ffffff; padding: 35px; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #1E3A5F;">
           <div style="text-align: center; border-bottom: 2px solid #C9A96E; padding-bottom: 20px; margin-bottom: 25px;">
             <span style="font-size: 11px; font-weight: bold; color: #C9A96E; letter-spacing: 2px; text-transform: uppercase; font-family: monospace;">FABRIC SOFT MÉXICO</span>
-            <h1 style="font-size: 22px; margin: 10px 0 0 0; color: #ffffff; font-weight: 800;">Continúa tu Evaluación Fusion Rescue™</h1>
+            <h1 style="font-size: 20px; margin: 10px 0 0 0; color: #ffffff; font-weight: 800;">Aqui podras concluir la encuesta donde de quedaste la ultima vez!</h1>
           </div>
 
           <p style="font-size: 15px; color: #e2e8f0; line-height: 1.6;">Hola <strong style="color: #FFE28A;">${fullName}</strong>,</p>
-          <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
-            Notamos que iniciaste el diagnóstico de salud operativa y técnica de Oracle Fusion para <strong style="color: #ffffff;">${company}</strong> y avanzaste <strong style="color: #FFE28A;">${answeredCount} de 25 preguntas</strong>.
-          </p>
-          <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
-            Hemos guardado tus respuestas previas para que puedas retomar la evaluación justo donde te quedaste sin tener que volver a ingresar tus datos.
+          <p style="font-size: 14px; color: #cbd5e1; line-height: 1.6;">
+            Aqui podras concluir la encuesta donde de quedaste la ultima vez! Hemos guardado tu avance (${answeredCount} de 25 preguntas respondidas) para que no tengas que volver a llenar tus datos.
           </p>
 
           <div style="text-align: center; margin: 35px 0;">
-            <a href="${resumeUrl}" style="display: inline-block; background-color: #FFE28A; color: #07192F; padding: 16px 32px; font-weight: 900; text-decoration: none; border-radius: 12px; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; font-family: monospace; border: 2px solid #FFE28A;">
-              ⚡ RETOMAR MI EVALUACIÓN AQUÍ
+            <a href="${resumeUrl}" style="display: inline-block; background-color: #C9A96E; color: #050203; padding: 16px 32px; font-weight: 900; text-decoration: none; border-radius: 12px; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; font-family: monospace; border: 2px solid #FFE8A3;">
+              ⚡ CONCLUIR ENCUESTA AQUÍ
             </a>
           </div>
 
           <p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 30px; border-top: 1px solid #1E3A5F; padding-top: 20px;">
-            Si el botón no funciona, copia y pega este enlace en tu navegador:<br/>
+            Si el botón no abre directamente, copia y pega este enlace en tu navegador:<br/>
             <a href="${resumeUrl}" style="color: #C9A96E; word-break: break-all;">${resumeUrl}</a>
           </p>
         </div>
       `;
 
       let sendRes = await resend.emails.send({
-        from: 'FABRIC Rescue <onboarding@resend.dev>',
+        from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
         to: [lead.email],
-        subject: `⚡ Continúa tu Diagnóstico Fusion Rescue™ (${answeredCount}/25 completadas) — ${company}`,
+        subject: `Aqui podras concluir la encuesta donde de quedaste la ultima vez!`,
         html: htmlContent
       });
 
       if (sendRes.error && sendRes.error.name === 'validation_error') {
         console.warn('⚠️ Resend en modo test: reenviando recordatorio a saalzarantonio@gmail.com');
         sendRes = await resend.emails.send({
-          from: 'FABRIC Rescue <onboarding@resend.dev>',
+          from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
           to: ['saalzarantonio@gmail.com'],
-          subject: `⚡ [RECORDATORIO TEST a ${lead.email}] Continúa tu Diagnóstico Fusion Rescue™ (${answeredCount}/25 completadas)`,
+          subject: `Aqui podras concluir la encuesta donde de quedaste la ultima vez!`,
           html: htmlContent
         });
       }
@@ -1549,6 +1595,8 @@ app.patch(['/api/rescue-assessment/:id/review', '/rescue-assessment/:id/review',
     const updated = await FusionRescueLead.findByIdAndUpdate(req.params.id, updateObj, { new: true });
     if (updated) {
       createLog(`Solicitud de Revisión 30 min: ${updated.nombre}`, 'FusionRescueLead', 'Cliente', 'OK', `Empresa: ${updated.empresa} · Método: ${contact_preference || 'Email'}`);
+      // Disparar Alerta de Correo con Asunto: "Lead requiere reunion de 30 minutos"
+      sendLeadAlertEmail(updated).catch(err => console.error('Error enviando correo de reunión 30 min:', err));
     }
     res.json({ success: true, data: updated });
   } catch (err) {
@@ -1784,44 +1832,140 @@ app.delete(['/api/fusion-rescue/submissions/:id', '/api/rescue-assessment/submis
   }
 });
 
+// Test Email Route (Allows triggering a real test email directly from browser URL)
+app.all(['/api/fusion-rescue/test-email', '/fusion-rescue/test-email'], async (req, res) => {
+  try {
+    let settings = await RescueSettings.findOne();
+    const recipientEmails = (settings && Array.isArray(settings.notification_emails) && settings.notification_emails.length > 0)
+      ? settings.notification_emails
+      : ['antonio.salazar@fabricsoft.com.mx'];
+
+    if (!resend) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'RESEND_API_KEY no encontrada en las variables de entorno.', 
+        recipients: recipientEmails 
+      });
+    }
+
+    const testLeadMock = {
+      nombre: 'Prueba Externa Directa',
+      first_name: 'Prueba Externa',
+      last_name: 'FABRIC',
+      empresa: 'Empresa Test',
+      company_name: 'Empresa Test',
+      email: 'test@fabricsoft.com.mx',
+      phone: '+52 55 1234 5678',
+      job_title: 'Director de TI',
+      health_score: 45,
+      health_classification: 'HIGH RISK',
+      recommended_path: 'RESCUE DIRECT',
+      problema_principal: 'Falla en integraciones OIC y discrepancias financieras',
+      timing_prioridad: 'Inmediato (1-3 meses)',
+      utm_source: 'Prueba URL Directa',
+      utm_campaign: 'Test Manual Endpoint',
+      review_requested: req.query.review === 'true'
+    };
+
+    await sendLeadAlertEmail(testLeadMock);
+
+    return res.json({
+      success: true,
+      message: `⚡ Correo de prueba enviado exitosamente a los destinatarios configurados en MongoDB Atlas!`,
+      subject: testLeadMock.review_requested ? 'Lead requiere reunion de 30 minutos: Prueba Externa (Empresa Test)' : 'Lead Completo el formulario: Prueba Externa (Empresa Test)',
+      recipients: recipientEmails,
+      testData: testLeadMock
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Settings para Rescue Fusion
 const RescueSettingsSchema = new mongoose.Schema({
   crm_webhook_url: { type: String, default: 'https://api.fabricsoft.com.mx/webhook/crm-fusion' },
-  notification_emails: { type: [String], default: ['fabrizio@fabricsoft.com.mx', 'antonio@fabricsoft.com.mx'] }
+  webhook_secret: { type: String, default: '' },
+  notification_emails: { type: [String], default: ['antonio.salazar@fabricsoft.com.mx'] },
+  notify_incomplete_leads: { type: Boolean, default: true },
+  risk_threshold_score: { type: Number, default: 50 },
+  enable_auto_reengagement: { type: Boolean, default: true }
 }, { timestamps: true });
 const RescueSettings = mongoose.models.RescueSettings || mongoose.model('RescueSettings', RescueSettingsSchema);
 
-app.get(['/api/fusion-rescue/settings', '/api/rescue-assessment/settings', '/rescue-assessment/settings'], async (req, res) => {
+async function handleGetSettings(req, res) {
   try {
     let settings = await RescueSettings.findOne();
     if (!settings) {
       settings = await RescueSettings.create({
         crm_webhook_url: 'https://api.fabricsoft.com.mx/webhook/crm-fusion',
-        notification_emails: ['fabrizio@fabricsoft.com.mx', 'antonio@fabricsoft.com.mx']
+        webhook_secret: '',
+        notification_emails: ['antonio.salazar@fabricsoft.com.mx'],
+        notify_incomplete_leads: true,
+        risk_threshold_score: 50,
+        enable_auto_reengagement: true
       });
     }
-    res.json({ success: true, data: settings });
+    return res.json({ success: true, data: settings });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
   }
-});
+}
 
-app.post(['/api/fusion-rescue/settings', '/api/rescue-assessment/settings', '/rescue-assessment/settings'], async (req, res) => {
+async function handlePostSettings(req, res) {
   try {
-    const { crm_webhook_url, notification_emails } = req.body;
+    const { 
+      crm_webhook_url, 
+      webhook_secret,
+      notification_emails, 
+      notify_incomplete_leads,
+      risk_threshold_score,
+      enable_auto_reengagement 
+    } = req.body || {};
+
     let settings = await RescueSettings.findOne();
     if (!settings) {
-      settings = new RescueSettings({ crm_webhook_url, notification_emails });
+      settings = await RescueSettings.create({
+        crm_webhook_url: crm_webhook_url || 'https://api.fabricsoft.com.mx/webhook/crm-fusion',
+        webhook_secret: webhook_secret || '',
+        notification_emails: Array.isArray(notification_emails) ? notification_emails : [],
+        notify_incomplete_leads: notify_incomplete_leads !== undefined ? Boolean(notify_incomplete_leads) : true,
+        risk_threshold_score: Number(risk_threshold_score) || 50,
+        enable_auto_reengagement: enable_auto_reengagement !== undefined ? Boolean(enable_auto_reengagement) : true
+      });
     } else {
       if (crm_webhook_url !== undefined) settings.crm_webhook_url = crm_webhook_url;
-      if (notification_emails !== undefined) settings.notification_emails = notification_emails;
+      if (webhook_secret !== undefined) settings.webhook_secret = webhook_secret;
+      if (Array.isArray(notification_emails)) {
+        settings.notification_emails = notification_emails;
+        settings.markModified('notification_emails');
+      }
+      if (notify_incomplete_leads !== undefined) settings.notify_incomplete_leads = Boolean(notify_incomplete_leads);
+      if (risk_threshold_score !== undefined) settings.risk_threshold_score = Number(risk_threshold_score);
+      if (enable_auto_reengagement !== undefined) settings.enable_auto_reengagement = Boolean(enable_auto_reengagement);
+
+      await settings.save();
     }
-    await settings.save();
-    createLog(`Configuración de Notificaciones actualizada`, 'RescueSettings', 'Admin', 'OK', `Emails: ${settings.notification_emails.join(', ')}`);
-    res.json({ success: true, data: settings, message: 'Configuración guardada exitosamente' });
+    createLog(`Configuración del Sistema actualizada`, 'RescueSettings', 'Admin', 'OK', `Emails: ${settings.notification_emails.join(', ')}`);
+    return res.json({ success: true, data: settings, message: 'Configuración guardada exitosamente' });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error('Error al guardar settings:', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
+}
+
+const settingsPaths = [
+  '/api/fusion-rescue/settings',
+  '/fusion-rescue/settings',
+  '/api/rescue-assessment/settings',
+  '/rescue-assessment/settings',
+  '/api/settings',
+  '/settings'
+];
+
+app.all(settingsPaths, (req, res) => {
+  if (req.method === 'GET') return handleGetSettings(req, res);
+  if (req.method === 'POST') return handlePostSettings(req, res);
+  res.status(405).json({ success: false, error: 'Método no permitido' });
 });
 
 // Endpoint Health / Ping

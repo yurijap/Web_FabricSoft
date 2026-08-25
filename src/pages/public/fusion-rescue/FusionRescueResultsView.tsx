@@ -17,6 +17,7 @@ import {
   ChevronRight,
   X
 } from 'lucide-react';
+import { api } from '../../../config/api';
 import type { 
   AssessmentResult, 
   ContactData, 
@@ -97,22 +98,14 @@ export const FusionRescueResultsView: React.FC<FusionRescueResultsViewProps> = (
 
     setSubmittingReview(true);
 
-    fetch('/api/fusion-rescue/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: 'review_request', path: '/fusion-rescue' })
-    }).catch(() => {});
+    api.post('/fusion-rescue/track', { event_type: 'review_request', path: '/fusion-rescue' }).catch(() => {});
 
     try {
       if (submissionId) {
-        await fetch(`/api/fusion-rescue/${submissionId}/review`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            review_requested: true,
-            contact_preference: contactPref,
-            phone: phoneNumber
-          })
+        await api.patch(`/fusion-rescue/${submissionId}/review`, {
+          review_requested: true,
+          contact_preference: contactPref,
+          phone: phoneNumber
         });
       }
     } catch (err) {

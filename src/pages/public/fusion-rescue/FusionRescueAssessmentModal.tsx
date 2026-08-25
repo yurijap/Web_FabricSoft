@@ -17,6 +17,7 @@ import {
   Mail,
   Phone
 } from 'lucide-react';
+import { api } from '../../../config/api';
 import type { 
   AnswerValue, 
   EnvironmentData, 
@@ -242,12 +243,8 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     };
 
     try {
-      const res = await fetch('/api/fusion-rescue/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
+      const res = await api.post('/fusion-rescue/submit', payload);
+      const data = res.data;
       if (data.success && data.data?._id) {
         setSubmissionId(data.data._id);
         sessionStorage.setItem('fusion_rescue_submission_id', data.data._id);
@@ -336,12 +333,8 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     };
 
     try {
-      const res = await fetch('/api/fusion-rescue/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
+      const res = await api.post('/fusion-rescue/submit', payload);
+      const data = res.data;
       if (data.success && data.data?._id) {
         setSubmissionId(data.data._id);
       }
