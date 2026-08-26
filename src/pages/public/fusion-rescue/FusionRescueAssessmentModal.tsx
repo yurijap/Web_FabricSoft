@@ -522,21 +522,21 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
         {/* STEPS 1 to 6: DIMENSION QUESTION WIZARD */}
         {currentStep >= 1 && currentStep <= 6 && currentDimensionObj && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Header progress bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C9A96E]/20 pb-4">
+            {/* Dimension header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#C9A96E]/30 pb-5">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] font-mono text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-widest">
                     DIMENSIÓN {currentStep} DE 6
                   </span>
-                  <span className="text-xs font-mono text-slate-300">
+                  <span className="text-xs font-mono text-slate-300 font-bold">
                     ({currentDimensionObj.name})
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white mt-1">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1.5 tracking-tight">
                   {currentDimensionObj.name}
                 </h2>
-                <p className="text-xs text-slate-300 mt-1">
+                <p className="text-sm text-slate-300 mt-1.5 leading-relaxed font-normal">
                   {currentDimensionObj.description}
                 </p>
               </div>
@@ -565,19 +565,19 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                 return (
                   <div 
                     key={q.id}
-                    className="p-4 sm:p-6 rounded-2xl bg-[#07192F] border border-[#C9A96E]/30 hover:border-[#C9A96E]/60 transition-all space-y-4"
+                    className="p-5 sm:p-7 rounded-2xl bg-[#07192F] border border-[#C9A96E]/40 hover:border-[#C9A96E]/70 transition-all space-y-5 shadow-xl"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="w-7 h-7 rounded-full bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] font-mono text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    <div className="flex items-start gap-3.5">
+                      <span className="w-9 h-9 rounded-full bg-[#C9A96E]/20 border border-[#C9A96E]/50 text-[#C9A96E] font-mono text-sm font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                         {q.number}
                       </span>
-                      <h3 className="text-sm sm:text-base text-slate-100 font-medium leading-relaxed">
+                      <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-relaxed tracking-normal">
                         {q.text}
                       </h3>
                     </div>
 
                     {/* Answer Radio Pills - 1 col on mobile, 2 col on sm, 7 col on lg */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2 pl-0 sm:pl-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2.5 pl-0 sm:pl-12">
                       {ANSWER_OPTIONS.map((opt) => {
                         const isSelected = currentAnswer === opt.value;
                         return (
@@ -595,15 +595,15 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                                     fontWeight: 900
                                   }
                                 : {
-                                    backgroundColor: '#07192F',
-                                    color: '#E2E8F0',
-                                    borderColor: '#334155',
+                                    backgroundColor: '#0E2747',
+                                    color: '#F8FAFC',
+                                    borderColor: '#1E3A5F',
                                     borderWidth: '1px'
                                   }
                             }
-                            className="py-3 px-4 sm:px-2.5 rounded-xl text-xs transition-all flex items-center justify-between sm:justify-center gap-2 cursor-pointer min-h-[44px]"
+                            className="py-3 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-between sm:justify-center gap-1.5 cursor-pointer min-h-[46px] shadow-sm hover:border-[#C9A96E]"
                           >
-                            <span className={isSelected ? 'font-black text-[#050203]' : ''}>{opt.label}</span>
+                            <span className={isSelected ? 'font-black text-[#050203]' : 'font-bold'}>{opt.label}</span>
                             {isSelected && <CheckCircle2 className="w-4 h-4 text-[#050203] shrink-0" />}
                           </button>
                         );

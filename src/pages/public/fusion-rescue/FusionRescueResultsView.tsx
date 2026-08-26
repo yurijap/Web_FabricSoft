@@ -269,48 +269,64 @@ export const FusionRescueResultsView: React.FC<FusionRescueResultsViewProps> = (
         </div>
       </div>
 
-      {/* Commercial Call to Action Banner */}
-      <div className="bg-gradient-to-r from-[#8C7243]/30 via-[#07192F] to-[#C9A96E]/15 border border-[#C9A96E]/40 rounded-3xl p-8 text-center relative overflow-hidden">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
+      {/* Commercial Call to Action Banner (Ultra Premium Design) */}
+      <div className="relative bg-gradient-to-br from-[#07192F] via-[#0E2747] to-[#123254] border-2 border-[#C9A96E]/60 rounded-3xl p-8 sm:p-12 text-center overflow-hidden shadow-2xl transition-all hover:border-[#C9A96E]">
+        {/* Ambient Gold Glow Backdrop */}
+        <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-[#C9A96E]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 -top-20 w-80 h-80 bg-[#C9A96E]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-2xl mx-auto space-y-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] font-mono text-xs font-bold uppercase tracking-widest rounded-full shadow-inner">
+            <Sparkles className="w-4 h-4 text-[#C9A96E]" />
+            <span>ASESORÍA TÉCNICA ESPECIALIZADA</span>
+          </div>
+
+          <h2 className="text-2xl sm:text-4xl font-serif font-bold text-white leading-tight tracking-tight">
             ¿Quieres revisar estos resultados con nosotros?
           </h2>
-          <p className="text-sm text-slate-200 mb-8 leading-relaxed">
+
+          <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-sans max-w-xl mx-auto">
             Podemos revisar contigo el diagnóstico durante una conversación ejecutiva de 30 minutos y ayudarte a determinar si los problemas requieren una optimización puntual, remediación o una intervención más estructurada.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="pt-2 flex flex-col items-center justify-center gap-3">
             {reviewSubmitted ? (
-              <div className="w-full sm:w-auto px-8 py-4 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 font-bold rounded-2xl text-sm flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/10 animate-fadeIn">
+              <div className="w-full sm:w-auto px-8 py-4 bg-emerald-950/90 border-2 border-emerald-500/60 text-emerald-300 font-mono text-sm font-bold rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-emerald-500/10 animate-fadeIn">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                <span>Solicitud enviada</span>
+                <span>Solicitud Enviada · Te contactaremos a la brevedad</span>
               </div>
             ) : (
               <button
                 onClick={() => setShowReviewModal(true)}
-                className="w-full sm:w-auto px-10 py-5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-black rounded-2xl text-base md:text-lg transition-all border-2 border-[#FFE8A3] flex items-center justify-center gap-3 group cursor-pointer"
+                className="w-full sm:w-auto px-9 py-4.5 bg-[#07192F] hover:bg-[#C9A96E]/15 text-[#C9A96E] hover:text-white font-mono text-sm sm:text-base font-black rounded-2xl transition-all shadow-xl hover:shadow-[#C9A96E]/20 flex items-center justify-center gap-3 border-4 border-[#C9A96E] hover:border-[#FFE8A3] cursor-pointer group active:scale-95 transform hover:-translate-y-0.5"
               >
+                <Clock className="w-5 h-5 text-[#C9A96E]" />
                 <span>Solicitar revisión de 30 minutos</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-[#050203]" />
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-[#C9A96E]" />
               </button>
             )}
+
+            <p className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5 mt-2">
+              <Lock className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <span>Sesión 100% confidencial sin costo bajo NDA mutuo</span>
+            </p>
           </div>
         </div>
       </div>
 
-      {/* MODAL SOLICITAR REVISIÓN (ONLY ASKS FOR CONTACT METHOD IF DATA ALREADY EXISTS) */}
-      {showReviewModal && (
+      {/* MODAL SOLICITAR REVISIÓN (PORTAL CENTRADO PANTALLA COMPLETA 100% W/H) */}
+      {showReviewModal && createPortal(
         <div 
           onClick={() => setShowReviewModal(false)}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[99999] flex items-center justify-center p-4 overflow-hidden"
+          className="fixed inset-0 w-screen h-screen z-[9999999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-hidden"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg bg-[#0E2747] border border-[#C9A96E]/40 rounded-3xl p-6 sm:p-8 shadow-2xl animate-fadeIn text-left"
+            className="relative w-full max-w-lg bg-[#07192F] border-2 border-[#C9A96E]/50 rounded-3xl p-6 sm:p-8 shadow-2xl animate-content-in text-left my-auto"
           >
             <button
               onClick={() => setShowReviewModal(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1.5 rounded-xl bg-[#0E2747] border border-[#1E3A5F] hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -364,10 +380,10 @@ export const FusionRescueResultsView: React.FC<FusionRescueResultsViewProps> = (
                                   borderWidth: '1px'
                                 }
                           }
-                          className="py-3 px-3 rounded-2xl text-xs transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+                          className="py-3.5 px-3 rounded-2xl text-xs transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                         >
-                          <IconComp className={`w-4 h-4 ${isSel ? 'text-[#050203]' : 'text-[#C9A96E]'}`} />
-                          <span className={isSel ? 'font-black text-[#050203]' : ''}>{item.label}</span>
+                          <IconComp className={`w-5 h-5 ${isSel ? 'text-[#050203]' : 'text-[#C9A96E]'}`} />
+                          <span className={isSel ? 'font-black text-[#050203]' : 'font-bold'}>{item.label}</span>
                         </button>
                       );
                     })}
@@ -427,7 +443,8 @@ export const FusionRescueResultsView: React.FC<FusionRescueResultsViewProps> = (
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

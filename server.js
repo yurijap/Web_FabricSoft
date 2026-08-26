@@ -39,7 +39,7 @@ const connectDb = async () => {
   if (mongoose.connection.readyState === 1) {
     return mongoose.connection;
   }
-  
+
   if (!cachedConnection) {
     console.log('🔌 Iniciando nueva conexión a MongoDB...');
     cachedConnection = mongoose.connect(MONGODB_URI, {
@@ -54,12 +54,12 @@ const connectDb = async () => {
       throw err;
     });
   }
-  
+
   return cachedConnection;
 };
 
 // Intentar conectar en frío
-connectDb().catch(() => {});
+connectDb().catch(() => { });
 
 // Middleware para asegurar conexión DB en entornos serverless (Vercel)
 app.use(async (req, res, next) => {
@@ -67,10 +67,10 @@ app.use(async (req, res, next) => {
     await connectDb();
     next();
   } catch (err) {
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: 'Error de conexión a la base de datos (MongoDB Atlas)',
-      details: err.message 
+      details: err.message
     });
   }
 });
@@ -227,8 +227,15 @@ const FusionRescueLeadSchema = new mongoose.Schema({
   contact_preference: String,
 
   // Progress Tracking
-  status: { type: String, default: 'Incompleto' }, // 'Incompleto', 'Preguntas Respondidas', 'Completado'
+  status: { type: String, default: 'Incompleto' }, // 'Incompleto', 'Preguntas Respondidas', 'Completado', 'Reunión Agendada', 'Reunión Enviada', 'Declinado'
   questions_answered_count: { type: Number, default: 0 },
+
+  // Meeting scheduling data
+  meeting_date: String,
+  meeting_time: String,
+  meeting_link: String,
+  meeting_email_sent: { type: Boolean, default: false },
+  meeting_sent_at: Date,
 
   // UTM Attribution
   utm_source: String,
@@ -893,43 +900,43 @@ app.get('/api/office-hours/disponibilidad/mes', async (req, res) => {
     const y = parseInt(year) || new Date().getFullYear();
     const m = parseInt(month) || (new Date().getMonth() + 1);
     const daysInMonth = new Date(y, m, 0).getDate();
-    
+
     const { dateStr: todayStr, timeStr: nowTimeStr } = getMexicoCityTime();
-    
+
     // Todos los registros de OfficeHour en MongoDB
     const allOfficeHours = await OfficeHour.find();
 
     // Slots abiertos explicitamente por Admin
-    const adminOpenSlots = allOfficeHours.filter(item => 
+    const adminOpenSlots = allOfficeHours.filter(item =>
       item.estado === 'disponible' || item.fase === 99 || item.usuario === 'Slot Abierto por Admin'
     );
 
     // Citas ya reservadas por clientes (cualquier estado que no sea disponible ni cancelado)
-    const bookedMeetings = allOfficeHours.filter(item => 
+    const bookedMeetings = allOfficeHours.filter(item =>
       !['disponible', 'cancelado'].includes((item.estado || '').toLowerCase()) && item.fase !== 99 && item.usuario !== 'Slot Abierto por Admin'
     );
     const bookedSet = new Set(bookedMeetings.map(b => `${b.fecha} ${b.hora}`));
 
     const monthData = {};
-    const defaultHours = ['09:00 AM','09:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','02:00 PM','02:30 PM','03:00 PM','04:00 PM'];
+    const defaultHours = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM', '03:00 PM', '04:00 PM'];
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      
+      const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
       // Excluir fechas del pasado
       if (dateStr < todayStr) {
         monthData[dateStr] = 0;
         continue;
       }
-      
+
       const dayOfWeek = new Date(`${dateStr}T12:00:00`).getDay();
-      
+
       // Excluir fines de semana (Sábado = 6, Domingo = 0)
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         monthData[dateStr] = 0;
         continue;
       }
-      
+
       const customDaySlots = adminOpenSlots.filter(s => s.fecha === dateStr);
 
       if (customDaySlots.length > 0) {
@@ -964,21 +971,21 @@ app.get('/api/office-hours/disponibilidad/mes', async (req, res) => {
 app.get('/api/office-hours/disponibilidad/dia', async (req, res) => {
   try {
     const { date } = req.query;
-    const defaultHours = ['09:00 AM','09:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','02:00 PM','02:30 PM','03:00 PM','04:00 PM'];
-    
+    const defaultHours = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM', '03:00 PM', '04:00 PM'];
+
     const { dateStr: todayStr, timeStr: nowTimeStr } = getMexicoCityTime();
-    
+
     if (date < todayStr) {
       return res.json({ success: true, data: [] });
     }
-    
+
     const allOfficeHours = await OfficeHour.find();
 
-    const adminOpenSlots = allOfficeHours.filter(item => 
+    const adminOpenSlots = allOfficeHours.filter(item =>
       (item.fecha === date) && (item.estado === 'disponible' || item.fase === 99 || item.usuario === 'Slot Abierto por Admin')
     );
 
-    const bookedMeetings = allOfficeHours.filter(item => 
+    const bookedMeetings = allOfficeHours.filter(item =>
       item.fecha === date && !['disponible', 'cancelado'].includes((item.estado || '').toLowerCase()) && item.fase !== 99 && item.usuario !== 'Slot Abierto por Admin'
     );
     const bookedHours = new Set(bookedMeetings.map(b => b.hora));
@@ -1173,13 +1180,13 @@ app.post('/api/office-hours/slots', async (req, res) => {
   try {
     const slotsPayload = req.body;
     const items = Array.isArray(slotsPayload) ? slotsPayload : [slotsPayload];
-    
+
     const docs = [];
     for (const item of items) {
       const fecha = item.fecha || (item.slot ? item.slot.split(' ')[0] : '');
       const hora = item.hora || (item.slot ? item.slot.split(' ')[1] : '');
       const slotStr = item.slot || `${fecha} ${hora}`;
-      
+
       if (fecha && hora) {
         const updated = await CalendarSlot.findOneAndUpdate(
           { slot: slotStr },
@@ -1341,24 +1348,31 @@ async function sendLeadAlertEmail(savedLead) {
     const source = savedLead.utm_source || 'Directo';
     const campaign = savedLead.utm_campaign || 'N/A';
     const isReviewRequest = Boolean(savedLead.review_requested);
+    const isStartOnly = Boolean(savedLead.questions_answered_count < 25 && savedLead.status !== 'Completado' && savedLead.status !== 'Preguntas Respondidas' && !isReviewRequest);
 
     // Subject titles as requested:
-    // 1. "Consultar mi Diagnóstico": "Lead Completo el formulario"
-    // 2. "Solicitar revisión de 30 minutos": "Lead requiere reunion de 30 minutos"
-    const subjectText = isReviewRequest
-      ? `Lead requiere reunion de 30 minutos: ${fullName} (${company})`
-      : `Lead Completo el formulario: ${fullName} (${company})`;
+    // 1. "Comenzar evaluación": "Un nuevo lead ha comenzado el formulario: [Nombre] ([Empresa])"
+    // 2. "Consultar mi Diagnóstico": "Lead Completo el formulario: [Nombre] ([Empresa])"
+    // 3. "Solicitar revisión de 30 minutos": "Lead requiere reunion de 30 minutos: [Nombre] ([Empresa])"
+    let subjectText = `Lead Completo el formulario: ${fullName} (${company})`;
+    let headerBadge = `📋 FORMULARIO DE DIAGNÓSTICO COMPLETO`;
+    let descriptionText = `Un prospecto ha respondido todo el formulario de <strong>Fusion Rescue Health Check</strong> y ha hecho clic en <em>Consultar mi Diagnóstico</em>.`;
+    let iconHeader = '📋';
 
-    const headerBadge = isReviewRequest
-      ? `📅 SOLICITUD DE REUNIÓN DE 30 MINUTOS`
-      : `📋 FORMULARIO DE DIAGNÓSTICO COMPLETO`;
+    if (isReviewRequest) {
+      subjectText = `Lead requiere reunion de 30 minutos: ${fullName} (${company})`;
+      headerBadge = `📅 SOLICITUD DE REUNIÓN DE 30 MINUTOS`;
+      descriptionText = `Un prospecto ha hecho clic en el botón <strong>Solicitar revisión de 30 minutos</strong> y requiere una sesión directa con el equipo técnico de FABRIC.`;
+      iconHeader = '📅';
+    } else if (isStartOnly) {
+      subjectText = `Un nuevo lead ha comenzado el formulario: ${fullName} (${company})`;
+      headerBadge = `🚀 NUEVO LEAD HA COMENZADO EL FORMULARIO`;
+      descriptionText = `Un nuevo prospecto ha hecho clic en <strong>Comenzar evaluación (25 preguntas)</strong> y ha ingresado sus datos para iniciar el cuestionario.`;
+      iconHeader = '🚀';
+    }
 
-    const descriptionText = isReviewRequest
-      ? `Un prospecto ha hecho clic en el botón <strong>Solicitar revisión de 30 minutos</strong> y requiere una sesión directa con el equipo técnico de FABRIC.`
-      : `Un prospecto ha respondido todo el formulario de <strong>Fusion Rescue Health Check</strong> y ha hecho clic en <em>Consultar mi Diagnóstico</em>.`;
-
-    const adminRouteUrl = process.env.APP_URL 
-      ? `${process.env.APP_URL.replace(/\/$/, '')}/admin/rescue-fusion/leads` 
+    const adminRouteUrl = process.env.APP_URL
+      ? `${process.env.APP_URL.replace(/\/$/, '')}/admin/rescue-fusion/leads`
       : (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/admin/rescue-fusion/leads` : 'https://fabricsoft.mx/admin');
 
     const htmlContent = `
@@ -1368,7 +1382,7 @@ async function sendLeadAlertEmail(savedLead) {
             FABRIC FUSION RESCUE · ${headerBadge}
           </span>
           <h1 style="color: #ffffff; font-size: 22px; margin: 8px 0 0 0;">
-            ${isReviewRequest ? '📅' : '📋'} ${fullName} (${company})
+            ${iconHeader} ${fullName} (${company})
           </h1>
         </div>
 
@@ -1605,6 +1619,294 @@ app.patch(['/api/rescue-assessment/:id/review', '/rescue-assessment/:id/review',
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// Helper Function to Send Meeting Invite Email to Lead via Resend API
+async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meetingLink, isReschedule = false) {
+  try {
+    if (!resend) {
+      console.warn('⚠️ RESEND_API_KEY no configurada. Omite envío de correo de reunión.');
+      return { success: false, reason: 'resend_not_configured' };
+    }
+    if (!lead || !lead.email) {
+      console.warn('⚠️ Prospecto no cuenta con email válido.');
+      return { success: false, reason: 'no_email' };
+    }
+
+    const fullName = `${lead.first_name || lead.nombre || 'Estimado(a)'} ${lead.last_name || lead.apellidos || ''}`.trim();
+    const company = lead.empresa || lead.company_name || 'tu empresa';
+    const formattedDate = meetingDate || 'Fecha por confirmar';
+    const formattedTime = meetingTime ? `${meetingTime} hrs` : 'Horario por confirmar';
+    const linkUrl = meetingLink || 'https://fabricsoft.mx';
+
+    const headerBadge = isReschedule ? 'FABRIC CONSULTING · REUNIÓN REAGENDADA' : 'FABRIC CONSULTING · CONFIRMACIÓN DE SESIÓN';
+    const headerTitle = isReschedule ? '🔄 Reunión Técnica Reagendada' : '📅 Confirmación de Reunión Técnica';
+    const emailSubject = isReschedule
+      ? `🔄 Reagendación de Reunión Técnica FABRIC: ${formattedDate} (${formattedTime})`
+      : `Confirmación de Reunión Técnica FABRIC: ${formattedDate} (${formattedTime})`;
+
+    const bodyMessage = isReschedule
+      ? `Te informamos que tu sesión técnica de revisión del diagnóstico <strong>Fusion Rescue™</strong> para <strong>${company}</strong> ha sido <strong>reagendada exitosamente</strong>. A continuación te compartimos los nuevos detalles de fecha y horario:`
+      : `Te confirmamos que tu sesión técnica de revisión del diagnóstico <strong>Fusion Rescue™</strong> para <strong>${company}</strong> ha sido agendada exitosamente con nuestro equipo técnico especializado.`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background-color: #07192F; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: 0 auto;">
+        <div style="border-bottom: 2px solid #C9A96E; padding-bottom: 16px; margin-bottom: 24px; text-align: center;">
+          <span style="font-size: 11px; font-weight: bold; color: #C9A96E; letter-spacing: 2px; text-transform: uppercase; font-family: monospace;">
+            ${headerBadge}
+          </span>
+          <h1 style="color: #ffffff; font-size: 22px; margin: 10px 0 0 0;">
+            ${headerTitle}
+          </h1>
+        </div>
+
+        <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6;">
+          Hola <strong>${fullName}</strong>,
+        </p>
+
+        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+          ${bodyMessage}
+        </p>
+
+        <div style="background-color: #0E2747; border: 1px solid #C9A96E; padding: 24px; border-radius: 14px; margin: 24px 0;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #f8fafc;">
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold; width: 140px;">📅 Nueva Fecha:</td>
+              <td style="padding: 10px 0; font-weight: bold; color: #38bdf8;">${formattedDate}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">⏰ Nuevo Horario:</td>
+              <td style="padding: 10px 0; font-weight: bold; color: #34d399;">${formattedTime}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">👤 Participante:</td>
+              <td style="padding: 10px 0; color: #ffffff;">${fullName} (${company})</td>
+            </tr>
+            ${meetingLink ? `
+            <tr>
+              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">💻 Enlace Videollamada:</td>
+              <td style="padding: 10px 0; color: #C9A96E; font-weight: bold; word-break: break-all;">
+                <a href="${linkUrl}" style="color: #C9A96E; text-decoration: underline;" target="_blank">${linkUrl}</a>
+              </td>
+            </tr>
+            ` : ''}
+          </table>
+        </div>
+
+        ${meetingLink ? `
+        <div style="text-align: center; margin: 28px 0 20px 0;">
+          <a href="${linkUrl}" target="_blank" style="display: inline-block; background-color: #C9A96E; color: #050203; padding: 14px 32px; font-weight: bold; text-decoration: none; border-radius: 12px; font-size: 14px; box-shadow: 0 4px 12px rgba(201, 169, 110, 0.3);">
+            💻 Unirme a la Reunión Reagendada
+          </a>
+        </div>
+        ` : ''}
+
+        <p style="color: #94a3b8; font-size: 12px; line-height: 1.5; text-align: center; border-top: 1px solid #1E3A5F; padding-top: 20px; margin-top: 25px;">
+          Te sugerimos ingresar 5 minutos antes a la reunión.<br/>
+          Si necesitas hacer algún ajuste adicional, responde directamente a este correo.
+        </p>
+      </div>
+    `;
+
+    let sendRes = await resend.emails.send({
+      from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
+      to: [lead.email],
+      subject: emailSubject,
+      html: htmlContent
+    });
+
+    if (sendRes.error && sendRes.error.name === 'validation_error') {
+      console.warn('⚠️ Resend en modo test: reenviando correo de reunión a saalzarantonio@gmail.com');
+      sendRes = await resend.emails.send({
+        from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
+        to: ['saalzarantonio@gmail.com'],
+        subject: `[PRUEBA] ${emailSubject}`,
+        html: htmlContent
+      });
+    }
+
+    if (sendRes.error) {
+      throw new Error(sendRes.error.message || 'Error al enviar invitación de reunión por correo');
+    }
+
+    createLog(`Correo de Reunión ${isReschedule ? 'Reagendada' : 'Agendada'} enviado a prospecto: ${lead.email}`, 'FusionRescueLead', 'Admin', 'OK', `Lead ID: ${lead._id} · Fecha: ${formattedDate} ${formattedTime}`);
+    return { success: true, resendId: sendRes.data?.id };
+  } catch (err) {
+    console.error('Error enviando correo de confirmación de reunión:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+const handleStatusUpdate = async (req, res) => {
+  try {
+    const { status, meeting_date, meeting_time, meeting_link, send_meeting_email, email, nombre, empresa, is_reschedule } = req.body;
+    if (!status) {
+      return res.status(400).json({ success: false, error: 'El campo status es requerido' });
+    }
+    const updateObj = { status };
+    if (meeting_date !== undefined) updateObj.meeting_date = meeting_date;
+    if (meeting_time !== undefined) updateObj.meeting_time = meeting_time;
+    if (meeting_link !== undefined) updateObj.meeting_link = meeting_link;
+
+    let updated = null;
+    const targetId = req.params.id;
+    if (mongoose.Types.ObjectId.isValid(targetId)) {
+      updated = await FusionRescueLead.findByIdAndUpdate(targetId, updateObj, { new: true });
+    }
+    if (!updated && targetId) {
+      updated = await FusionRescueLead.findOneAndUpdate({ session_id: targetId }, updateObj, { new: true });
+    }
+    if (!updated && email) {
+      updated = await FusionRescueLead.findOneAndUpdate({ email: email }, updateObj, { new: true });
+    }
+
+    // Detect if this is a reschedule event
+    const wasAlreadyScheduled = Boolean(updated && (updated.meeting_email_sent || updated.meeting_date || updated.status === 'Reunión Agendada' || updated.status === 'Reunión Enviada'));
+    const isRescheduleEvent = is_reschedule !== undefined ? Boolean(is_reschedule) : wasAlreadyScheduled;
+
+    // Upsert fallback for demo/legacy leads: create in MongoDB Atlas if missing so it NEVER returns 404!
+    if (!updated) {
+      const newLeadObj = {
+        nombre: nombre || 'Prospecto',
+        empresa: empresa || 'Empresa',
+        email: email || 'notificaciones@fabriconsulting.com.mx',
+        status: status,
+        meeting_date: meeting_date || '',
+        meeting_time: meeting_time || '',
+        meeting_link: meeting_link || ''
+      };
+      if (mongoose.Types.ObjectId.isValid(targetId)) {
+        newLeadObj._id = targetId;
+      }
+      updated = await FusionRescueLead.create(newLeadObj);
+    }
+
+    let emailResult = null;
+    if (send_meeting_email !== false && (meeting_date || updated.meeting_date)) {
+      const mDate = meeting_date || updated.meeting_date;
+      const mTime = meeting_time || updated.meeting_time;
+      const mLink = meeting_link !== undefined ? meeting_link : updated.meeting_link;
+
+      emailResult = await sendMeetingInviteEmailToLead(updated, mDate, mTime, mLink, isRescheduleEvent);
+      if (emailResult && emailResult.success) {
+        updated = await FusionRescueLead.findByIdAndUpdate(updated._id, {
+          status: 'Reunión Enviada',
+          meeting_email_sent: true,
+          meeting_sent_at: new Date()
+        }, { new: true });
+      }
+    }
+
+    createLog(`Estado de Lead actualizado a (${updated.status}): ${updated.nombre}`, 'FusionRescueLead', 'Admin', 'OK', `ID: ${updated._id} · Email enviado: ${updated.meeting_email_sent ? 'Sí' : 'No'} · Reagendado: ${isRescheduleEvent ? 'Sí' : 'No'}`);
+    res.json({ success: true, data: updated, emailResult, isReschedule: isRescheduleEvent });
+  } catch (err) {
+    console.error('Error al actualizar status de lead:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+app.all(['/api/fusion-rescue/submissions/:id/status', '/fusion-rescue/submissions/:id/status', '/api/rescue-assessment/submissions/:id/status', '/rescue-assessment/submissions/:id/status', '/api/fusion-rescue/:id/status', '/fusion-rescue/:id/status', '/api/rescue-assessment/:id/status', '/rescue-assessment/:id/status'], handleStatusUpdate);
+
+// ── Soft Delete Lead (Move to Trash) ──
+const handleSoftDeleteLead = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    let updated = null;
+    if (mongoose.Types.ObjectId.isValid(targetId)) {
+      updated = await FusionRescueLead.findByIdAndUpdate(targetId, { status: 'trash', deleted_at: new Date() }, { new: true });
+    }
+    if (!updated && targetId) {
+      updated = await FusionRescueLead.findOneAndUpdate({ session_id: targetId }, { status: 'trash', deleted_at: new Date() }, { new: true });
+    }
+    if (!updated && req.body.email) {
+      updated = await FusionRescueLead.findOneAndUpdate({ email: req.body.email }, { status: 'trash', deleted_at: new Date() }, { new: true });
+    }
+
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Lead no encontrado para mover a basurero' });
+    }
+
+    createLog(`Lead movido a Basurero: ${updated.nombre}`, 'FusionRescueLead', 'Admin', 'OK', `ID: ${updated._id}`);
+    res.json({ success: true, message: 'Prospecto movido al basurero exitosamente', data: updated });
+  } catch (err) {
+    console.error('Error al mover lead a basurero:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+app.delete('/api/fusion-rescue/submissions/:id', handleSoftDeleteLead);
+app.delete('/fusion-rescue/submissions/:id', handleSoftDeleteLead);
+app.delete('/api/rescue-assessment/submissions/:id', handleSoftDeleteLead);
+app.delete('/rescue-assessment/submissions/:id', handleSoftDeleteLead);
+
+// ── Restore Lead from Trash ──
+const handleRestoreLead = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    let lead = null;
+    if (mongoose.Types.ObjectId.isValid(targetId)) {
+      lead = await FusionRescueLead.findById(targetId);
+    }
+    if (!lead && targetId) {
+      lead = await FusionRescueLead.findOne({ session_id: targetId });
+    }
+    if (!lead && req.body.email) {
+      lead = await FusionRescueLead.findOne({ email: req.body.email });
+    }
+
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Lead no encontrado en el basurero' });
+    }
+
+    const restoredStatus = (lead.questions_answered_count >= 25 || lead.health_score) ? 'Completado' : 'Incompleto';
+    const updated = await FusionRescueLead.findByIdAndUpdate(lead._id, {
+      status: restoredStatus,
+      deleted_at: null
+    }, { new: true });
+
+    createLog(`Lead recuperado del Basurero: ${updated.nombre}`, 'FusionRescueLead', 'Admin', 'OK', `ID: ${updated._id}`);
+    res.json({ success: true, message: 'Prospecto restaurado exitosamente', data: updated });
+  } catch (err) {
+    console.error('Error al restaurar lead del basurero:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+app.patch('/api/fusion-rescue/submissions/:id/restore', handleRestoreLead);
+app.patch('/fusion-rescue/submissions/:id/restore', handleRestoreLead);
+app.patch('/api/rescue-assessment/submissions/:id/restore', handleRestoreLead);
+app.patch('/rescue-assessment/submissions/:id/restore', handleRestoreLead);
+
+// ── Permanent Delete Lead ──
+const handlePermanentDeleteLead = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    let deleted = null;
+    if (mongoose.Types.ObjectId.isValid(targetId)) {
+      deleted = await FusionRescueLead.findByIdAndDelete(targetId);
+    }
+    if (!deleted && targetId) {
+      deleted = await FusionRescueLead.findOneAndDelete({ session_id: targetId });
+    }
+    if (!deleted && req.body.email) {
+      deleted = await FusionRescueLead.findOneAndDelete({ email: req.body.email });
+    }
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: 'Lead no encontrado' });
+    }
+
+    createLog(`Lead eliminado definitivamente: ${deleted.nombre}`, 'FusionRescueLead', 'Admin', 'WARN', `ID: ${deleted._id}`);
+    res.json({ success: true, message: 'Prospecto eliminado definitivamente de la base de datos' });
+  } catch (err) {
+    console.error('Error al eliminar definitivamente:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+app.delete('/api/fusion-rescue/submissions/:id/permanent', handlePermanentDeleteLead);
+app.delete('/fusion-rescue/submissions/:id/permanent', handlePermanentDeleteLead);
+app.delete('/api/rescue-assessment/submissions/:id/permanent', handlePermanentDeleteLead);
+app.delete('/rescue-assessment/submissions/:id/permanent', handlePermanentDeleteLead);
 
 const recentEventsCache = new Map();
 
@@ -1843,10 +2145,10 @@ app.all(['/api/fusion-rescue/test-email', '/fusion-rescue/test-email'], async (r
       : ['antonio.salazar@fabricsoft.com.mx'];
 
     if (!resend) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'RESEND_API_KEY no encontrada en las variables de entorno.', 
-        recipients: recipientEmails 
+      return res.status(500).json({
+        success: false,
+        error: 'RESEND_API_KEY no encontrada en las variables de entorno.',
+        recipients: recipientEmails
       });
     }
 
@@ -1915,13 +2217,13 @@ async function handleGetSettings(req, res) {
 
 async function handlePostSettings(req, res) {
   try {
-    const { 
-      crm_webhook_url, 
+    const {
+      crm_webhook_url,
       webhook_secret,
-      notification_emails, 
+      notification_emails,
       notify_incomplete_leads,
       risk_threshold_score,
-      enable_auto_reengagement 
+      enable_auto_reengagement
     } = req.body || {};
 
     let settings = await RescueSettings.findOne();

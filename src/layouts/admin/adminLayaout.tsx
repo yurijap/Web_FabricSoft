@@ -62,6 +62,7 @@ const NAV_GROUPS: NavGroup[] = [
     defaultOpen: true,
     items: [
       { path: '/admin/rescue-fusion/leads', label: 'Leads Fusion Rescue', icon: Target },
+      { path: '/admin/rescue-fusion/reuniones', label: 'Reuniones Agendadas', icon: CalendarClock },
       { path: '/admin/rescue-fusion/dashboard', label: 'Dashboard General', icon: BarChart3 },
       { path: '/admin/rescue-fusion/campaigns', label: 'Campañas & UTMs', icon: GitBranch },
       { path: '/admin/rescue-fusion/settings', label: 'Configuración', icon: Sliders },

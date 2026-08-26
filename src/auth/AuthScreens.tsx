@@ -70,8 +70,7 @@ export function AccesoScreen() {
               fontFamily: "var(--sans)",
             }
           }}
-          routing="path"
-          path="/acceso"
+          routing="virtual"
           signUpUrl="/crear-cuenta"
           forceRedirectUrl="/admin"
         />
@@ -152,8 +151,7 @@ export function CrearCuentaScreen() {
               fontFamily: "var(--sans)",
             }
           }}
-          routing="path"
-          path="/crear-cuenta"
+          routing="virtual"
           signInUrl="/acceso"
           forceRedirectUrl="/admin"
         />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, RefreshCw, Trash2, Eye, Target, Check, Minus, Filter, ArrowUpRight, AlertTriangle, ChevronRight, X, FileText, Printer, Download, Mail } from 'lucide-react';
+import { Search, RefreshCw, Trash2, Eye, Target, Check, Minus, Filter, ArrowUpRight, AlertTriangle, ChevronRight, X, FileText, Printer, Download, Mail, Calendar, XCircle, Clock, Link, Send, RotateCcw } from 'lucide-react';
 import { useAuthApi } from '../../../config/api';
 import { QUESTIONS, ANSWER_OPTIONS, calculateAssessmentResult } from '../../../utils/fusionRescueEngine';
 
@@ -49,6 +49,10 @@ interface SubmissionItem {
   questions_answered_count?: number;
   status?: string;
   answers?: AnswerItem[] | Record<string, any>;
+  meeting_date?: string;
+  meeting_time?: string;
+  meeting_link?: string;
+  created_at?: string;
   createdAt: string;
 }
 
@@ -70,9 +74,12 @@ export default function AdminRescueLeads() {
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const [showTrashModal, setShowTrashModal] = useState(false);
+
   const closeAllModals = () => {
     setSelectedSubmission(null);
     setPdfReportSubmission(null);
+    setShowTrashModal(false);
   };
 
   const handleSendResumeEmail = async (item: SubmissionItem) => {
@@ -250,21 +257,153 @@ export default function AdminRescueLeads() {
     };
   }, [selectedSubmission, pdfReportSubmission]);
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este expediente de prospecto?')) return;
+  const [scheduleModalSubmission, setScheduleModalSubmission] = useState<SubmissionItem | null>(null);
+  const [meetingDate, setMeetingDate] = useState<string>('');
+  const [meetingTime, setMeetingTime] = useState<string>('10:00');
+  const [meetingLink, setMeetingLink] = useState<string>('');
+  const [isSavingMeeting, setIsSavingMeeting] = useState(false);
+
+  const openScheduleModal = (submission: SubmissionItem) => {
+    setScheduleModalSubmission(submission);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setMeetingDate(tomorrow.toISOString().split('T')[0]);
+    setMeetingTime('10:00');
+    setMeetingLink(submission.meeting_link || '');
+  };
+
+  const handleConfirmScheduleMeeting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scheduleModalSubmission) return;
+    if (!meetingDate) {
+      alert('Por favor selecciona la fecha de la reunión.');
+      return;
+    }
+
+    setIsSavingMeeting(true);
+    try {
+      const isReschedule = Boolean(
+        scheduleModalSubmission.meeting_date || 
+        scheduleModalSubmission.meeting_email_sent || 
+        scheduleModalSubmission.status === 'Reunión Agendada' || 
+        scheduleModalSubmission.status === 'Reunión Enviada'
+      );
+
+      const payload = {
+        status: 'Reunión Agendada',
+        meeting_date: meetingDate,
+        meeting_time: meetingTime,
+        meeting_link: meetingLink,
+        email: scheduleModalSubmission.email,
+        nombre: scheduleModalSubmission.nombre,
+        empresa: scheduleModalSubmission.empresa,
+        send_meeting_email: true,
+        is_reschedule: isReschedule
+      };
+
+      const res = await adminApi.patch(`/fusion-rescue/submissions/${scheduleModalSubmission._id}/status`, payload);
+      const updatedData = res.data?.data;
+      const finalStatus = updatedData?.status || 'Reunión Enviada';
+
+      setItems(prev => prev.map(i => i._id === scheduleModalSubmission._id ? {
+        ...i,
+        status: finalStatus,
+        meeting_date: meetingDate,
+        meeting_time: meetingTime,
+        meeting_link: meetingLink,
+        meeting_email_sent: true
+      } : i));
+
+      if (selectedSubmission?._id === scheduleModalSubmission._id) {
+        setSelectedSubmission(prev => prev ? {
+          ...prev,
+          status: finalStatus,
+          meeting_date: meetingDate,
+          meeting_time: meetingTime,
+          meeting_link: meetingLink,
+          meeting_email_sent: true
+        } : null);
+      }
+
+      const actionWord = isReschedule ? 'Reagendada' : 'Agendada';
+      alert(`⚡ ¡Reunión ${actionWord} y Notificada Exitosamente por Correo!\n\nProspecto: ${scheduleModalSubmission.nombre}\nEmail: ${scheduleModalSubmission.email}\n${isReschedule ? 'Nueva Fecha' : 'Fecha'}: ${meetingDate} a las ${meetingTime} hrs\nEnlace: ${meetingLink || 'No ingresado'}`);
+      setScheduleModalSubmission(null);
+    } catch (err: any) {
+      alert('Error al agendar reunión: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setIsSavingMeeting(false);
+    }
+  };
+
+  const handleDeclineLead = async (submission: SubmissionItem) => {
+    const confirmMsg = `¿Estás seguro de declinar la solicitud de ${submission.nombre} (${submission.empresa})?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await adminApi.patch(`/fusion-rescue/submissions/${submission._id}/status`, {
+        status: 'Declinado',
+        email: submission.email,
+        send_meeting_email: false
+      });
+      setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: 'Declinado' } : i));
+      if (selectedSubmission?._id === submission._id) {
+        setSelectedSubmission(prev => prev ? { ...prev, status: 'Declinado' } : null);
+      }
+      alert(`El prospecto ${submission.nombre} ha sido marcado como Declinado.`);
+    } catch (err: any) {
+      alert('Error al declinar prospecto: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleSoftDelete = async (submission: SubmissionItem) => {
+    const confirmMsg = `¿Estás seguro de mover a ${submission.nombre} (${submission.empresa}) al basurero? Podrás recuperarlo en cualquier momento desde el botón Basurero.`;
+    if (!window.confirm(confirmMsg)) return;
+
     setSaving(true);
     try {
-      await adminApi.delete(`/rescue-assessment/submissions/${id}`);
-      setItems(prev => prev.filter(i => i._id !== id));
-      if (selectedSubmission?._id === id) setSelectedSubmission(null);
-    } catch (err) {
-      console.error(err);
+      await adminApi.delete(`/fusion-rescue/submissions/${submission._id}`, { data: { email: submission.email } });
+      setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: 'trash' } : i));
+      if (selectedSubmission?._id === submission._id) {
+        setSelectedSubmission(null);
+      }
+      alert(`El prospecto ${submission.nombre} ha sido movido al Basurero.`);
+    } catch (err: any) {
+      alert('Error al mover a basurero: ' + (err.response?.data?.error || err.message));
     } finally {
       setSaving(false);
     }
   };
 
-  const filteredItems = items.filter(i => {
+  const handleRestoreFromTrash = async (submission: SubmissionItem) => {
+    try {
+      const res = await adminApi.patch(`/fusion-rescue/submissions/${submission._id}/restore`, { email: submission.email });
+      const updatedData = res.data?.data;
+      const restoredStatus = updatedData?.status || ((submission.questions_answered_count !== undefined && submission.questions_answered_count >= 25) ? 'Completado' : 'Incompleto');
+      
+      setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: restoredStatus } : i));
+      alert(`⚡ ¡Prospecto ${submission.nombre} recuperado exitosamente del basurero!`);
+    } catch (err: any) {
+      alert('Error al restaurar prospecto: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handlePermanentDelete = async (submission: SubmissionItem) => {
+    const confirmMsg = `⚠️ ATENCIÓN: ¿Deseas eliminar DEFINITIVAMENTE a ${submission.nombre} de la base de datos MongoDB Atlas? Esta acción NO se puede deshacer.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await adminApi.delete(`/fusion-rescue/submissions/${submission._id}/permanent`, { data: { email: submission.email } });
+      setItems(prev => prev.filter(i => i._id !== submission._id));
+      alert(`El prospecto ${submission.nombre} ha sido eliminado definitivamente.`);
+    } catch (err: any) {
+      alert('Error al eliminar definitivamente: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const activeItems = items.filter(i => i.status !== 'trash' && i.status !== 'Basurero');
+  const trashItems = items.filter(i => i.status === 'trash' || i.status === 'Basurero');
+
+  const filteredItems = activeItems.filter(i => {
     // Search
     const term = searchTerm.toLowerCase().trim();
     if (term) {
@@ -406,8 +545,8 @@ export default function AdminRescueLeads() {
             )}
           </div>
 
-          {/* Row 2: 5 Filter Controls in Equal Aligned Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          {/* Row 2: 6 Filter Controls in Equal Aligned Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
             {/* Path Filter */}
             <div className="flex items-center justify-between gap-2 bg-[#07192F] border border-[#1E3A5F] px-3 py-2 rounded-xl hover:border-[#C9A96E]/50 transition">
               <div className="flex items-center gap-1.5 shrink-0">
@@ -476,10 +615,20 @@ export default function AdminRescueLeads() {
             {/* Refresh Button */}
             <button
               onClick={fetchItems}
-              className="w-full h-full min-h-[38px] px-3 py-2 bg-[#07192F] hover:bg-[#123254] border border-[#1E3A5F] hover:border-[#C9A96E]/50 text-[#C9A96E] hover:text-white font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+              className="w-full h-full min-h-[38px] px-3 py-2 bg-[#07192F] hover:bg-[#123254] border border-[#1E3A5F] hover:border-[#C9A96E]/50 text-[#C9A96E] hover:text-white font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
             >
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
               <span>Refrescar</span>
+            </button>
+
+            {/* Trash / Basurero Button */}
+            <button
+              onClick={() => setShowTrashModal(true)}
+              className="w-full h-full min-h-[38px] px-3 py-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 hover:border-rose-400 text-rose-300 font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+              title="Ver prospectos eliminados en el basurero y recuperarlos"
+            >
+              <Trash2 size={13} />
+              <span>Basurero ({trashItems.length})</span>
             </button>
           </div>
         </div>
@@ -619,11 +768,11 @@ export default function AdminRescueLeads() {
                               <span>Ver Expediente</span>
                             </button>
                             <button
-                              onClick={() => handleDelete(item._id)}
-                              disabled={saving}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10 cursor-pointer"
-                              title="Eliminar expediente"
-                            >
+                               onClick={() => handleSoftDelete(item)}
+                               disabled={saving}
+                               className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10 cursor-pointer"
+                               title="Mover expediente al basurero"
+                             >
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -641,8 +790,10 @@ export default function AdminRescueLeads() {
       {/* Expediente Modal / Drawer (Rendered via React Portal at document.body for absolute viewport centering) */}
       {selectedSubmission && createPortal(
         <div 
-          onClick={closeAllModals}
-          className="fixed inset-0 bg-black/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4 md:p-6 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeAllModals();
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-[999999] flex items-center justify-center p-4 md:p-6 overflow-y-auto"
         >
           <div
             onClick={e => e.stopPropagation()}
@@ -671,9 +822,9 @@ export default function AdminRescueLeads() {
                     setSelectedSubmission(null);
                     setPdfReportSubmission(sub);
                   }}
-                  className="px-3 py-1.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-3.5 py-2 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-md"
                 >
-                  <Printer size={13} />
+                  <Printer size={14} />
                   <span>Generar Reporte PDF</span>
                 </button>
                 <button
@@ -687,7 +838,74 @@ export default function AdminRescueLeads() {
 
             {/* Modal Content Scrollable */}
             <div className="p-6 md:p-8 overflow-y-auto space-y-8 flex-1 custom-scrollbar-gold">
-              {/* Resumen Ejecutivo */}
+              {/* Action Banner for scheduled meetings or 30-min review requests */}
+              {selectedSubmission.meeting_date || selectedSubmission.status === 'Reunión Enviada' || selectedSubmission.status === 'Reunión Agendada' ? (
+                <div className="p-5 rounded-2xl bg-[#07192F] border border-emerald-500/50 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                      <Check size={24} strokeWidth={2.5} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wider">
+                          Reunión Técnica Agendada & Enviada por Correo
+                        </h4>
+                        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold rounded border border-emerald-500/40">
+                          {selectedSubmission.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 font-mono">
+                        📅 <strong>Fecha:</strong> {selectedSubmission.meeting_date} &nbsp;·&nbsp; ⏰ <strong>Hora:</strong> {selectedSubmission.meeting_time} hrs
+                      </p>
+                      {selectedSubmission.meeting_link && (
+                        <p className="text-xs font-mono text-emerald-400 truncate">
+                          💻 <strong>Enlace:</strong> <a href={selectedSubmission.meeting_link} target="_blank" rel="noreferrer" className="underline hover:text-emerald-300">{selectedSubmission.meeting_link}</a>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                    <button
+                      onClick={() => openScheduleModal(selectedSubmission)}
+                      className="px-4 py-2 bg-[#0E2747] hover:bg-[#123254] border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold rounded-xl transition cursor-pointer"
+                    >
+                      Re-agendar / Modificar
+                    </button>
+                  </div>
+                </div>
+              ) : selectedSubmission.review_requested ? (
+                <div className="p-4 rounded-2xl bg-[#07192F] border border-[#C9A96E]/50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                      <Calendar size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wider">
+                        Solicitud de Revisión de 30 Minutos Activa
+                      </h4>
+                      <p className="text-[11px] text-slate-300 mt-0.5">
+                        El prospecto {selectedSubmission.nombre} solicitó una sesión ejecutiva directa con el equipo técnico.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+                    <button
+                      onClick={() => openScheduleModal(selectedSubmission)}
+                      className="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-lg"
+                    >
+                      <Calendar size={14} />
+                      <span>Agendar y Enviar Correo</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeclineLead(selectedSubmission)}
+                      className="flex-1 sm:flex-none px-4 py-2.5 bg-rose-950/90 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-lg"
+                    >
+                      <XCircle size={14} />
+                      <span>Declinar</span>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-[#07192F] border border-[#1E3A5F] p-4 rounded-2xl">
                 <div>
                   <span className="text-[10px] font-mono text-[#94A3B8] uppercase block">Health Score</span>
@@ -1270,6 +1488,215 @@ export default function AdminRescueLeads() {
               <div>
                 Reporte de Diagnóstico Fusion Rescue™
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal para Agendar Reunión (Día, Hora y Enlace) */}
+      {scheduleModalSubmission && createPortal(
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setScheduleModalSubmission(null);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-[9999999] flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="relative w-full max-w-lg bg-[#0E2747] border border-[#C9A96E]/50 rounded-3xl shadow-2xl overflow-hidden animate-fadeIn"
+          >
+            {/* Header Modal */}
+            <div className="p-6 border-b border-[#1E3A5F] bg-[#07192F] flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white font-serif">
+                    Agendar Sesión Técnica
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    {scheduleModalSubmission.nombre} — {scheduleModalSubmission.empresa}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setScheduleModalSubmission(null)}
+                className="w-8 h-8 rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:text-white flex items-center justify-center cursor-pointer transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form onSubmit={handleConfirmScheduleMeeting} className="p-6 space-y-5">
+              <div className="p-3.5 bg-[#07192F] border border-[#1E3A5F] rounded-2xl space-y-1.5 font-mono text-xs text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-[#94A3B8]">Prospecto:</span>
+                  <span className="text-white font-bold">{scheduleModalSubmission.nombre}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#94A3B8]">Email:</span>
+                  <span className="text-blue-300 font-bold">{scheduleModalSubmission.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#94A3B8]">Teléfono:</span>
+                  <span className="text-white">{scheduleModalSubmission.phone || scheduleModalSubmission.telefono || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Picker Día y Hora */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Calendar size={13} />
+                    Día de la Reunión *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={meetingDate}
+                    onChange={(e) => setMeetingDate(e.target.value)}
+                    className="w-full bg-[#07192F] border border-[#1E3A5F] focus:border-[#C9A96E] text-white text-xs font-mono rounded-xl p-3 outline-none transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Clock size={13} />
+                    Hora de la Reunión *
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={meetingTime}
+                    onChange={(e) => setMeetingTime(e.target.value)}
+                    className="w-full bg-[#07192F] border border-[#1E3A5F] focus:border-[#C9A96E] text-white text-xs font-mono rounded-xl p-3 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              {/* Input Enlace */}
+              <div>
+                <label className="block text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Link size={13} />
+                  Enlace de la Reunión (Teams / Zoom / Meet)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://meet.google.com/xyz-abc-123 o https://teams.microsoft.com/..."
+                  value={meetingLink}
+                  onChange={(e) => setMeetingLink(e.target.value)}
+                  className="w-full bg-[#07192F] border border-[#1E3A5F] focus:border-[#C9A96E] text-white text-xs font-mono rounded-xl p-3 outline-none transition placeholder:text-slate-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  Pega aquí el enlace donde se llevará a cabo la videollamada de 30 minutos.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-[#1E3A5F] flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setScheduleModalSubmission(null)}
+                  className="px-5 py-2.5 border border-[#1E3A5F] text-[#94A3B8] hover:text-white font-mono text-xs rounded-xl cursor-pointer transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingMeeting}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold rounded-xl flex items-center gap-2 transition cursor-pointer shadow-lg disabled:opacity-50"
+                >
+                  <Send size={14} />
+                  <span>{isSavingMeeting ? 'Guardando...' : 'Confirmar y Agendar'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── MODAL: BASURERO DE PROSPECTOS (Recuperación) ── */}
+      {showTrashModal && createPortal(
+        <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4 md:p-6 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#07192F] border border-rose-500/40 rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-content-in">
+            {/* Modal Header */}
+            <div className="p-6 bg-[#0E2747] border-b border-[#1E3A5F] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center font-bold">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white font-mono uppercase tracking-wider">
+                    Basurero de Prospectos Eliminados ({trashItems.length})
+                  </h3>
+                  <p className="text-xs text-slate-300 font-mono">
+                    Prospectos movidos a la papelera. Puedes recuperarlos para devolverlos a la bandeja principal o borrarlos definitivamente.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTrashModal(false)}
+                className="w-9 h-9 rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:text-white flex items-center justify-center cursor-pointer transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Content List */}
+            <div className="p-6 md:p-8 overflow-y-auto space-y-4 flex-1 custom-scrollbar-gold">
+              {trashItems.length === 0 ? (
+                <div className="p-12 text-center bg-[#0E2747] border border-[#1E3A5F] rounded-2xl space-y-3">
+                  <Trash2 size={36} className="text-slate-600 mx-auto" />
+                  <h4 className="text-sm font-bold text-white font-mono">El basurero está vacío</h4>
+                  <p className="text-xs text-slate-400 font-mono max-w-sm mx-auto">
+                    Los prospectos que elimines de la bandeja de entrada se guardarán temporalmente aquí y podrás recuperarlos cuando desees.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {trashItems.map(item => (
+                    <div
+                      key={item._id}
+                      className="bg-[#0E2747] border border-[#1E3A5F] hover:border-rose-500/40 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition shadow-md"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-white font-mono">{item.nombre}</h4>
+                          <span className="px-2.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono text-[10px] font-bold rounded-md">
+                            En Basurero
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 font-mono">
+                          🏢 <strong>{item.empresa}</strong> &nbsp;·&nbsp; 📧 {item.email}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleRestoreFromTrash(item)}
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-md"
+                          title="Restaurar prospecto a la bandeja principal"
+                        >
+                          <RotateCcw size={14} />
+                          <span>Recuperar Prospecto</span>
+                        </button>
+                        <button
+                          onClick={() => handlePermanentDelete(item)}
+                          className="px-3.5 py-2 bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-mono text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-md"
+                          title="Eliminar definitivamente de MongoDB Atlas"
+                        >
+                          <Trash2 size={14} />
+                          <span>Eliminar Definitivamente</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>,
