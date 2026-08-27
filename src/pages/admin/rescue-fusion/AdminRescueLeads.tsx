@@ -286,6 +286,11 @@ export default function AdminRescueLeads() {
     try {
       const isReschedule = Boolean(
         scheduleModalSubmission.meeting_date || 
+        scheduleModalSubmission.meeting_email_sent || 
+        scheduleModalSubmission.status === 'Reunión Agendada' || 
+        scheduleModalSubmission.status === 'Reunión Enviada'
+      );
+
       const generateAlphaPin = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let p = '';
