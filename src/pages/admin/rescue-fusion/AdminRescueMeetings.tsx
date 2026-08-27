@@ -72,6 +72,13 @@ export default function AdminRescueMeetings() {
 
   const [selectedSubmission, setSelectedSubmission] = useState<MeetingItem | null>(null);
 
+  const [toast, setToast] = useState<{ title: string; message: string; type: 'emerald' | 'amber' } | null>(null);
+
+  const showToast = (title: string, message: string, type: 'emerald' | 'amber' = 'emerald') => {
+    setToast({ title, message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   // Update `now` every minute for real-time countdown precision
   useEffect(() => {
     const timer = setInterval(() => {
@@ -453,9 +460,9 @@ export default function AdminRescueMeetings() {
                 };
 
                 const pinCode = item.pinAcceso || item.codigoReunion || getFallbackPin(item._id, item.roomId);
-                const roomId = item.roomId || 'MEET-8821';
-                const guestUrl = item.meeting_link || `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
-                const hostUrl = `${window.location.origin}/reunion/${roomId}`;
+                const effectiveRoomId = item.roomId || (item.meeting_link ? item.meeting_link.split('/').pop() : null) || 'MEET-8821';
+                const guestUrl = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${effectiveRoomId}`;
+                const hostUrl = `${window.location.origin}/reunion/${effectiveRoomId}`;
 
                 return (
                   <div
@@ -551,9 +558,9 @@ export default function AdminRescueMeetings() {
                               onClick={() => {
                                 const fullInvite = `💻 Enlace de la Reunión: ${guestUrl}\n🔑 PIN de Acceso: ${pinCode}`;
                                 navigator.clipboard.writeText(fullInvite);
-                                alert(`¡Invitación del cliente copiada al portapapeles!\n\nEnlace: ${guestUrl}\nPIN de Acceso: ${pinCode}`);
+                                showToast('¡Invitación de Cliente Copiada!', `Se copió la invitación con PIN (${pinCode}) de ${item.nombre} al portapapeles.`, 'emerald');
                               }}
-                              className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer"
+                              className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer shadow-md"
                               title="Copiar Enlace y PIN del cliente"
                             >
                               Copiar Cliente
@@ -579,9 +586,9 @@ export default function AdminRescueMeetings() {
                               type="button"
                               onClick={() => {
                                 navigator.clipboard.writeText(hostUrl);
-                                alert('¡Enlace de anfitrión (/reunion) copiado al portapapeles!');
+                                showToast('¡Enlace de Anfitrión Copiado!', `El enlace de anfitrión (/reunion) de ${item.nombre} ha sido copiado al portapapeles.`, 'amber');
                               }}
-                              className="px-2.5 py-1.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer"
+                              className="px-2.5 py-1.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer shadow-md"
                             >
                               Copiar Anfitrión
                             </button>
@@ -815,12 +822,20 @@ export default function AdminRescueMeetings() {
                   />
                 </div>
 
-                <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 space-y-1">
-                  <div className="font-bold text-[#C9A96E] flex items-center gap-1.5">
-                    <Video size={14} /> Enlace de Videollamada Automático
+                <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 space-y-2">
+                  <div className="font-bold text-[#C9A96E] flex items-center justify-between">
+                    <span className="flex items-center gap-1.5"><Video size={14} /> Enlace de Videollamada Generado:</span>
+                    <span className="text-[10px] text-slate-400 font-normal">🔒 Protegido</span>
                   </div>
+                  <input
+                    type="text"
+                    readOnly
+                    disabled
+                    value={meetingLink || `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${scheduleModalSubmission?.roomId || 'MEET-8821'}`}
+                    className="w-full bg-[#030712]/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold rounded-lg p-2.5 outline-none opacity-90 cursor-not-allowed select-all tracking-wide shadow-inner"
+                  />
                   <p className="text-[11px] text-slate-300">
-                    El sistema generará e incluirá automáticamente el enlace directo de la sala de invitados multi-cámara y el PIN de acceso en la notificación de correo.
+                    El sistema generará e incluirá automáticamente este enlace directo y la contraseña de acceso al enviar la notificación.
                   </p>
                 </div>
               </div>
@@ -918,6 +933,38 @@ export default function AdminRescueMeetings() {
                 </div>
               )}
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Alerta Notificación Flotante Personalizada FABRIC */}
+      {toast && createPortal(
+        <div className="fixed bottom-6 right-6 z-[999999] animate-fadeIn">
+          <div className={`flex items-start gap-3.5 p-4 rounded-2xl border shadow-2xl backdrop-blur-md max-w-sm ${
+            toast.type === 'emerald'
+              ? 'bg-[#07192F]/95 border-emerald-500/60 text-emerald-300 shadow-emerald-950/80 ring-1 ring-emerald-500/30'
+              : 'bg-[#07192F]/95 border-[#C9A96E]/60 text-amber-200 shadow-amber-950/80 ring-1 ring-[#C9A96E]/30'
+          }`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+              toast.type === 'emerald'
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                : 'bg-[#C9A96E]/20 border-[#C9A96E]/40 text-[#C9A96E]'
+            }`}>
+              {toast.type === 'emerald' ? <CheckCircle2 size={20} /> : <Video size={20} />}
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-0.5 font-mono">
+              <div className="text-xs font-bold text-white uppercase tracking-wider">{toast.title}</div>
+              <div className="text-[11px] text-slate-300 leading-snug">{toast.message}</div>
+            </div>
+
+            <button
+              onClick={() => setToast(null)}
+              className="text-slate-400 hover:text-white p-1 transition cursor-pointer"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>,
         document.body

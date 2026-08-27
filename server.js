@@ -1931,6 +1931,233 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
   }
 }
 
+// Helper Function to Send Decline / Rejection Email to Lead via Resend API
+async function sendDeclineEmailToLead(lead) {
+  try {
+    if (!resend) {
+      console.warn('⚠️ RESEND_API_KEY no configurada. Omite envío de correo de declinación.');
+      return { success: false, reason: 'resend_not_configured' };
+    }
+    if (!lead || !lead.email) {
+      console.warn('⚠️ Prospecto no cuenta con email válido.');
+      return { success: false, reason: 'no_email' };
+    }
+
+    const fullName = `${lead.first_name || lead.nombre || 'Estimado(a)'} ${lead.last_name || lead.apellidos || ''}`.trim();
+    const company = lead.empresa || lead.company_name || 'tu empresa';
+    const emailSubject = `Actualización sobre tu Solicitud de Evaluación Fusion Rescue™ - FABRIC Consulting`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background-color: #07192F; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: 0 auto;">
+        <div style="border-bottom: 2px solid #C9A96E; padding-bottom: 16px; margin-bottom: 24px; text-align: center;">
+          <span style="font-size: 11px; font-weight: bold; color: #C9A96E; letter-spacing: 2px; text-transform: uppercase; font-family: monospace;">
+            FABRIC CONSULTING · ACTUALIZACIÓN DE EVALUACIÓN
+          </span>
+          <h1 style="color: #ffffff; font-size: 22px; margin: 10px 0 0 0;">
+            Agradecemos tu Solicitud
+          </h1>
+        </div>
+
+        <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6;">
+          Hola <strong>${fullName}</strong>,
+        </p>
+
+        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+          Agradecemos sinceramente el tiempo e interés brindado al completar el diagnóstico técnico <strong>Fusion Rescue™</strong> para <strong>${company}</strong>.
+        </p>
+
+        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+          Tras realizar la revisión detallada de los parámetros de infraestructura e iniciativas tecnológicas capturadas en tu ficha de evaluación, te informamos que en esta ocasión tu perfil no ha sido seleccionado para avanzar a la sesión técnica diagnóstica.
+        </p>
+
+        <div style="background-color: #0E2747; padding: 20px; border-radius: 14px; border: 1px solid #1E3A5F; margin: 24px 0; font-size: 13px; color: #94a3b8; line-height: 1.6;">
+          📌 Guardaremos tu información en nuestros registros corporativos para futuras convocatorias e iniciativas tecnológicas especializadas de FABRIC Consulting.
+        </div>
+
+        <p style="color: #64748b; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #1E3A5F; padding-top: 16px;">
+          FABRIC Consulting · Arquitectura y Rescate de Infraestructura Oracle
+        </p>
+      </div>
+    `;
+
+    let sendRes = await resend.emails.send({
+      from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
+      to: [lead.email],
+      subject: emailSubject,
+      html: htmlContent
+    });
+
+    if (sendRes.error && sendRes.error.name === 'validation_error') {
+      console.warn('⚠️ Resend en modo test: reenviando correo de declinación a saalzarantonio@gmail.com');
+      sendRes = await resend.emails.send({
+        from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
+        to: ['saalzarantonio@gmail.com'],
+        subject: `[PRUEBA] ${emailSubject}`,
+        html: htmlContent
+      });
+    }
+
+    if (sendRes.error) {
+      throw new Error(sendRes.error.message || 'Error al enviar correo de declinación');
+    }
+
+    createLog(`Correo de Declinación enviado a prospecto: ${lead.email}`, 'FusionRescueLead', 'Admin', 'OK', `Lead ID: ${lead._id}`);
+    return { success: true, resendId: sendRes.data?.id };
+  } catch (err) {
+    console.error('Error enviando correo de declinación:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+app.patch(['/api/fusion-rescue/submissions/:id/decline', '/api/rescue-assessment/:id/decline'], async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const { email } = req.body;
+
+    const queryOr = [];
+    if (mongoose.Types.ObjectId.isValid(targetId)) queryOr.push({ _id: targetId });
+    if (targetId) queryOr.push({ session_id: targetId });
+    if (email) queryOr.push({ email: email });
+
+    const updateObj = {
+      status: 'Declinado',
+      estatus: 'Declinado',
+      declined_at: new Date()
+    };
+
+    if (queryOr.length > 0) {
+      await FusionRescueLead.updateMany({ $or: queryOr }, { $set: updateObj });
+    }
+
+    let updated = await FusionRescueLead.findOne({ $or: queryOr }).sort({ updatedAt: -1, _id: -1 });
+    if (!updated && targetId) {
+      updated = await FusionRescueLead.findById(targetId).catch(() => null);
+    }
+
+    let emailResult = null;
+    if (updated && updated.email) {
+      emailResult = await sendDeclineEmailToLead(updated);
+    }
+
+    res.json({ success: true, data: updated, emailResult });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Helper Function to Send Meeting Cancellation Email to Lead via Resend API
+async function sendCancellationEmailToLead(lead, dia, slot) {
+  try {
+    if (!resend) {
+      console.warn('⚠️ RESEND_API_KEY no configurada. Omite envío de correo de cancelación.');
+      return { success: false, reason: 'resend_not_configured' };
+    }
+    if (!lead || !lead.email) {
+      console.warn('⚠️ Prospecto no cuenta con email válido.');
+      return { success: false, reason: 'no_email' };
+    }
+
+    const fullName = `${lead.first_name || lead.nombre || 'Estimado(a)'} ${lead.last_name || lead.apellidos || ''}`.trim();
+    const company = lead.empresa || lead.company_name || 'tu empresa';
+    const formattedDate = dia || lead.meeting_date || 'Fecha programada';
+    const formattedTime = slot || lead.meeting_time ? `${slot || lead.meeting_time} hrs` : '';
+    const emailSubject = `Cancelación de Reunión Técnica FABRIC: ${formattedDate}`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background-color: #07192F; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: 0 auto;">
+        <div style="border-bottom: 2px solid #ef4444; padding-bottom: 16px; margin-bottom: 24px; text-align: center;">
+          <span style="font-size: 11px; font-weight: bold; color: #f87171; letter-spacing: 2px; text-transform: uppercase; font-family: monospace;">
+            FABRIC CONSULTING · CANCELACIÓN DE CITA
+          </span>
+          <h1 style="color: #ffffff; font-size: 22px; margin: 10px 0 0 0;">
+            ❌ Reunión Cancelada
+          </h1>
+        </div>
+
+        <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6;">
+          Hola <strong>${fullName}</strong>,
+        </p>
+
+        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+          Te informamos que tu reunión técnica de diagnóstico <strong>Fusion Rescue™</strong> para <strong>${company}</strong> que estaba agendada para el <strong>${formattedDate} ${formattedTime}</strong> ha sido <strong>cancelada</strong>.
+        </p>
+
+        <div style="background-color: #0E2747; padding: 20px; border-radius: 14px; border: 1px solid #1E3A5F; margin: 24px 0; font-size: 13px; color: #94a3b8; line-height: 1.6;">
+          📌 Si necesitas agendar un nuevo espacio en la agenda de nuestros especialistas, puedes contactarnos respondiendo directamente a este correo.
+        </div>
+
+        <p style="color: #64748b; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #1E3A5F; padding-top: 16px;">
+          FABRIC Consulting · Arquitectura y Rescate de Infraestructura Oracle
+        </p>
+      </div>
+    `;
+
+    let sendRes = await resend.emails.send({
+      from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
+      to: [lead.email],
+      subject: emailSubject,
+      html: htmlContent
+    });
+
+    if (sendRes.error && sendRes.error.name === 'validation_error') {
+      console.warn('⚠️ Resend en modo test: reenviando correo de cancelación a saalzarantonio@gmail.com');
+      sendRes = await resend.emails.send({
+        from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
+        to: ['saalzarantonio@gmail.com'],
+        subject: `[PRUEBA] ${emailSubject}`,
+        html: htmlContent
+      });
+    }
+
+    if (sendRes.error) {
+      throw new Error(sendRes.error.message || 'Error al enviar correo de cancelación');
+    }
+
+    createLog(`Correo de Cancelación enviado a prospecto: ${lead.email}`, 'FusionRescueLead', 'Admin', 'OK', `Lead ID: ${lead._id}`);
+    return { success: true, resendId: sendRes.data?.id };
+  } catch (err) {
+    console.error('Error enviando correo de cancelación:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+app.patch(['/api/office-hours/admin/:id/cancel', '/api/fusion-rescue/submissions/:id/cancel'], async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const { email, dia, slot } = req.body;
+
+    const queryOr = [];
+    if (mongoose.Types.ObjectId.isValid(targetId)) queryOr.push({ _id: targetId });
+    if (targetId) queryOr.push({ session_id: targetId });
+    if (email) queryOr.push({ email: email });
+
+    const updateObj = {
+      status: 'cancelado',
+      estatus: 'Cancelado',
+      cancelled_at: new Date()
+    };
+
+    if (queryOr.length > 0) {
+      await FusionRescueLead.updateMany({ $or: queryOr }, { $set: updateObj });
+    }
+
+    let updated = await FusionRescueLead.findOne({ $or: queryOr }).sort({ updatedAt: -1, _id: -1 });
+    if (!updated && targetId) {
+      updated = await FusionRescueLead.findById(targetId).catch(() => null);
+    }
+
+    const leadToNotify = updated || { email, nombre: req.body.nombre, empresa: req.body.empresa };
+    let emailResult = null;
+    if (leadToNotify && leadToNotify.email) {
+      emailResult = await sendCancellationEmailToLead(leadToNotify, dia, slot);
+    }
+
+    res.json({ success: true, data: updated, emailResult });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 const handleStatusUpdate = async (req, res) => {
   try {
     const { status, meeting_date, meeting_time, meeting_link, roomId, pinAcceso, codigoReunion, send_meeting_email, email, nombre, empresa, is_reschedule } = req.body;
@@ -2158,7 +2385,7 @@ app.post(['/api/fusion-rescue/track', '/api/rescue-assessment/track'], async (re
   }
 });
 
-// Campaign Stats Aggregation (UTM Traffic & Social Networks Breakdown)
+// Campaign Stats Aggregation (UTM Traffic & Social Networks Breakdown with Real Timestamps)
 app.get(['/api/fusion-rescue/campaign-stats', '/api/rescue-assessment/campaign-stats'], async (req, res) => {
   try {
     const analyticsVisits = await FusionRescueAnalytics.find({ event_type: 'landing_visit' });
@@ -2166,7 +2393,57 @@ app.get(['/api/fusion-rescue/campaign-stats', '/api/rescue-assessment/campaign-s
 
     const campaignMap = {};
 
-    // 1. Group landing visits by content_id or utm_source
+    const createDefaultWeekdays = () => [
+      { dayName: 'Lunes', visitas: 0, leads: 0 },
+      { dayName: 'Martes', visitas: 0, leads: 0 },
+      { dayName: 'Miércoles', visitas: 0, leads: 0 },
+      { dayName: 'Jueves', visitas: 0, leads: 0 },
+      { dayName: 'Viernes', visitas: 0, leads: 0 }
+    ];
+
+    const createDefaultHourly = () => [
+      { dayName: '08:00', dateStr: '8 AM - 11 AM', visitas: 0, leads: 0 },
+      { dayName: '11:00', dateStr: '11 AM - 2 PM', visitas: 0, leads: 0 },
+      { dayName: '14:00', dateStr: '2 PM - 5 PM', visitas: 0, leads: 0 },
+      { dayName: '17:00', dateStr: '5 PM - 8 PM', visitas: 0, leads: 0 },
+      { dayName: '20:00', dateStr: '8 PM - 11 PM', visitas: 0, leads: 0 }
+    ];
+
+    const getWeekdayIndex = (dateObj) => {
+      const d = new Date(dateObj);
+      const day = d.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+      if (day === 1) return 0; // Lunes
+      if (day === 2) return 1; // Martes
+      if (day === 3) return 2; // Miércoles
+      if (day === 4) return 3; // Jueves
+      if (day === 5) return 4; // Viernes
+      return -1;
+    };
+
+    const getHourlyIndex = (dateObj) => {
+      try {
+        const d = new Date(dateObj);
+        const hourStr = d.toLocaleTimeString('en-US', { hour: '2-digit', hour12: false, timeZone: 'America/Mexico_City' });
+        const hour = parseInt(hourStr, 10);
+        if (!isNaN(hour)) {
+          if (hour >= 7 && hour < 11) return 0;  // 08:00 (8 AM - 11 AM)
+          if (hour >= 11 && hour < 14) return 1; // 11:00 (11 AM - 2 PM)
+          if (hour >= 14 && hour < 17) return 2; // 14:00 (2 PM - 5 PM)
+          if (hour >= 17 && hour < 20) return 3; // 17:00 (5 PM - 8 PM)
+          return 4;                              // 20:00 (8 PM - 11 PM)
+        }
+      } catch (e) {}
+
+      const d = new Date(dateObj);
+      const hour = d.getHours();
+      if (hour >= 7 && hour < 11) return 0;
+      if (hour >= 11 && hour < 14) return 1;
+      if (hour >= 14 && hour < 17) return 2;
+      if (hour >= 17 && hour < 20) return 3;
+      return 4;
+    };
+
+    // 1. Group landing visits by content_id or utm_source with real timestamps
     analyticsVisits.forEach(v => {
       const cid = v.content_id || v.utm_content || (v.utm_source ? `${v.utm_source.toUpperCase()}-GENERAL` : 'DIRECT-VISIT');
       const source = v.utm_source || 'direct';
@@ -2182,13 +2459,22 @@ app.get(['/api/fusion-rescue/campaign-stats', '/api/rescue-assessment/campaign-s
           visitas: 0,
           leads_completados: 0,
           total_score: 0,
-          revisiones_generadas: 0
+          revisiones_generadas: 0,
+          weekdays_real: createDefaultWeekdays(),
+          hourly_real: createDefaultHourly()
         };
       }
       campaignMap[cid].visitas += 1;
+
+      const vDate = v.createdAt || new Date();
+      const wd = getWeekdayIndex(vDate);
+      if (wd >= 0) campaignMap[cid].weekdays_real[wd].visitas += 1;
+
+      const hr = getHourlyIndex(vDate);
+      if (hr >= 0) campaignMap[cid].hourly_real[hr].visitas += 1;
     });
 
-    // 2. Group leads & scores by content_id or utm_source
+    // 2. Group leads & scores by content_id or utm_source with real timestamps
     leads.forEach(lead => {
       const cid = lead.content_id || lead.utm_content || (lead.utm_source ? `${lead.utm_source.toUpperCase()}-GENERAL` : 'DIRECT-VISIT');
       const source = lead.utm_source || 'direct';
@@ -2206,7 +2492,9 @@ app.get(['/api/fusion-rescue/campaign-stats', '/api/rescue-assessment/campaign-s
           visitas: 1,
           leads_completados: 0,
           total_score: 0,
-          revisiones_generadas: 0
+          revisiones_generadas: 0,
+          weekdays_real: createDefaultWeekdays(),
+          hourly_real: createDefaultHourly()
         };
       }
 
@@ -2217,25 +2505,46 @@ app.get(['/api/fusion-rescue/campaign-stats', '/api/rescue-assessment/campaign-s
       if (campaignMap[cid].visitas < campaignMap[cid].leads_completados) {
         campaignMap[cid].visitas = campaignMap[cid].leads_completados;
       }
+
+      const lDate = lead.createdAt || lead.assessment_date || new Date();
+      const wd = getWeekdayIndex(lDate);
+      if (wd >= 0) campaignMap[cid].weekdays_real[wd].leads += 1;
+
+      const hr = getHourlyIndex(lDate);
+      if (hr >= 0) campaignMap[cid].hourly_real[hr].leads += 1;
     });
 
-    const result = Object.values(campaignMap).map((c) => {
-      const avgScore = c.leads_completados > 0 ? Math.round(c.total_score / c.leads_completados) : 0;
-      const convRate = c.visitas > 0 ? ((c.leads_completados / c.visitas) * 100).toFixed(1) + '%' : '0.0%';
-      return {
-        content_id: c.content_id,
-        utm_source: c.utm_source,
-        utm_medium: c.utm_medium,
-        utm_campaign: c.utm_campaign,
-        visitas: c.visitas,
-        leads_completados: c.leads_completados,
-        score_promedio: avgScore,
-        revisiones_generadas: c.revisiones_generadas,
-        conversion_rate: convRate
-      };
-    });
+    const isNA = (str) => {
+      if (!str) return false;
+      const s = String(str).trim().toLowerCase();
+      return s === 'n/a' || s === 'na' || s === 'none' || s === '(none)';
+    };
 
-    res.json({ success: true, data: result });
+    const result = Object.values(campaignMap)
+      .filter(c => !isNA(c.content_id) && !isNA(c.utm_source) && !isNA(c.utm_campaign))
+      .map((c) => {
+        const avgScore = c.leads_completados > 0 ? Math.round(c.total_score / c.leads_completados) : 0;
+        const convRate = c.visitas > 0 ? ((c.leads_completados / c.visitas) * 100).toFixed(1) + '%' : '0.0%';
+        return {
+          content_id: c.content_id,
+          utm_source: c.utm_source,
+          utm_medium: c.utm_medium,
+          utm_campaign: c.utm_campaign,
+          visitas: c.visitas,
+          leads_completados: c.leads_completados,
+          score_promedio: avgScore,
+          revisiones_generadas: c.revisiones_generadas,
+          conversion_rate: convRate,
+          weekdays_real: c.weekdays_real,
+          hourly_real: c.hourly_real
+        };
+      });
+
+    res.json({
+      success: true,
+      data: result,
+      total_landing_visits: analyticsVisits.length
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

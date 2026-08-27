@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { UsersRound, Search, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Building, User, Calendar, ArrowRight, AlertCircle, Clock } from 'lucide-react';
+import { UsersRound, Search, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Building, User, Calendar, ArrowRight, AlertCircle, Clock, XCircle } from 'lucide-react';
 import { useAuthApi } from '../../config/api';
 
 interface LeadItem {
@@ -19,9 +19,11 @@ interface LeadItem {
 
 const STATUS_COLORS: Record<string, string> = {
   Evaluación: '#C9A96E',
+  Agendado: '#38bdf8',
   Aprobado: '#4ade80',
   'En Revisión': '#60a5fa',
   Rechazado: '#B85450',
+  Declinado: '#f43f5e',
 };
 
 const TIME_SLOTS = [
@@ -128,6 +130,29 @@ export default function AdminLeads() {
       if (selected?._id === id) setSelected(null);
     } finally {
       setSaving(false);
+    }
+  };
+  const [declining, setDeclining] = useState(false);
+
+  const handleDeclineProspect = async (lead: LeadItem) => {
+    if (!window.confirm(`¿Confirmas que deseas declinar a ${lead.nombre} (${lead.empresa})?\n\nSe le enviará un correo notificándole que su solicitud no fue seleccionada.`)) {
+      return;
+    }
+
+    setDeclining(true);
+    try {
+      await adminApi.patch(`/fusion-rescue/submissions/${lead._id}/decline`, { email: lead.email });
+      alert(`Prospecto declinado exitosamente. Se ha enviado la notificación por correo a ${lead.email}.`);
+
+      setLeads(prev => prev.map(l => l._id === lead._id ? { ...l, estatus: 'Declinado' } : l));
+      if (selected?._id === lead._id) {
+        setSelected(prev => prev ? { ...prev, estatus: 'Declinado' } : null);
+      }
+    } catch (err: any) {
+      console.error('Error declinando prospecto:', err);
+      alert('Error al declinar prospecto: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDeclining(false);
     }
   };
 
@@ -280,7 +305,7 @@ export default function AdminLeads() {
       await fetchOfficeHoursBookings();
 
       setScheduleSuccess(`¡Tu cita con ${selected.nombre} ha quedado registrada! No olvides ingresar al panel de administración, buscar el apartado de "Fechas y Citas Apartadas por Clientes" y realizar la aprobación definitiva para que se envíe el enlace de la reunión.`);
-      handleStatusChange(selected._id, 'Aprobado');
+      handleStatusChange(selected._id, 'Agendado');
       setTimeout(() => {
         setShowScheduleModal(false);
         setScheduleSuccess(null);
@@ -512,23 +537,20 @@ export default function AdminLeads() {
 
                         <td className="py-4 px-5 text-right" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
-                            {statusStr !== 'Aprobado' && (
-                              <button
-                                onClick={() => handleStatusChange(l._id, 'Aprobado')}
-                                disabled={saving}
-                                className="px-2.5 py-1 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 font-mono text-[9px] font-bold uppercase transition"
-                                title="Aprobar prospecto"
-                              >
-                                Aprobar
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setSelected(l)}
+                              className="px-2.5 py-1 rounded border border-[#1E3A5F] bg-[#123254] text-[#C9A96E] hover:text-white font-mono text-[9px] font-bold uppercase transition"
+                              title="Ver ficha de prospecto"
+                            >
+                              Ver Ficha
+                            </button>
                             <button
                               onClick={() => handleDelete(l._id)}
                               disabled={saving}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10"
+                              className="p-1.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition cursor-pointer"
                               title="Eliminar prospecto"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         </td>
@@ -630,20 +652,21 @@ export default function AdminLeads() {
               )}
             </div>
 
-            <div className="pt-2 flex items-center gap-3">
-              {(selected.estatus || '').toLowerCase() !== 'aprobado' && (
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              {(selected.estatus || '').toLowerCase() !== 'declinado' && (
                 <button
-                  onClick={() => handleStatusChange(selected._id, 'Aprobado')}
-                  disabled={saving}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                  onClick={() => handleDeclineProspect(selected)}
+                  className="flex-1 py-3 bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-rose-300 hover:text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                 >
-                  <CheckCircle2 size={16} /> Aprobar Prospecto
+                  <XCircle size={16} />
+                  <span>{declining ? 'Enviando correo...' : 'Declinar Prospecto'}</span>
                 </button>
               )}
+
               <button
                 onClick={() => handleDelete(selected._id)}
-                disabled={saving}
-                className="px-4 py-3 border border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                disabled={saving || declining}
+                className="px-4 py-3 border border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Trash2 size={15} /> Eliminar
               </button>

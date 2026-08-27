@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, RefreshCw, Trash2, Eye, Target, Check, Minus, Filter, ArrowUpRight, AlertTriangle, ChevronRight, X, FileText, Printer, Download, Mail, Calendar, XCircle, Clock, Link, Send, RotateCcw } from 'lucide-react';
+import { Search, RefreshCw, Trash2, Eye, Target, Check, CheckCircle2, Minus, Filter, ArrowUpRight, AlertTriangle, ChevronRight, X, FileText, Printer, Download, Mail, Calendar, XCircle, Clock, Link, Send, RotateCcw } from 'lucide-react';
 import { useAuthApi } from '../../../config/api';
 import { QUESTIONS, ANSWER_OPTIONS, calculateAssessmentResult } from '../../../utils/fusionRescueEngine';
 
@@ -78,6 +78,22 @@ export default function AdminRescueLeads() {
 
   const [showTrashModal, setShowTrashModal] = useState(false);
 
+  const [toast, setToast] = useState<{ title: string; message: string; type: 'emerald' | 'amber' | 'rose' | 'blue' } | null>(null);
+
+  const showToast = (title: string, message: string, type: 'emerald' | 'amber' | 'rose' | 'blue' = 'rose') => {
+    setToast({ title, message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    type: 'danger' | 'warning';
+    onConfirm: () => void;
+  } | null>(null);
+
   const closeAllModals = () => {
     setSelectedSubmission(null);
     setPdfReportSubmission(null);
@@ -86,19 +102,19 @@ export default function AdminRescueLeads() {
 
   const handleSendResumeEmail = async (item: SubmissionItem) => {
     if (!item.email) {
-      alert('Este prospecto no cuenta con un correo electrónico registrado.');
+      showToast('Sin Correo', 'Este prospecto no cuenta con un correo electrónico registrado.', 'amber');
       return;
     }
     setSendingEmailId(item._id);
     try {
       const res = await adminApi.post('/fusion-rescue/send-resume-email', { leadId: item._id });
       if (res.data && res.data.success) {
-        alert(`¡Correo enviado con éxito a ${item.email}!\n\nEnlace personalizado generado con su ID:\n${res.data.resumeUrl}`);
+        showToast('¡Correo Enviado Exitosamente!', `Se envió el enlace de continuación a ${item.email}.`, 'blue');
       } else {
-        alert(`Error al enviar correo: ${res.data?.error || 'Desconocido'}`);
+        showToast('Error de Envío', res.data?.error || 'Desconocido', 'rose');
       }
     } catch (err: any) {
-      alert(`Error enviando correo: ${err.response?.data?.error || err.message}`);
+      showToast('Error de Envío', err.response?.data?.error || err.message, 'rose');
     } finally {
       setSendingEmailId(null);
     }
@@ -269,9 +285,19 @@ export default function AdminRescueLeads() {
     setScheduleModalSubmission(submission);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    setMeetingDate(tomorrow.toISOString().split('T')[0]);
-    setMeetingTime('10:00');
-    setMeetingLink(submission.meeting_link || '');
+    setMeetingDate(submission.meeting_date || tomorrow.toISOString().split('T')[0]);
+    setMeetingTime(submission.meeting_time || '10:00');
+
+    const generateAlphaRoomId = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = '';
+      for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      return `MEET-${code}`;
+    };
+
+    const roomId = submission.roomId || generateAlphaRoomId();
+    const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
+    setMeetingLink(guestLink);
   };
 
   const handleConfirmScheduleMeeting = async (e: React.FormEvent) => {
@@ -353,52 +379,66 @@ export default function AdminRescueLeads() {
       }
 
       const actionWord = isReschedule ? 'Reagendada' : 'Agendada';
-      alert(`⚡ ¡Reunión ${actionWord} y Notificada Exitosamente por Correo!\n\nProspecto: ${scheduleModalSubmission.nombre}\nEmail: ${scheduleModalSubmission.email}\n${isReschedule ? 'Nueva Fecha' : 'Fecha'}: ${meetingDate} a las ${meetingTime} hrs\nEnlace: ${meetingLink || 'No ingresado'}`);
+      showToast(`¡Reunión ${actionWord}!`, `Se agendó la sesión para ${scheduleModalSubmission.nombre} (${meetingDate} a las ${meetingTime} hrs) y se envió el correo con PIN.`, 'emerald');
       setScheduleModalSubmission(null);
     } catch (err: any) {
-      alert('Error al agendar reunión: ' + (err.response?.data?.error || err.message));
+      showToast('Error de Agendamiento', err.response?.data?.error || err.message, 'rose');
     } finally {
       setIsSavingMeeting(false);
     }
   };
 
-  const handleDeclineLead = async (submission: SubmissionItem) => {
-    const confirmMsg = `¿Estás seguro de declinar la solicitud de ${submission.nombre} (${submission.empresa})?`;
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      await adminApi.patch(`/fusion-rescue/submissions/${submission._id}/status`, {
-        status: 'Declinado',
-        email: submission.email,
-        send_meeting_email: false
-      });
-      setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: 'Declinado' } : i));
-      if (selectedSubmission?._id === submission._id) {
-        setSelectedSubmission(prev => prev ? { ...prev, status: 'Declinado' } : null);
+  const handleDeclineLead = (submission: SubmissionItem) => {
+    setConfirmModal({
+      isOpen: true,
+      title: '🚫 Declinar Solicitud',
+      message: `¿Estás seguro de declinar la solicitud de ${submission.nombre} (${submission.empresa})? Se marcará como declinado.`,
+      confirmText: 'Sí, Declinar Prospecto',
+      type: 'warning',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await adminApi.patch(`/fusion-rescue/submissions/${submission._id}/status`, {
+            status: 'Declinado',
+            email: submission.email,
+            send_meeting_email: false
+          });
+          setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: 'Declinado' } : i));
+          if (selectedSubmission?._id === submission._id) {
+            setSelectedSubmission(prev => prev ? { ...prev, status: 'Declinado' } : null);
+          }
+          showToast('Prospecto Declinado', `El prospecto ${submission.nombre} (${submission.empresa}) ha sido marcado como Declinado.`, 'amber');
+        } catch (err: any) {
+          showToast('Error al Declinar', err.response?.data?.error || err.message, 'rose');
+        }
       }
-      alert(`El prospecto ${submission.nombre} ha sido marcado como Declinado.`);
-    } catch (err: any) {
-      alert('Error al declinar prospecto: ' + (err.response?.data?.error || err.message));
-    }
+    });
   };
 
-  const handleSoftDelete = async (submission: SubmissionItem) => {
-    const confirmMsg = `¿Estás seguro de mover a ${submission.nombre} (${submission.empresa}) al basurero? Podrás recuperarlo en cualquier momento desde el botón Basurero.`;
-    if (!window.confirm(confirmMsg)) return;
-
-    setSaving(true);
-    try {
-      await adminApi.delete(`/fusion-rescue/submissions/${submission._id}`, { data: { email: submission.email } });
-      setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: 'trash' } : i));
-      if (selectedSubmission?._id === submission._id) {
-        setSelectedSubmission(null);
+  const handleSoftDelete = (submission: SubmissionItem) => {
+    setConfirmModal({
+      isOpen: true,
+      title: '🗑️ Mover al Basurero',
+      message: `¿Estás seguro de mover a ${submission.nombre} (${submission.empresa}) al basurero? Podrás recuperarlo en cualquier momento desde el botón Basurero.`,
+      confirmText: 'Mover al Basurero',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setSaving(true);
+        try {
+          await adminApi.delete(`/fusion-rescue/submissions/${submission._id}`, { data: { email: submission.email } });
+          setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: 'trash' } : i));
+          if (selectedSubmission?._id === submission._id) {
+            setSelectedSubmission(null);
+          }
+          showToast('Movido al Basurero 🗑️', `El prospecto ${submission.nombre} (${submission.empresa}) ha sido movido a la Papelera.`, 'rose');
+        } catch (err: any) {
+          showToast('Error al Eliminar', err.response?.data?.error || err.message, 'rose');
+        } finally {
+          setSaving(false);
+        }
       }
-      alert(`El prospecto ${submission.nombre} ha sido movido al Basurero.`);
-    } catch (err: any) {
-      alert('Error al mover a basurero: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   const handleRestoreFromTrash = async (submission: SubmissionItem) => {
@@ -408,23 +448,30 @@ export default function AdminRescueLeads() {
       const restoredStatus = updatedData?.status || ((submission.questions_answered_count !== undefined && submission.questions_answered_count >= 25) ? 'Completado' : 'Incompleto');
       
       setItems(prev => prev.map(i => i._id === submission._id ? { ...i, status: restoredStatus } : i));
-      alert(`⚡ ¡Prospecto ${submission.nombre} recuperado exitosamente del basurero!`);
+      showToast('⚡ Prospecto Restaurado', `El prospecto ${submission.nombre} (${submission.empresa}) fue recuperado exitosamente del basurero.`, 'emerald');
     } catch (err: any) {
-      alert('Error al restaurar prospecto: ' + (err.response?.data?.error || err.message));
+      showToast('Error al Restaurar', err.response?.data?.error || err.message, 'rose');
     }
   };
 
-  const handlePermanentDelete = async (submission: SubmissionItem) => {
-    const confirmMsg = `⚠️ ATENCIÓN: ¿Deseas eliminar DEFINITIVAMENTE a ${submission.nombre} de la base de datos MongoDB Atlas? Esta acción NO se puede deshacer.`;
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      await adminApi.delete(`/fusion-rescue/submissions/${submission._id}/permanent`, { data: { email: submission.email } });
-      setItems(prev => prev.filter(i => i._id !== submission._id));
-      alert(`El prospecto ${submission.nombre} ha sido eliminado definitivamente.`);
-    } catch (err: any) {
-      alert('Error al eliminar definitivamente: ' + (err.response?.data?.error || err.message));
-    }
+  const handlePermanentDelete = (submission: SubmissionItem) => {
+    setConfirmModal({
+      isOpen: true,
+      title: '⚠️ Eliminar Definitivamente',
+      message: `ATENCIÓN: ¿Deseas eliminar DEFINITIVAMENTE a ${submission.nombre} (${submission.empresa}) de la base de datos MongoDB Atlas? Esta acción NO se puede deshacer.`,
+      confirmText: 'Sí, Eliminar Definitivamente',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await adminApi.delete(`/fusion-rescue/submissions/${submission._id}/permanent`, { data: { email: submission.email } });
+          setItems(prev => prev.filter(i => i._id !== submission._id));
+          showToast('❌ Eliminación Permanente', `El prospecto ${submission.nombre} fue eliminado definitivamente de la base de datos.`, 'rose');
+        } catch (err: any) {
+          showToast('Error al Eliminar', err.response?.data?.error || err.message, 'rose');
+        }
+      }
+    });
   };
 
   const activeItems = items.filter(i => i.status !== 'trash' && i.status !== 'Basurero');
@@ -1618,21 +1665,24 @@ export default function AdminRescueLeads() {
                 </div>
               </div>
 
-              {/* Input Enlace */}
-              <div>
-                <label className="block text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Link size={13} />
-                  Enlace de la Reunión (Teams / Zoom / Meet)
+              {/* Input Enlace Generado (Bloqueado y Protegido - No Modificable) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Link size={13} />
+                    Enlace Generado de la Reunión:
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">🔒 Protegido</span>
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://meet.google.com/xyz-abc-123 o https://teams.microsoft.com/..."
-                  value={meetingLink}
-                  onChange={(e) => setMeetingLink(e.target.value)}
-                  className="w-full bg-[#07192F] border border-[#1E3A5F] focus:border-[#C9A96E] text-white text-xs font-mono rounded-xl p-3 outline-none transition placeholder:text-slate-500"
+                  type="text"
+                  readOnly
+                  disabled
+                  value={meetingLink || `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${scheduleModalSubmission?.roomId || 'MEET-8821'}`}
+                  className="w-full bg-[#030712]/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold rounded-xl p-3 outline-none opacity-90 cursor-not-allowed select-all tracking-wide shadow-inner"
                 />
-                <p className="text-[11px] text-slate-400 mt-1 font-mono">
-                  Pega aquí el enlace donde se llevará a cabo la videollamada de 30 minutos.
+                <p className="text-[11px] text-slate-400 font-mono">
+                  🔒 Enlace único generado automáticamente para el cliente con ID de sala y contraseña de acceso segura.
                 </p>
               </div>
 
@@ -1738,6 +1788,104 @@ export default function AdminRescueLeads() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Alertas Notificación Flotante Personalizada FABRIC */}
+      {toast && createPortal(
+        <div className="fixed bottom-6 right-6 z-[999999] animate-fadeIn">
+          <div className={`flex items-start gap-3.5 p-4 rounded-2xl border shadow-2xl backdrop-blur-md max-w-sm ${
+            toast.type === 'emerald'
+              ? 'bg-[#07192F]/95 border-emerald-500/60 text-emerald-300 shadow-emerald-950/80 ring-1 ring-emerald-500/30'
+              : toast.type === 'rose'
+              ? 'bg-[#07192F]/95 border-rose-500/60 text-rose-300 shadow-rose-950/80 ring-1 ring-rose-500/30'
+              : toast.type === 'blue'
+              ? 'bg-[#07192F]/95 border-sky-500/60 text-sky-300 shadow-sky-950/80 ring-1 ring-sky-500/30'
+              : 'bg-[#07192F]/95 border-[#C9A96E]/60 text-amber-200 shadow-amber-950/80 ring-1 ring-[#C9A96E]/30'
+          }`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+              toast.type === 'emerald'
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                : toast.type === 'rose'
+                ? 'bg-rose-500/20 border-rose-500/40 text-rose-400'
+                : toast.type === 'blue'
+                ? 'bg-sky-500/20 border-sky-500/40 text-sky-400'
+                : 'bg-[#C9A96E]/20 border-[#C9A96E]/40 text-[#C9A96E]'
+            }`}>
+              {toast.type === 'emerald' ? <CheckCircle2 size={20} /> : toast.type === 'rose' ? <Trash2 size={20} /> : toast.type === 'blue' ? <Mail size={20} /> : <AlertTriangle size={20} />}
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-0.5 font-mono">
+              <div className="text-xs font-bold text-white uppercase tracking-wider">{toast.title}</div>
+              <div className="text-[11px] text-slate-300 leading-snug">{toast.message}</div>
+            </div>
+
+            <button
+              onClick={() => setToast(null)}
+              className="text-slate-400 hover:text-white p-1 transition cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal de Confirmación Personalizado FABRIC */}
+      {confirmModal && createPortal(
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999999] flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setConfirmModal(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-md bg-[#0E2747] border border-rose-500/50 rounded-3xl shadow-2xl p-6 sm:p-7 space-y-5 relative overflow-hidden"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+                confirmModal.type === 'danger'
+                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-400'
+                  : 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+              }`}>
+                {confirmModal.type === 'danger' ? <Trash2 size={24} /> : <AlertTriangle size={24} />}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold font-serif text-white tracking-tight">
+                  {confirmModal.title}
+                </h3>
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block mt-0.5">
+                  Confirmación requerida
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-200 font-mono leading-relaxed bg-[#07192F] p-4 rounded-2xl border border-[#1E3A5F]">
+              {confirmModal.message}
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#1E3A5F]">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2.5 border border-[#1E3A5F] bg-[#07192F] hover:bg-[#123254] text-slate-300 font-mono text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className={`px-5 py-2.5 font-mono text-xs font-bold rounded-xl transition cursor-pointer shadow-lg flex items-center gap-2 ${
+                  confirmModal.type === 'danger'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-950/50'
+                    : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-950/50'
+                }`}
+              >
+                <Trash2 size={15} />
+                <span>{confirmModal.confirmText}</span>
+              </button>
             </div>
           </div>
         </div>,
