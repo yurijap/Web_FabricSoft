@@ -90,6 +90,8 @@ const LeadSchema = new mongoose.Schema({
   ejecutivo: { type: String, default: 'Ana' },
   estatus: { type: String, default: 'Evaluación' },
   tipo: { type: String, default: 'evaluacion' },
+  isTrash: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -107,6 +109,9 @@ const OfficeHourSchema = new mongoose.Schema({
   estado: { type: String, default: 'pendiente' },
   fase: { type: Number, default: 1 },
   meetLink: String,
+  codigoReunion: String,
+  pinAcceso: String,
+  roomId: String,
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -202,6 +207,8 @@ const FusionRescueLeadSchema = new mongoose.Schema({
   erp: { type: String, default: 'Oracle Fusion Cloud' },
   fusion_products: String,
   go_live_age: String,
+  monto_facturacion: String,
+  revenue: String,
 
   // Assessment Engine Data
   assessment_type: { type: String, default: 'FUSION_RESCUE_MVP' },
@@ -547,7 +554,8 @@ app.get('/api/auth/login', async (req, res) => {
 // ================= RUTAS API PARA CLIENTES Y EVALUACIONES (LEADS) =================
 app.get(['/api/leads/admin', '/api/leads'], async (req, res) => {
   try {
-    const leads = await Lead.find().sort({ createdAt: -1 });
+    const isTrash = req.query.trash === 'true';
+    const leads = await Lead.find({ isTrash: isTrash ? true : { $ne: true } }).sort({ createdAt: -1 });
     res.json({ success: true, data: leads });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -590,13 +598,43 @@ app.patch(['/api/leads/admin/:id/status', '/api/leads/:id/status'], async (req, 
   }
 });
 
+app.patch(['/api/leads/admin/:id/restore', '/api/leads/:id/restore'], async (req, res) => {
+  try {
+    const restored = await Lead.findByIdAndUpdate(req.params.id, { isTrash: false, deletedAt: null }, { new: true });
+    if (restored) {
+      createLog('Lead restaurado de la papelera', 'Leads', 'Admin', 'OK', `Nombre: ${restored.nombre} (${restored.empresa})`);
+    }
+    res.json({ success: true, data: restored });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete(['/api/leads/admin/trash/empty', '/api/leads/trash/empty'], async (req, res) => {
+  try {
+    await Lead.deleteMany({ isTrash: true });
+    createLog('Papelera de leads vaciada', 'Leads', 'Admin', 'WARN', 'Se eliminaron todos los leads de la papelera');
+    res.json({ success: true, message: 'Papelera vaciada' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.delete(['/api/leads/admin/:id', '/api/leads/:id'], async (req, res) => {
   try {
-    const deleted = await Lead.findByIdAndDelete(req.params.id);
-    if (deleted) {
-      createLog('Lead eliminado', 'Leads', 'Admin', 'WARN', `Nombre: ${deleted.nombre} (${deleted.empresa})`);
+    const permanent = req.query.permanent === 'true';
+    if (permanent) {
+      const deleted = await Lead.findByIdAndDelete(req.params.id);
+      if (deleted) {
+        createLog('Lead eliminado definitivamente', 'Leads', 'Admin', 'WARN', `Nombre: ${deleted.nombre} (${deleted.empresa})`);
+      }
+      return res.json({ success: true, message: 'Lead eliminado definitivamente' });
     }
-    res.json({ success: true, message: 'Lead eliminado' });
+    const updated = await Lead.findByIdAndUpdate(req.params.id, { isTrash: true, deletedAt: new Date() }, { new: true });
+    if (updated) {
+      createLog('Lead movido a la papelera', 'Leads', 'Admin', 'WARN', `Nombre: ${updated.nombre} (${updated.empresa})`);
+    }
+    res.json({ success: true, message: 'Lead movido a la papelera', data: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1054,6 +1092,8 @@ app.get('/api/office-hours/admin', async (req, res) => {
       status: (item.estado || 'pendiente').toLowerCase(),
       meetLink: item.meetLink || '',
       codigoReunion: item.codigoReunion || '',
+      pinAcceso: item.pinAcceso || item.codigoReunion || '',
+      roomId: item.roomId || '',
       isCreatedByAdmin: item.fase === 99 || item.usuario === 'Slot Abierto por Admin',
       createdAt: item.createdAt || new Date().toISOString()
     }));
@@ -1064,10 +1104,146 @@ app.get('/api/office-hours/admin', async (req, res) => {
   }
 });
 
+// Endpoint: Obtener información pública de la sala y del cliente agendado
+app.get('/api/office-hours/room-info', async (req, res) => {
+  try {
+    const { roomId } = req.query;
+    if (!roomId) return res.status(400).json({ success: false, error: 'roomId requerido' });
+
+    const cleanRoom = (roomId || '').toUpperCase().trim();
+
+    let appointment = await FusionRescueLead.findOne({
+      $or: [
+        { roomId: cleanRoom },
+        { codigoReunion: cleanRoom },
+        { meeting_link: { $regex: `/${cleanRoom}$`, $options: 'i' } }
+      ]
+    }).sort({ updatedAt: -1, _id: -1 });
+
+    if (!appointment) {
+      appointment = await OfficeHour.findOne({
+        $or: [
+          { roomId: cleanRoom },
+          { codigoReunion: cleanRoom },
+          { meetLink: { $regex: `/${cleanRoom}$`, $options: 'i' } }
+        ]
+      }).sort({ updatedAt: -1, _id: -1 });
+    }
+
+    if (!appointment) {
+      return res.json({
+        success: false,
+        found: false,
+        error: 'Sala no registrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      found: true,
+      nombre: appointment.nombre || appointment.usuario || 'Cliente Agendado',
+      empresa: appointment.empresa || '',
+      cargo: appointment.cargo || 'Ejecutivo',
+      correo: appointment.email || appointment.correo || '',
+      roomId: appointment.roomId || cleanRoom
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+function getFallbackPinForRoom(doc, cleanRoom) {
+  const str = (doc._id || cleanRoom || 'FABRIC').toString();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  let pin = '';
+  for (let i = 0; i < 6; i++) {
+    const index = Math.abs((hash + i * 37) % chars.length);
+    pin += chars.charAt(index);
+  }
+  return pin;
+}
+
+// Endpoint: Verificar PIN de sala para invitados (Coincidencia Exacta de Sala y PIN)
+app.get('/api/office-hours/verify-pin', async (req, res) => {
+  try {
+    const { roomId, pin } = req.query;
+    if (!roomId) return res.status(400).json({ success: false, error: 'roomId es requerido' });
+
+    const cleanRoom = (roomId || '').toUpperCase().trim();
+    const cleanPin = (pin || '').toUpperCase().trim();
+
+    // 1. Buscar primero en FusionRescueLead (coincidencia exacta por roomId o final de URL)
+    let appointment = await FusionRescueLead.findOne({
+      $or: [
+        { roomId: cleanRoom },
+        { codigoReunion: cleanRoom },
+        { meeting_link: { $regex: `/${cleanRoom}$`, $options: 'i' } }
+      ]
+    }).sort({ updatedAt: -1, _id: -1 });
+
+    // 2. Buscar en OfficeHour si no se encontró en FusionRescueLead
+    if (!appointment) {
+      appointment = await OfficeHour.findOne({
+        $or: [
+          { roomId: cleanRoom },
+          { codigoReunion: cleanRoom },
+          { meetLink: { $regex: `/${cleanRoom}$`, $options: 'i' } }
+        ]
+      }).sort({ updatedAt: -1, _id: -1 });
+    }
+
+    // 3. Si la sala no existe en MongoDB, denegar acceso inmediatamente
+    if (!appointment) {
+      return res.json({
+        success: false,
+        valid: false,
+        error: 'La sala de reunión especificada no existe.'
+      });
+    }
+
+    // 4. Obtener o auto-generar PIN único permanente para salas antiguas
+    let expectedPin = (appointment.pinAcceso || appointment.codigoReunion || '').toString().toUpperCase().trim();
+    if (!expectedPin) {
+      expectedPin = getFallbackPinForRoom(appointment, cleanRoom);
+      if (appointment._id) {
+        await FusionRescueLead.findByIdAndUpdate(appointment._id, { pinAcceso: expectedPin, codigoReunion: expectedPin }).catch(() => null);
+        await OfficeHour.findByIdAndUpdate(appointment._id, { pinAcceso: expectedPin, codigoReunion: expectedPin }).catch(() => null);
+      }
+    }
+
+    const isValid = Boolean(cleanPin && cleanPin === expectedPin);
+
+    if (!isValid) {
+      return res.json({
+        success: false,
+        valid: false,
+        error: 'Contraseña o PIN de acceso incorrecto para esta sala.'
+      });
+    }
+
+    res.json({
+      success: true,
+      valid: true,
+      nombre: appointment.nombre || appointment.usuario || 'Cliente Agendado',
+      empresa: appointment.empresa || '',
+      cargo: appointment.cargo || 'Ejecutivo',
+      roomId: appointment.roomId || cleanRoom,
+      pinAcceso: expectedPin
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Crear nueva reunión o slot (Super Admin / Cliente) en MongoDB
 app.post(['/api/office-hours/admin', '/api/office-hours/book'], async (req, res) => {
   try {
-    const { fecha, dia, hora, slot, usuario, nombre, correo, email, telefono, cargo, empresa, estado, status, isCreatedByAdmin, revenue, iniciativaOracle, iniciativa, plazo } = req.body;
+    const { fecha, dia, hora, slot, usuario, nombre, correo, email, telefono, cargo, empresa, estado, status, isCreatedByAdmin, revenue, iniciativaOracle, iniciativa, plazo, pinAcceso, roomId, codigoReunion } = req.body;
     const bookingDate = fecha || dia || new Date().toISOString().split('T')[0];
     const bookingTime = hora || slot || '09:00 AM';
     const clientName = usuario || nombre || 'Cliente Agendado';
@@ -1086,7 +1262,10 @@ app.post(['/api/office-hours/admin', '/api/office-hours/book'], async (req, res)
       plazo: plazo || '',
       estado: estado || status || 'pendiente',
       fase: isCreatedByAdmin ? 99 : 1,
-      meetLink: `https://meet.google.com/fabric-${Date.now().toString().slice(-4)}`
+      meetLink: req.body.meetLink || '',
+      codigoReunion: codigoReunion || pinAcceso || '',
+      pinAcceso: pinAcceso || codigoReunion || '',
+      roomId: roomId || ''
     });
 
     const saved = await newAppointment.save();
@@ -1103,6 +1282,10 @@ app.post(['/api/office-hours/admin', '/api/office-hours/book'], async (req, res)
       dia: saved.fecha,
       slot: saved.hora,
       status: saved.estado.toLowerCase(),
+      meetLink: saved.meetLink || '',
+      codigoReunion: saved.codigoReunion || '',
+      pinAcceso: saved.pinAcceso || '',
+      roomId: saved.roomId || '',
       isCreatedByAdmin: saved.fase === 99,
       createdAt: saved.createdAt
     };
@@ -1117,11 +1300,13 @@ app.post(['/api/office-hours/admin', '/api/office-hours/book'], async (req, res)
 // Cambiar estado o aprobar reunión en MongoDB
 app.patch(['/api/office-hours/admin/:id/status', '/api/office-hours/admin/:id/approve'], async (req, res) => {
   try {
-    const { status, estado, meetLink, codigoReunion } = req.body;
+    const { status, estado, meetLink, codigoReunion, pinAcceso, roomId } = req.body;
     const newStatus = status || estado || 'pendiente';
     const updateObj = { estado: newStatus };
     if (meetLink) updateObj.meetLink = meetLink;
     if (codigoReunion) updateObj.codigoReunion = codigoReunion;
+    if (pinAcceso) updateObj.pinAcceso = pinAcceso;
+    if (roomId) updateObj.roomId = roomId;
 
     const updated = await OfficeHour.findByIdAndUpdate(
       req.params.id,
@@ -1145,6 +1330,8 @@ app.patch(['/api/office-hours/admin/:id/status', '/api/office-hours/admin/:id/ap
       status: updated.estado.toLowerCase(),
       meetLink: updated.meetLink || '',
       codigoReunion: updated.codigoReunion || '',
+      pinAcceso: updated.pinAcceso || updated.codigoReunion || '',
+      roomId: updated.roomId || '',
       isCreatedByAdmin: updated.fase === 99,
       createdAt: updated.createdAt
     };
@@ -1250,7 +1437,9 @@ app.post(['/api/rescue-assessment/submit', '/rescue-assessment/submit', '/api/re
       industry: data.industry || 'General',
       erp: data.erp || 'Oracle Fusion Cloud',
       fusion_products: data.fusion_products || data.solution || 'Oracle Fusion Cloud ERP',
-      go_live_age: data.go_live_age || '1-2 años',
+      go_live_age: data.go_live_age || data.antiguedad_golive || '1-2 años',
+      monto_facturacion: data.monto_facturacion || data.revenue || '$10M – $50M USD',
+      revenue: data.revenue || data.monto_facturacion || '$10M – $50M USD',
 
       assessment_type: 'FUSION_RESCUE_MVP',
       answers: answersObj,
@@ -1621,7 +1810,7 @@ app.patch(['/api/rescue-assessment/:id/review', '/rescue-assessment/:id/review',
 });
 
 // Helper Function to Send Meeting Invite Email to Lead via Resend API
-async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meetingLink, isReschedule = false) {
+async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meetingLink, isReschedule = false, explicitPin = '') {
   try {
     if (!resend) {
       console.warn('⚠️ RESEND_API_KEY no configurada. Omite envío de correo de reunión.');
@@ -1647,6 +1836,8 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
     const bodyMessage = isReschedule
       ? `Te informamos que tu sesión técnica de revisión del diagnóstico <strong>Fusion Rescue™</strong> para <strong>${company}</strong> ha sido <strong>reagendada exitosamente</strong>. A continuación te compartimos los nuevos detalles de fecha y horario:`
       : `Te confirmamos que tu sesión técnica de revisión del diagnóstico <strong>Fusion Rescue™</strong> para <strong>${company}</strong> ha sido agendada exitosamente con nuestro equipo técnico especializado.`;
+
+    const accessPin = explicitPin || lead.pinAcceso || lead.codigoReunion || 'DRAND9';
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; background-color: #07192F; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: 0 auto;">
@@ -1680,6 +1871,10 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
             <tr style="border-bottom: 1px solid #1E3A5F;">
               <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">👤 Participante:</td>
               <td style="padding: 10px 0; color: #ffffff;">${fullName} (${company})</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1E3A5F;">
+              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">🔑 PIN de Acceso:</td>
+              <td style="padding: 10px 0; font-weight: bold; color: #fbbf24; font-family: monospace; font-size: 16px;">${accessPin}</td>
             </tr>
             ${meetingLink ? `
             <tr>
@@ -1738,26 +1933,31 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
 
 const handleStatusUpdate = async (req, res) => {
   try {
-    const { status, meeting_date, meeting_time, meeting_link, send_meeting_email, email, nombre, empresa, is_reschedule } = req.body;
+    const { status, meeting_date, meeting_time, meeting_link, roomId, pinAcceso, codigoReunion, send_meeting_email, email, nombre, empresa, is_reschedule } = req.body;
     if (!status) {
       return res.status(400).json({ success: false, error: 'El campo status es requerido' });
     }
     const updateObj = { status };
-    if (meeting_date !== undefined) updateObj.meeting_date = meeting_date;
-    if (meeting_time !== undefined) updateObj.meeting_time = meeting_time;
     if (meeting_link !== undefined) updateObj.meeting_link = meeting_link;
+    if (roomId !== undefined) updateObj.roomId = roomId;
+    if (pinAcceso !== undefined || codigoReunion !== undefined) {
+      const freshPin = pinAcceso || codigoReunion;
+      updateObj.pinAcceso = freshPin;
+      updateObj.codigoReunion = freshPin;
+    }
 
-    let updated = null;
     const targetId = req.params.id;
-    if (mongoose.Types.ObjectId.isValid(targetId)) {
-      updated = await FusionRescueLead.findByIdAndUpdate(targetId, updateObj, { new: true });
+    const queryOr = [];
+    if (mongoose.Types.ObjectId.isValid(targetId)) queryOr.push({ _id: targetId });
+    if (targetId) queryOr.push({ session_id: targetId });
+    if (email) queryOr.push({ email: email });
+    if (roomId) queryOr.push({ roomId: roomId });
+
+    if (queryOr.length > 0) {
+      await FusionRescueLead.updateMany({ $or: queryOr }, { $set: updateObj });
     }
-    if (!updated && targetId) {
-      updated = await FusionRescueLead.findOneAndUpdate({ session_id: targetId }, updateObj, { new: true });
-    }
-    if (!updated && email) {
-      updated = await FusionRescueLead.findOneAndUpdate({ email: email }, updateObj, { new: true });
-    }
+
+    let updated = await FusionRescueLead.findOne({ $or: queryOr }).sort({ updatedAt: -1, _id: -1 });
 
     // Detect if this is a reschedule event
     const wasAlreadyScheduled = Boolean(updated && (updated.meeting_email_sent || updated.meeting_date || updated.status === 'Reunión Agendada' || updated.status === 'Reunión Enviada'));
@@ -1772,7 +1972,10 @@ const handleStatusUpdate = async (req, res) => {
         status: status,
         meeting_date: meeting_date || '',
         meeting_time: meeting_time || '',
-        meeting_link: meeting_link || ''
+        meeting_link: meeting_link || '',
+        roomId: roomId || '',
+        pinAcceso: pinAcceso || codigoReunion || '',
+        codigoReunion: codigoReunion || pinAcceso || ''
       };
       if (mongoose.Types.ObjectId.isValid(targetId)) {
         newLeadObj._id = targetId;
@@ -1786,7 +1989,8 @@ const handleStatusUpdate = async (req, res) => {
       const mTime = meeting_time || updated.meeting_time;
       const mLink = meeting_link !== undefined ? meeting_link : updated.meeting_link;
 
-      emailResult = await sendMeetingInviteEmailToLead(updated, mDate, mTime, mLink, isRescheduleEvent);
+      const mPin = pinAcceso || codigoReunion || updated.pinAcceso || updated.codigoReunion;
+      emailResult = await sendMeetingInviteEmailToLead(updated, mDate, mTime, mLink, isRescheduleEvent, mPin);
       if (emailResult && emailResult.success) {
         updated = await FusionRescueLead.findByIdAndUpdate(updated._id, {
           status: 'Reunión Enviada',
@@ -2275,6 +2479,162 @@ app.all(settingsPaths, (req, res) => {
 // Endpoint Health / Ping
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+});
+
+// --- SALA DE VIDEOLLAMADAS Y REUNIONES MULTI-ID EN TIEMPO REAL ---
+let roomsData = new Map();
+
+function getOrCreateRoom(roomId) {
+  const cleanId = (roomId || 'FABRIC-MEET-8821').toUpperCase();
+  if (!roomsData.has(cleanId)) {
+    roomsData.set(cleanId, {
+      peers: new Map(),
+      messages: [
+        {
+          id: '1',
+          sender: 'Sistema FabricSoft',
+          role: 'system',
+          text: `Sala [${cleanId}] compartida en tiempo real activa.`,
+          time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        }
+      ],
+      activityLogs: []
+    });
+  }
+  return roomsData.get(cleanId);
+}
+
+// Limpieza periódica de participantes inactivos por sala (desconectados tras 6s)
+setInterval(() => {
+  const now = Date.now();
+  for (const [roomId, room] of roomsData.entries()) {
+    for (const [peerId, peer] of room.peers.entries()) {
+      if (now - peer.lastPing > 6000) {
+        room.peers.delete(peerId);
+        room.activityLogs.push({
+          id: Date.now().toString(),
+          type: 'leave',
+          name: peer.name,
+          role: peer.role,
+          time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+        });
+      }
+    }
+  }
+}, 2500);
+
+// Endpoint: Sincronización de sala específica por roomId
+app.post('/api/room/sync', (req, res) => {
+  const { roomId, peerId, name, role, isVideoOn, isAudioOn, isScreenSharing, frameData, screenFrameData } = req.body;
+  if (!peerId) return res.status(400).json({ error: 'peerId requerido' });
+
+  const room = getOrCreateRoom(roomId);
+  const existing = room.peers.get(peerId);
+  if (!existing && name) {
+    room.activityLogs.push({
+      id: Date.now().toString(),
+      type: 'join',
+      name,
+      role: role || 'Participante',
+      time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    });
+  }
+
+  room.peers.set(peerId, {
+    peerId,
+    name: name || existing?.name || 'Participante',
+    role: role || existing?.role || 'Invitado',
+    isVideoOn: isVideoOn !== undefined ? isVideoOn : (existing?.isVideoOn ?? true),
+    isAudioOn: isAudioOn !== undefined ? isAudioOn : (existing?.isAudioOn ?? true),
+    isScreenSharing: isScreenSharing !== undefined ? isScreenSharing : (existing?.isScreenSharing ?? false),
+    frameData: frameData || existing?.frameData || null,
+    screenFrameData: screenFrameData || existing?.screenFrameData || null,
+    lastPing: Date.now()
+  });
+
+  return res.json({
+    roomId: (roomId || 'FABRIC-MEET-8821').toUpperCase(),
+    peers: Array.from(room.peers.values()),
+    messages: room.messages,
+    activityLogs: room.activityLogs
+  });
+});
+
+// --- SEÑALIZACIÓN WEBRTC PARA VIDEOLLAMADA NATIVA DIRECTA ---
+let roomSignals = new Map();
+
+app.post('/api/room/signal', (req, res) => {
+  const { roomId, from, to, signal } = req.body;
+  if (!roomId || !from || !signal) return res.status(400).json({ error: 'Faltan datos' });
+
+  const cleanId = (roomId || 'FABRIC-MEET-8821').toUpperCase();
+  if (!roomSignals.has(cleanId)) {
+    roomSignals.set(cleanId, []);
+  }
+
+  const list = roomSignals.get(cleanId);
+  list.push({ from, to: to || 'all', signal, time: Date.now() });
+
+  const now = Date.now();
+  const filtered = list.filter(s => now - s.time < 30000).slice(-150);
+  roomSignals.set(cleanId, filtered);
+
+  return res.json({ success: true });
+});
+
+app.get('/api/room/signal', (req, res) => {
+  const { roomId, peerId } = req.query;
+  if (!roomId || !peerId) return res.json({ signals: [] });
+
+  const cleanId = (roomId || 'FABRIC-MEET-8821').toUpperCase();
+  const list = roomSignals.get(cleanId) || [];
+  
+  const mySignals = list.filter(s => (s.to === peerId || s.to === 'all') && s.from !== peerId);
+  return res.json({ signals: mySignals });
+});
+
+// Endpoint: Enviar mensaje de chat a sala específica
+app.post('/api/room/message', (req, res) => {
+  const { roomId, sender, role, text } = req.body;
+  if (!text) return res.status(400).json({ error: 'Texto requerido' });
+
+  const room = getOrCreateRoom(roomId);
+  const chatItem = {
+    id: Date.now().toString(),
+    sender: sender || 'Usuario',
+    role: role || 'client',
+    text: text.trim(),
+    time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+  };
+
+  room.messages.push(chatItem);
+  return res.json({ success: true, chatItem, messages: room.messages });
+});
+
+// Endpoint: Abandonar sala específica
+app.post('/api/room/leave', (req, res) => {
+  let roomId, peerId;
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    roomId = body.roomId;
+    peerId = body.peerId;
+  } catch {}
+
+  if (roomId && peerId) {
+    const room = getOrCreateRoom(roomId);
+    if (room && room.peers && room.peers.has(peerId)) {
+      const peer = room.peers.get(peerId);
+      room.peers.delete(peerId);
+      room.activityLogs.push({
+        id: Date.now().toString(),
+        type: 'leave',
+        name: peer.name,
+        role: peer.role,
+        time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      });
+    }
+  }
+  return res.json({ success: true });
 });
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {

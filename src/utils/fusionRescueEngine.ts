@@ -264,6 +264,7 @@ export interface EnvironmentData {
   solution: string;
   goLiveAge: string;
   role: string;
+  revenue: string;
 }
 
 export interface ContactData {

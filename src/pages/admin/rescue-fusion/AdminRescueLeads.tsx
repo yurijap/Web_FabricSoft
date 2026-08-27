@@ -24,6 +24,8 @@ interface SubmissionItem {
   empresa: string;
   company_name?: string;
   country?: string;
+  monto_facturacion?: string;
+  revenue?: string;
   escenario?: string;
   health_score?: number;
   totalScore?: number;
@@ -284,16 +286,33 @@ export default function AdminRescueLeads() {
     try {
       const isReschedule = Boolean(
         scheduleModalSubmission.meeting_date || 
-        scheduleModalSubmission.meeting_email_sent || 
-        scheduleModalSubmission.status === 'Reunión Agendada' || 
-        scheduleModalSubmission.status === 'Reunión Enviada'
-      );
+      const generateAlphaPin = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let p = '';
+        for (let i = 0; i < 6; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+        return p;
+      };
+
+      const generateAlphaRoomId = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        return `MEET-${code}`;
+      };
+
+      const roomId = scheduleModalSubmission.roomId || generateAlphaRoomId();
+      // AL AGENDAR O REAGENDAR, SIEMPRE GENERAR UNA CONTRASEÑA FRESCA Y NUEVA (REEMPLAZANDO LA ANTERIOR)
+      const generatedPin = generateAlphaPin();
+      const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
 
       const payload = {
         status: 'Reunión Agendada',
         meeting_date: meetingDate,
         meeting_time: meetingTime,
-        meeting_link: meetingLink,
+        meeting_link: guestLink,
+        roomId: roomId,
+        pinAcceso: generatedPin,
+        codigoReunion: generatedPin,
         email: scheduleModalSubmission.email,
         nombre: scheduleModalSubmission.nombre,
         empresa: scheduleModalSubmission.empresa,
@@ -310,7 +329,10 @@ export default function AdminRescueLeads() {
         status: finalStatus,
         meeting_date: meetingDate,
         meeting_time: meetingTime,
-        meeting_link: meetingLink,
+        meeting_link: guestLink,
+        roomId: roomId,
+        pinAcceso: generatedPin,
+        codigoReunion: generatedPin,
         meeting_email_sent: true
       } : i));
 
@@ -412,7 +434,8 @@ export default function AdminRescueLeads() {
         (i.empresa || '').toLowerCase().includes(term) ||
         (i.email || '').toLowerCase().includes(term) ||
         (i.cargo || i.job_title || '').toLowerCase().includes(term) ||
-        (i.country || '').toLowerCase().includes(term)
+        (i.country || '').toLowerCase().includes(term) ||
+        (i.monto_facturacion || i.revenue || '').toLowerCase().includes(term)
       );
       if (!matchSearch) return false;
     }
@@ -663,6 +686,7 @@ export default function AdminRescueLeads() {
                   <tr className="font-mono text-[9px] text-[#94A3B8] uppercase tracking-wider">
                     <th className="py-3.5 px-5">Fecha / Hora</th>
                     <th className="py-3.5 px-5">Nombre y Cargo</th>
+                    <th className="py-3.5 px-5">Facturación</th>
                     <th className="py-3.5 px-5">Empresa y País</th>
                     <th className="py-3.5 px-5">Estado / Progreso</th>
                     <th className="py-3.5 px-5">Health Score</th>
@@ -681,6 +705,7 @@ export default function AdminRescueLeads() {
                     const score = item.health_score ?? item.totalScore ?? 0;
                     const cargo = item.cargo || item.job_title || 'Ejecutivo';
                     const pais = item.country || 'México';
+                    const facturacion = item.monto_facturacion || item.revenue || 'No especificado';
                     const answered = item.questions_answered_count ?? (item.answers ? Object.keys(item.answers).length : 0);
                     const isDone = item.status === 'Preguntas Respondidas' || item.status === 'Completado' || answered === 25;
 
@@ -700,6 +725,9 @@ export default function AdminRescueLeads() {
                           <div className="text-[11px] text-[#94A3B8] font-mono mt-0.5">
                             {cargo}
                           </div>
+                        </td>
+                        <td className="py-4 px-5 font-mono text-xs font-bold text-[#C9A96E]">
+                          {facturacion}
                         </td>
                         <td className="py-4 px-5">
                           <div className="font-semibold text-slate-200">
@@ -978,9 +1006,13 @@ export default function AdminRescueLeads() {
                       <span className="text-[#94A3B8]">Solución Oracle:</span>
                       <span className="text-blue-300">{selectedSubmission.fusion_products || selectedSubmission.solution || 'Oracle Fusion Cloud ERP'}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between border-b border-[#1E3A5F]/60 pb-1.5">
                       <span className="text-[#94A3B8]">Antigüedad Go-Live:</span>
                       <span className="text-white">{selectedSubmission.go_live_age || '1-2 años'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Monto de Facturación:</span>
+                      <span className="text-[#C9A96E] font-bold">{selectedSubmission.monto_facturacion || selectedSubmission.revenue || 'No especificado'}</span>
                     </div>
                   </div>
                 </div>
@@ -1307,6 +1339,10 @@ export default function AdminRescueLeads() {
                 <div>
                   <span className="text-black block text-[10px] uppercase font-bold">Antigüedad Go-Live</span>
                   <span className="font-black text-black">{pdfReportSubmission.go_live_age || '1-2 años'}</span>
+                </div>
+                <div>
+                  <span className="text-black block text-[10px] uppercase font-bold">Monto de Facturación</span>
+                  <span className="font-black text-black">{pdfReportSubmission.monto_facturacion || pdfReportSubmission.revenue || 'No especificado'}</span>
                 </div>
                 <div>
                   <span className="text-black block text-[10px] uppercase font-bold">Origen Traffic (UTM)</span>

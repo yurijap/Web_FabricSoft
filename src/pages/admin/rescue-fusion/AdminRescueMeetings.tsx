@@ -18,7 +18,9 @@ import {
   CalendarClock,
   Sparkles,
   ArrowRight,
-  Filter
+  Filter,
+  Link,
+  Key
 } from 'lucide-react';
 import { api as adminApi } from '../../../config/api';
 import { createPortal } from 'react-dom';
@@ -48,6 +50,9 @@ export interface MeetingItem {
   meeting_link?: string;
   meeting_email_sent?: boolean;
   meeting_sent_at?: string;
+  roomId?: string;
+  pinAcceso?: string;
+  codigoReunion?: string;
   createdAt: string;
 }
 
@@ -214,11 +219,28 @@ export default function AdminRescueMeetings() {
     return { upcomingMeetings: upcoming, pastMeetings: past, completedMeetings: completed };
   }, [items, searchTerm, now]);
 
+  const generateAlphaPin = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let p = '';
+    for (let i = 0; i < 6; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+    return p;
+  };
+
+  const generateAlphaRoomId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return `MEET-${code}`;
+  };
+
   const openScheduleModal = (submission: MeetingItem) => {
     setScheduleModalSubmission(submission);
     setMeetingDate(submission.meeting_date || new Date().toISOString().split('T')[0]);
     setMeetingTime(submission.meeting_time || '10:00');
-    setMeetingLink(submission.meeting_link || '');
+    
+    const roomId = submission.roomId || generateAlphaRoomId();
+    const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
+    setMeetingLink(submission.meeting_link || guestLink);
   };
 
   const handleConfirmScheduleMeeting = async (e: React.FormEvent) => {
@@ -238,11 +260,19 @@ export default function AdminRescueMeetings() {
         scheduleModalSubmission.status === 'Reunión Enviada'
       );
 
+      const roomId = scheduleModalSubmission.roomId || generateAlphaRoomId();
+      // AL AGENDAR O REAGENDAR, SIEMPRE GENERAR UNA CONTRASEÑA FRESCA Y NUEVA (REEMPLAZANDO LA ANTERIOR)
+      const generatedPin = generateAlphaPin();
+      const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
+
       const payload = {
         status: 'Reunión Agendada',
         meeting_date: meetingDate,
         meeting_time: meetingTime,
-        meeting_link: meetingLink,
+        meeting_link: guestLink,
+        roomId: roomId,
+        pinAcceso: generatedPin,
+        codigoReunion: generatedPin,
         email: scheduleModalSubmission.email,
         nombre: scheduleModalSubmission.nombre,
         empresa: scheduleModalSubmission.empresa,
@@ -259,12 +289,15 @@ export default function AdminRescueMeetings() {
         status: finalStatus,
         meeting_date: meetingDate,
         meeting_time: meetingTime,
-        meeting_link: meetingLink,
+        meeting_link: guestLink,
+        roomId: roomId,
+        pinAcceso: generatedPin,
+        codigoReunion: generatedPin,
         meeting_email_sent: true
       } : i));
 
       const actionWord = isReschedule ? 'Reagendada' : 'Agendada';
-      alert(`⚡ ¡Reunión ${actionWord} y Notificada por Correo!\n\nProspecto: ${scheduleModalSubmission.nombre}\nEmail: ${scheduleModalSubmission.email}\nFecha: ${meetingDate} a las ${meetingTime} hrs`);
+      alert(`⚡ ¡Reunión ${actionWord} y Notificada por Correo!\n\nProspecto: ${scheduleModalSubmission.nombre}\nEmail: ${scheduleModalSubmission.email}\nFecha: ${meetingDate} a las ${meetingTime} hrs\nPIN de Acceso: ${generatedPin}`);
       setScheduleModalSubmission(null);
     } catch (err: any) {
       alert('Error al agendar reunión: ' + (err.response?.data?.error || err.message));
@@ -403,6 +436,26 @@ export default function AdminRescueMeetings() {
                 const meetingDateObj = getMeetingDateTime(item);
                 const timeDiffStr = getTimeDiffText(meetingDateObj);
                 const isFirst = idx === 0;
+                const getFallbackPin = (idStr: string, roomStr: string) => {
+                  const str = (idStr || roomStr || 'FABRIC').toString();
+                  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                  let hash = 0;
+                  for (let i = 0; i < str.length; i++) {
+                    hash = (hash << 5) - hash + str.charCodeAt(i);
+                    hash |= 0;
+                  }
+                  let pin = '';
+                  for (let i = 0; i < 6; i++) {
+                    const index = Math.abs((hash + i * 37) % chars.length);
+                    pin += chars.charAt(index);
+                  }
+                  return pin;
+                };
+
+                const pinCode = item.pinAcceso || item.codigoReunion || getFallbackPin(item._id, item.roomId);
+                const roomId = item.roomId || 'MEET-8821';
+                const guestUrl = item.meeting_link || `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
+                const hostUrl = `${window.location.origin}/reunion/${roomId}`;
 
                 return (
                   <div
@@ -453,6 +506,14 @@ export default function AdminRescueMeetings() {
                           </span>
                           <span className="font-bold text-emerald-300">{item.meeting_time ? `${item.meeting_time} hrs` : '10:00 hrs'}</span>
                         </div>
+                        <div className="flex items-center justify-between text-xs font-mono pt-1 border-t border-[#1E3A5F]">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <Key size={14} className="text-amber-400" /> PIN de Acceso:
+                          </span>
+                          <span className="font-bold text-amber-300 font-mono tracking-widest text-sm bg-amber-500/20 px-2.5 py-0.5 rounded-md border border-amber-500/40">
+                            {pinCode}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Contact Info */}
@@ -469,27 +530,64 @@ export default function AdminRescueMeetings() {
                         )}
                       </div>
 
-                      {/* Videocall Link button */}
-                      {item.meeting_link ? (
-                        <a
-                          href={item.meeting_link.startsWith('http') ? item.meeting_link : `https://${item.meeting_link}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full py-2.5 px-4 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
-                        >
-                          <Video size={15} />
-                          <span>Unirme a Videollamada</span>
-                          <ExternalLink size={13} />
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => openScheduleModal(item)}
-                          className="w-full py-2.5 px-4 bg-[#123254] hover:bg-[#1A3D68] text-amber-300 border border-amber-500/30 font-mono text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
-                        >
-                          <Video size={15} />
-                          <span>Agregar Enlace Videollamada</span>
-                        </button>
-                      )}
+                      {/* Both Videocall Links Section */}
+                      <div className="space-y-2.5 pt-2 border-t border-[#1E3A5F]">
+                        {/* Enlace Cliente (Invitado) con PIN */}
+                        <div>
+                          <span className="text-emerald-400 block text-[10px] font-mono font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <Link size={11} /> Enlace e Invitación para el Cliente:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={guestUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-300 hover:underline font-mono font-bold truncate text-[10px] flex-1 bg-[#0E2747] p-2 rounded-lg border border-emerald-500/30"
+                            >
+                              {guestUrl}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const fullInvite = `💻 Enlace de la Reunión: ${guestUrl}\n🔑 PIN de Acceso: ${pinCode}`;
+                                navigator.clipboard.writeText(fullInvite);
+                                alert(`¡Invitación del cliente copiada al portapapeles!\n\nEnlace: ${guestUrl}\nPIN de Acceso: ${pinCode}`);
+                              }}
+                              className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer"
+                              title="Copiar Enlace y PIN del cliente"
+                            >
+                              Copiar Cliente
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Enlace Anfitrión (/reunion) */}
+                        <div>
+                          <span className="text-[#C9A96E] block text-[10px] font-mono font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <Video size={11} /> Enlace para Anfitrión (/reunion):
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={hostUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-amber-200 hover:underline font-mono font-bold truncate text-[10px] flex-1 bg-[#0E2747] p-2 rounded-lg border border-[#1E3A5F]"
+                            >
+                              {hostUrl}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(hostUrl);
+                                alert('¡Enlace de anfitrión (/reunion) copiado al portapapeles!');
+                              }}
+                              className="px-2.5 py-1.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer"
+                            >
+                              Copiar Anfitrión
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Bottom Action Footer */}
@@ -717,17 +815,13 @@ export default function AdminRescueMeetings() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono text-slate-300 font-bold uppercase mb-1.5">
-                    💻 Enlace de la Videollamada (Meet / Teams / Zoom)
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://meet.google.com/abc-def-ghi"
-                    value={meetingLink}
-                    onChange={e => setMeetingLink(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#0E2747] border border-[#1E3A5F] rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#C9A96E]"
-                  />
+                <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 space-y-1">
+                  <div className="font-bold text-[#C9A96E] flex items-center gap-1.5">
+                    <Video size={14} /> Enlace de Videollamada Automático
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    El sistema generará e incluirá automáticamente el enlace directo de la sala de invitados multi-cámara y el PIN de acceso en la notificación de correo.
+                  </p>
                 </div>
               </div>
 
@@ -806,16 +900,19 @@ export default function AdminRescueMeetings() {
               </div>
 
               {selectedSubmission.meeting_date && (
-                <div className="p-4 rounded-2xl bg-[#0E2747] border border-emerald-500/40 space-y-1">
-                  <h4 className="text-xs font-bold text-emerald-400 font-mono uppercase">
-                    📅 Datos de la Reunión Agendada
+                <div className="p-4 rounded-2xl bg-[#0E2747] border border-emerald-500/40 space-y-1.5 font-mono text-xs">
+                  <h4 className="font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar size={14} /> Datos de la Reunión Agendada
                   </h4>
-                  <p className="text-xs font-mono text-slate-200">
-                    Fecha: <strong>{selectedSubmission.meeting_date}</strong> &nbsp;·&nbsp; Hora: <strong>{selectedSubmission.meeting_time} hrs</strong>
+                  <p className="text-slate-200">
+                    Fecha: <strong className="text-sky-300">{selectedSubmission.meeting_date}</strong> &nbsp;·&nbsp; Hora: <strong className="text-emerald-300">{selectedSubmission.meeting_time} hrs</strong>
+                  </p>
+                  <p className="text-amber-300 font-bold flex items-center gap-1.5">
+                    <Key size={13} /> PIN de Acceso: <span className="bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40 font-mono tracking-widest text-amber-200">{selectedSubmission.pinAcceso || selectedSubmission.codigoReunion || '849201'}</span>
                   </p>
                   {selectedSubmission.meeting_link && (
-                    <p className="text-xs font-mono text-sky-300">
-                      Enlace: <a href={selectedSubmission.meeting_link} target="_blank" rel="noreferrer" className="underline">{selectedSubmission.meeting_link}</a>
+                    <p className="text-sky-300 truncate pt-1">
+                      Enlace Cliente: <a href={selectedSubmission.meeting_link} target="_blank" rel="noreferrer" className="underline">{selectedSubmission.meeting_link}</a>
                     </p>
                   )}
                 </div>

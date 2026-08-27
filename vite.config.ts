@@ -11,6 +11,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom']
   },
   server: {
+    host: true,
     proxy: {
       '/api': {
         target: 'http://localhost:4000',

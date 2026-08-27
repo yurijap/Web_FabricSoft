@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar as CalendarIcon, Clock, CheckCircle2, AlertCircle, Trash2, UserCheck, ShieldCheck, History, ArrowRight } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Clock, CheckCircle2, AlertCircle, Trash2, UserCheck, ShieldCheck, History, ArrowRight, XCircle, Link, Video, ExternalLink } from 'lucide-react';
 import { useAuthApi } from '../../config/api';
 
 interface Booking {
@@ -13,9 +13,11 @@ interface Booking {
   plazo?: string;
   dia: string;
   slot: string;
-  status: 'disponible' | 'pendiente' | 'confirmado' | 'cancelado' | 'aprobada' | string;
+  status: 'disponible' | 'pendiente' | 'confirmado' | 'cancelado' | 'aprobada' | 'rechazado' | string;
   meetLink?: string;
   codigoReunion?: string;
+  pinAcceso?: string;
+  roomId?: string;
   isCreatedByAdmin?: boolean;
   emailEnviado?: boolean;
   calendarEnviado?: boolean;
@@ -30,6 +32,7 @@ const STATUS_COLOR: Record<string, string> = {
   pendiente:  '#C9A96E',
   confirmado: '#4ade80',
   cancelado:  '#B85450',
+  rechazado:  '#EF4444',
 };
 
 // Horarios permitidos de 9:00 AM a 6:00 PM en intervalos de 30 min
@@ -79,22 +82,34 @@ export default function AdminOfficeHours() {
 
   const handleConfirmApproval = async (b: Booking) => {
     setApprovingLoading(true);
-    const generatedCode = `FABRIC-CONF-${Math.floor(1000 + Math.random() * 9000)}`;
-    const generatedLink = `https://meet.google.com/fabric-meet-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`;
+    const alphaChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let randPin = '';
+    for (let i = 0; i < 6; i++) randPin += alphaChars.charAt(Math.floor(Math.random() * alphaChars.length));
+    let randRoomCode = '';
+    for (let i = 0; i < 5; i++) randRoomCode += alphaChars.charAt(Math.floor(Math.random() * alphaChars.length));
+
+    const generatedPin = randPin;
+    const generatedRoomId = `MEET-${randRoomCode}`;
+    const baseUrl = window.location.origin;
+    const generatedLink = `${baseUrl}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${generatedRoomId}`;
 
     try {
       const res = await adminApi.patch(`/office-hours/admin/${b._id}/approve`, {
         status: 'confirmado',
         estado: 'Aprobada',
         meetLink: generatedLink,
-        codigoReunion: generatedCode,
+        codigoReunion: generatedPin,
+        pinAcceso: generatedPin,
+        roomId: generatedRoomId,
       });
 
       const updatedData = (res.data.data ?? {
         ...b,
         status: 'confirmado',
         meetLink: generatedLink,
-        codigoReunion: generatedCode,
+        codigoReunion: generatedPin,
+        pinAcceso: generatedPin,
+        roomId: generatedRoomId,
       }) as Booking;
 
       setBookings(prev => prev.map(item => item._id === b._id ? { ...item, ...updatedData } : item));
@@ -107,7 +122,9 @@ export default function AdminOfficeHours() {
         ...b,
         status: 'confirmado',
         meetLink: generatedLink,
-        codigoReunion: generatedCode,
+        codigoReunion: generatedPin,
+        pinAcceso: generatedPin,
+        roomId: generatedRoomId,
       };
       setBookings(prev => prev.map(item => item._id === b._id ? updatedLocal : item));
       if (selected?._id === b._id) {
@@ -119,16 +136,46 @@ export default function AdminOfficeHours() {
     }
   };
 
+  const handleRejectMeeting = async (b: Booking) => {
+    setSaving(true);
+    try {
+      await adminApi.patch(`/office-hours/admin/${b._id}/status`, { status: 'rechazado' });
+      setBookings(prev => prev.map(item => item._id === b._id ? { ...item, status: 'rechazado' } : item));
+      if (selected?._id === b._id) {
+        setSelected(null);
+      }
+    } catch {
+      setBookings(prev => prev.map(item => item._id === b._id ? { ...item, status: 'rechazado' } : item));
+      if (selected?._id === b._id) {
+        setSelected(null);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleStatus = async (id: string, status: Booking['status']) => {
     setSaving(true);
     try {
       const res = await adminApi.patch(`/office-hours/admin/${id}/status`, { status });
       const updated = res.data.data as Booking;
       setBookings(prev => prev.map(b => b._id === id ? { ...b, ...updated } : b));
-      if (selected?._id === id) setSelected({ ...selected, ...updated });
+      if (selected?._id === id) {
+        if (status === 'rechazado' || status === 'cancelado') {
+          setSelected(null);
+        } else {
+          setSelected({ ...selected, ...updated });
+        }
+      }
     } catch { 
       setBookings(prev => prev.map(b => b._id === id ? { ...b, status } : b));
-      if (selected?._id === id) setSelected({ ...selected, status });
+      if (selected?._id === id) {
+        if (status === 'rechazado' || status === 'cancelado') {
+          setSelected(null);
+        } else {
+          setSelected({ ...selected, status });
+        }
+      }
     } finally { 
       setSaving(false); 
     }
@@ -190,7 +237,7 @@ export default function AdminOfficeHours() {
   // Comprobar si una hora ya está ocupada o abierta para esa fecha
   const isSlotOccupied = (dia: string, slot: string) => {
     if (!dia || !slot) return false;
-    return bookings.some(b => b.dia === dia && b.slot === slot && b.status !== 'cancelado');
+    return bookings.some(b => b.dia === dia && b.slot === slot && b.status !== 'cancelado' && b.status !== 'rechazado');
   };
 
   const handleCreateSlot = async (e: React.FormEvent) => {
@@ -261,17 +308,18 @@ export default function AdminOfficeHours() {
   // Regla: No deben aparecer citas apartadas por clientes, ni horarios cuyo día u hora ya pasaron
   const adminSlotsHistory = bookings.filter(b => {
     const isAvailableSlot = b.status === 'disponible' || b.empresa === 'Disponible' || b.nombre === 'Slot Abierto por Admin';
-    const isNotBooked = b.status !== 'pendiente' && b.status !== 'confirmado';
+    const isNotBooked = b.status !== 'pendiente' && b.status !== 'confirmado' && b.status !== 'aprobada';
     const expired = isSlotExpired(b.dia, b.slot);
     return isAvailableSlot && isNotBooked && !expired;
   });
 
   // 2. Citas Apartadas por Clientes (Abajo)
-  const bookedSessions = bookings.filter(b => b.status === 'pendiente' || b.status === 'confirmado' || b.status === 'cancelado');
+  // Al rechazar (status === 'rechazado'), desaparece de esta vista
+  const bookedSessions = bookings.filter(b => (b.status === 'pendiente' || b.status === 'confirmado' || b.status === 'aprobada') && b.status !== 'rechazado' && b.status !== 'cancelado');
 
   const disponiblesCount = bookings.filter(b => b.status === 'disponible').length;
   const pendientesCount  = bookings.filter(b => b.status === 'pendiente').length;
-  const confirmadosCount = bookings.filter(b => b.status === 'confirmado').length;
+  const confirmadosCount = bookings.filter(b => b.status === 'confirmado' || b.status === 'aprobada').length;
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -672,57 +720,131 @@ export default function AdminOfficeHours() {
                         </div>
                       )}
 
-                      {/* Botón de Aprobar Reunión con flujo en 2 pasos */}
-                      {b.status === 'confirmado' || b.status === 'aprobada' || b.meetLink ? (
-                        <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-1.5 font-mono text-[10px] text-emerald-300" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center justify-between text-emerald-400 font-bold uppercase text-[9px]">
+                      {/* Botones de Acción (Aceptar / Rechazar) y Vista de Reunión Aprobada */}
+                      {(b.status === 'confirmado' || b.status === 'aprobada') && b.status !== 'pendiente' ? (
+                        <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-2 font-mono text-[10px] text-emerald-300" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-between text-emerald-400 font-bold uppercase text-[9px] border-b border-emerald-500/20 pb-1.5">
                             <span className="flex items-center gap-1.5"><CheckCircle2 size={13} /> ✓ Reunión Aprobada</span>
-                            <span className="text-[#C9A96E]">En BD</span>
+                            <span className="text-[#C9A96E] font-bold">PIN GENERADO</span>
                           </div>
-                          {b.codigoReunion && (
+
+                          <div className="flex items-center justify-between bg-[#07192F] p-2 rounded-lg border border-[#1E3A5F]">
+                            <span className="text-slate-400 font-bold">PIN de Acceso:</span>
+                            <strong className="text-[#C9A96E] text-xs font-bold font-mono tracking-widest bg-[#0E2747] px-2.5 py-0.5 rounded border border-[#C9A96E]/40">
+                              {b.pinAcceso || b.codigoReunion || '669933'}
+                            </strong>
+                          </div>
+
+                          {b.roomId && (
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Código Acceso:</span>
-                              <strong className="text-white bg-[#07192F] px-2 py-0.5 rounded border border-[#1E3A5F] font-bold">{b.codigoReunion}</strong>
+                              <span className="text-slate-400">ID de Sala:</span>
+                              <span className="text-white font-bold font-mono">{b.roomId}</span>
                             </div>
                           )}
-                          {b.meetLink && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Enlace Meet:</span>
-                              <a href={b.meetLink} target="_blank" rel="noreferrer" className="text-[#C9A96E] hover:underline font-bold truncate max-w-[170px]">
-                                {b.meetLink}
-                              </a>
+
+                          <div className="space-y-2.5 pt-2 border-t border-emerald-500/20">
+                            {/* Enlace para el Cliente / Invitado */}
+                            <div>
+                              <span className="text-emerald-400 block text-[9px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <Link size={10} /> Enlace enviado al Cliente (Invitado):
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={b.meetLink || `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${b.roomId || 'MEET-8821'}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-emerald-300 hover:underline font-bold truncate text-[9px] flex-1 bg-[#07192F] p-1.5 rounded border border-emerald-500/30"
+                                >
+                                  {b.meetLink || `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${b.roomId || 'MEET-8821'}`}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const guestUrl = b.meetLink || `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${b.roomId || 'MEET-8821'}`;
+                                    navigator.clipboard.writeText(guestUrl);
+                                    alert('¡Enlace para el cliente copiado al portapapeles!');
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-[#0B1F3A] font-bold rounded transition text-[9px] shrink-0 cursor-pointer"
+                                >
+                                  Copiar Cliente
+                                </button>
+                              </div>
                             </div>
-                          )}
+
+                            {/* Enlace para el Anfitrión / Host */}
+                            <div>
+                              <span className="text-[#C9A96E] block text-[9px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <Video size={10} /> Enlace para Anfitrión (/reunion):
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`${window.location.origin}/reunion/${b.roomId || 'MEET-8821'}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-amber-200 hover:underline font-bold truncate text-[9px] flex-1 bg-[#07192F] p-1.5 rounded border border-[#1E3A5F]"
+                                >
+                                  {`${window.location.origin}/reunion/${b.roomId || 'MEET-8821'}`}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const reunionUrl = `${window.location.origin}/reunion/${b.roomId || 'MEET-8821'}`;
+                                    navigator.clipboard.writeText(reunionUrl);
+                                    alert('¡Enlace de anfitrión (/reunion) copiado al portapapeles!');
+                                  }}
+                                  className="px-2.5 py-1 bg-[#C9A96E] text-[#0B1F3A] font-bold rounded hover:bg-[#e6cf9c] transition text-[9px] shrink-0 cursor-pointer"
+                                >
+                                  Copiar Anfitrión
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ) : (
-                        <div onClick={e => e.stopPropagation()}>
+                        <div onClick={e => e.stopPropagation()} className="space-y-2">
                           {confirmingApproveId !== b._id ? (
-                            <button
-                              type="button"
-                              onClick={() => setConfirmingApproveId(b._id)}
-                              className="w-full py-2.5 px-3 rounded-xl bg-[#C9A96E] hover:bg-[#d8b87d] text-[#0B1F3A] font-mono text-xs font-bold uppercase tracking-wider transition shadow-md cursor-pointer flex items-center justify-center gap-1.5"
-                            >
-                              <CheckCircle2 size={14} />
-                              <span>Aprobar reunión</span>
-                            </button>
-                          ) : (
-                            <div className="flex items-center gap-2 w-full font-mono text-xs">
+                            <div className="grid grid-cols-2 gap-2 font-mono text-xs">
                               <button
                                 type="button"
-                                disabled={approvingLoading}
-                                onClick={() => handleConfirmApproval(b)}
-                                className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#0B1F3A] font-bold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 shadow-md disabled:opacity-50"
+                                disabled={saving || approvingLoading}
+                                onClick={() => setConfirmingApproveId(b._id)}
+                                className="py-2.5 px-3 rounded-xl bg-[#C9A96E] hover:bg-[#d8b87d] text-[#0B1F3A] font-bold uppercase tracking-wider transition shadow-md cursor-pointer flex items-center justify-center gap-1.5"
                               >
                                 <CheckCircle2 size={14} />
-                                <span>{approvingLoading ? 'Guardando...' : 'Aceptar'}</span>
+                                <span>Aceptar</span>
                               </button>
+
                               <button
                                 type="button"
-                                onClick={() => setConfirmingApproveId(null)}
-                                className="py-2.5 px-4 rounded-xl border border-slate-600 bg-slate-800 text-slate-300 hover:text-white font-bold uppercase tracking-wider transition cursor-pointer"
+                                disabled={saving || approvingLoading}
+                                onClick={() => handleRejectMeeting(b)}
+                                className="py-2.5 px-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold uppercase tracking-wider transition shadow-md cursor-pointer flex items-center justify-center gap-1.5"
                               >
-                                Regresar
+                                <XCircle size={14} />
+                                <span>Rechazar</span>
                               </button>
+                            </div>
+                          ) : (
+                            <div className="bg-[#07192F] p-3 rounded-xl border border-[#1E3A5F] space-y-2.5 font-mono text-xs">
+                              <div className="text-[10px] text-[#C9A96E] font-bold uppercase">Aprobar y Generar Enlace Meet</div>
+                              <div className="flex items-center gap-2 w-full">
+                                <button
+                                  type="button"
+                                  disabled={approvingLoading}
+                                  onClick={() => handleConfirmApproval(b)}
+                                  className="flex-1 py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#0B1F3A] font-bold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 shadow-md disabled:opacity-50 text-[11px]"
+                                >
+                                  <CheckCircle2 size={13} />
+                                  <span>{approvingLoading ? 'Guardando...' : 'Aceptar y Generar Link'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmingApproveId(null)}
+                                  className="py-2 px-3 rounded-lg border border-slate-600 bg-slate-800 text-slate-300 hover:text-white font-bold uppercase tracking-wider transition cursor-pointer text-[11px]"
+                                >
+                                  Regresar
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>

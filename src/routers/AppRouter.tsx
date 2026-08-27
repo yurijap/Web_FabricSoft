@@ -66,6 +66,10 @@ const OptimizadorOciPage = lazy(() => import('../pages/public/optimizador-oci/Op
 // Fusion Rescue
 const FusionRescuePage = lazy(() => import('../pages/public/fusion-rescue/FusionRescuePage'));
 
+// Sala de Videollamada (Host e Invitados)
+const ReunionPage = lazy(() => import('../pages/public/reunion/ReunionPage'));
+const ReunionInvitadoPage = lazy(() => import('../pages/public/reunion/ReunionInvitadoPage'));
+
 // Páginas de Investigación
 const ResearchLettersPage = lazy(() => import('../pages/public/investigacion/ResearchLettersPage'));
 const PaperPage = lazy(() => import('../pages/public/investigacion/PaperPage'));
@@ -197,6 +201,21 @@ export const AppRouter = () => {
             <Route path="research-letters" element={<ResearchLettersPage />} />
             <Route path="investigacion/paper/:num" element={<PaperPage />} />
           </Route>
+
+          {/* Sala de Videollamada Full-screen (sin layout público) */}
+          <Route path="/reunion" element={<ReunionPage />} />
+          <Route path="/reunion/:roomId" element={<ReunionPage />} />
+          <Route path="/videollamada" element={<ReunionPage />} />
+          <Route path="/videollamada/:roomId" element={<ReunionPage />} />
+          
+          <Route path="/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5" element={<ReunionInvitadoPage />} />
+          <Route path="/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/:roomId" element={<ReunionInvitadoPage />} />
+          <Route path="/reunion/invitado" element={<ReunionInvitadoPage />} />
+          <Route path="/reunion/invitado/:roomId" element={<ReunionInvitadoPage />} />
+          <Route path="/reunion/cliente" element={<ReunionInvitadoPage />} />
+          <Route path="/reunion/cliente/:roomId" element={<ReunionInvitadoPage />} />
+          <Route path="/videollamada/invitado" element={<ReunionInvitadoPage />} />
+          <Route path="/videollamada/invitado/:roomId" element={<ReunionInvitadoPage />} />
 
           {/* Rutas de Consola de Administración y Login con Clerk */}
           <Route element={<ClerkBoundary />}>

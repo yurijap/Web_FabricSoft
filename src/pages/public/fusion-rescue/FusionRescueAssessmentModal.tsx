@@ -15,7 +15,8 @@ import {
   Sparkles,
   User,
   Mail,
-  Phone
+  Phone,
+  DollarSign
 } from 'lucide-react';
 import { api } from '../../../config/api';
 import type { 
@@ -52,10 +53,11 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
   const [environment, setEnvironment] = useState<EnvironmentData>({
     company: '',
     country: 'México',
-    industry: 'Servicios Financieros / Fintech',
-    solution: 'Oracle Fusion Cloud ERP',
+    industry: 'Manufactura / SCM',
+    solution: 'Oracle Fusion Cloud ERP + SCM',
     goLiveAge: '1–2 años',
-    role: 'CFO / Finanzas'
+    role: 'CFO / Finanzas',
+    revenue: '$10M – $50M USD'
   });
 
   // Contact Form State
@@ -130,7 +132,8 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
               country: lead.country || prev.country,
               solution: lead.fusion_products || prev.solution,
               goLiveAge: lead.go_live_age || prev.goLiveAge,
-              role: lead.cargo || lead.job_title || prev.role
+              role: lead.cargo || lead.job_title || prev.role,
+              revenue: lead.monto_facturacion || lead.revenue || prev.revenue
             }));
             // Pre-fill answers
             if (lead.answers && typeof lead.answers === 'object' && !Array.isArray(lead.answers)) {
@@ -228,6 +231,8 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
       industria: environment.industry,
       solucion_oracle: environment.solution,
       antiguedad_golive: environment.goLiveAge,
+      monto_facturacion: environment.revenue,
+      revenue: environment.revenue,
       status: 'Incompleto',
       questions_answered_count: 0,
       answers: {},
@@ -300,6 +305,8 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
       industria: environment.industry,
       solucion_oracle: environment.solution,
       antiguedad_golive: environment.goLiveAge,
+      monto_facturacion: environment.revenue,
+      revenue: environment.revenue,
       problema_principal: mainProblem,
       descripcion_problema: problemDescription,
       timing_prioridad: timing,
@@ -496,6 +503,24 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                   <option>1–2 años</option>
                   <option>3+ años</option>
                   <option>Aún en proceso de implementación</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-200 mb-1.5 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  Monto de Facturación
+                </label>
+                <select
+                  value={environment.revenue}
+                  onChange={(e) => setEnvironment({ ...environment, revenue: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#07192F] border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E] transition-colors"
+                >
+                  <option>Menos de $10M USD</option>
+                  <option>$10M – $50M USD</option>
+                  <option>$50M – $250M USD</option>
+                  <option>$250M – $1B USD</option>
+                  <option>Más de $1B USD</option>
                 </select>
               </div>
             </div>
