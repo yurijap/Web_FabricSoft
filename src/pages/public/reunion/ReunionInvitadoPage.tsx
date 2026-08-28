@@ -55,6 +55,7 @@ function VideoPlayer({ stream, isLocal }: { stream: MediaStream | null; isLocal?
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
     }
   }, [stream]);
 
@@ -400,7 +401,14 @@ export default function ReunionInvitadoPage() {
 
     try {
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+          { urls: 'stun:stun.services.mozilla.com' },
+        ],
       });
       pcRef.current = pc;
 
@@ -413,6 +421,8 @@ export default function ReunionInvitadoPage() {
       pc.ontrack = (event) => {
         if (event.streams && event.streams[0]) {
           setRemoteStream(event.streams[0]);
+        } else if (event.track) {
+          setRemoteStream(new MediaStream([event.track]));
         }
       };
 
@@ -481,6 +491,50 @@ export default function ReunionInvitadoPage() {
       console.warn('WebRTC peer connection non-fatal setup warning:', err);
     }
   }, [isIdentified, localStream, roomId, localPeerId]);
+
+  // ── FUNCIÓN COMPLETA DE APAGADO DE HARDWARE (CÁMARA, MICRÓFONO, PANTALLA) ──
+  const stopAllHardwareMedia = () => {
+    try {
+      if (localStream) {
+        localStream.getTracks().forEach((track) => {
+          try {
+            track.stop();
+            track.enabled = false;
+          } catch {}
+        });
+        setLocalStream(null);
+      }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((track) => {
+          try {
+            track.stop();
+            track.enabled = false;
+          } catch {}
+        });
+        screenStreamRef.current = null;
+      }
+      if (pcRef.current) {
+        try {
+          pcRef.current.getSenders().forEach((sender) => {
+            if (sender.track) {
+              try { sender.track.stop(); } catch {}
+            }
+          });
+          pcRef.current.close();
+        } catch {}
+        pcRef.current = null;
+      }
+      localFrameRef.current = null;
+    } catch (err) {
+      console.warn('Error al apagar componentes de hardware en invitado:', err);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopAllHardwareMedia();
+    };
+  }, []);
 
   // ── 3. SINCRONIZACIÓN DE RED CON EL BACKEND EXPRESS (/api/room/sync) ──
   useEffect(() => {
@@ -557,15 +611,23 @@ export default function ReunionInvitadoPage() {
     const interval = setInterval(syncWithServer, 1000);
 
     const handleUnload = () => {
-      navigator.sendBeacon(`${API_BASE}/api/room/leave`, JSON.stringify({ roomId, peerId: localPeerId }));
+      try {
+        navigator.sendBeacon(`${API_BASE}/api/room/leave`, JSON.stringify({ roomId, peerId: localPeerId }));
+      } catch {}
+      stopAllHardwareMedia();
     };
 
     window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('unload', handleUnload);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
       window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('unload', handleUnload);
+      stopAllHardwareMedia();
     };
   }, [isIdentified, roomId, localPeerId, userName, userRole, cameraActive, micActive]);
 
@@ -608,9 +670,7 @@ export default function ReunionInvitadoPage() {
   };
 
   const handleLeaveCall = async () => {
-    if (localStream) {
-      localStream.getTracks().forEach((t) => t.stop());
-    }
+    stopAllHardwareMedia();
     try {
       await fetch(`${API_BASE}/api/room/leave`, {
         method: 'POST',
@@ -671,10 +731,10 @@ export default function ReunionInvitadoPage() {
               <UserCheck size={32} />
             </div>
             <h2 className="font-serif font-bold text-2xl text-white tracking-tight">
-              Ingreso Seguro de Invitado
+              Ingreso Seguro a la Reunión
             </h2>
             <p className="font-mono text-xs text-[#94A3B8] max-w-md mx-auto">
-              Ingresa tu nombre completo registrado y el PIN de acceso provisto para validar tu sesión.
+              Sesión Técnica con <strong className="text-[#C9A96E]">FABRIC Soft México</strong>. Ingresa tu PIN de acceso asignado para validar la sesión.
             </p>
           </div>
 
@@ -697,19 +757,27 @@ export default function ReunionInvitadoPage() {
               />
             </div>
 
-            {/* Nombre Completo Registrado (Traído de la Base de Datos) */}
-            <div className="bg-[#081528] p-4.5 rounded-2xl border border-[#C9A96E]/40 text-center space-y-1 shadow-inner">
-              <span className="text-[#C9A96E] font-mono text-[10px] font-bold uppercase tracking-widest block flex items-center justify-center gap-1.5">
-                <UserCheck size={13} /> Cliente Registrado de la Reunión
-              </span>
-              <h3 className="font-serif font-bold text-xl text-white tracking-tight">
-                {registeredClientInfo.nombre || guestNameInput || 'Cliente Agendado Corporativo'}
-              </h3>
-              {registeredClientInfo.cargo && (
-                <p className="font-mono text-xs text-[#94A3B8]">
-                  {registeredClientInfo.cargo} {registeredClientInfo.empresa ? `· ${registeredClientInfo.empresa}` : ''}
+            {/* Input Editable: Tu Nombre Completo / Nombre en Pantalla */}
+            <div className="space-y-1.5 bg-[#081528] p-4 rounded-2xl border border-[#C9A96E]/40 shadow-inner">
+              <label className="block font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <UserCheck size={14} /> Tu Nombre Completo / Nombre en Pantalla:
+                </span>
+                <span className="text-[10px] text-amber-300 font-normal">✏️ Editable</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={guestNameInput}
+                onChange={(e) => setGuestNameInput(e.target.value)}
+                placeholder="Ingresa tu nombre completo"
+                className="w-full bg-[#030712] border border-[#1E3A5F] focus:border-[#C9A96E] text-white font-serif font-bold text-base px-4 py-2.5 rounded-xl outline-none transition text-center"
+              />
+              {registeredClientInfo.empresa ? (
+                <p className="font-mono text-[11px] text-[#94A3B8] text-center pt-1">
+                  Empresa: <strong className="text-amber-300">{registeredClientInfo.empresa}</strong> {registeredClientInfo.cargo ? `· ${registeredClientInfo.cargo}` : ''}
                 </p>
-              )}
+              ) : null}
             </div>
 
             {/* Input PIN de Acceso */}
@@ -771,14 +839,17 @@ export default function ReunionInvitadoPage() {
           </button>
 
           <div className="space-y-0.5">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                VERIFICADO
+                ACCESO VERIFICADO
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-[#C9A96E]/15 border border-[#C9A96E]/40 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold text-[#C9A96E] uppercase tracking-widest">
+                🏢 REUNIÓN CON: FABRIC SOFT MÉXICO
               </span>
             </div>
             <p className="text-[11px] font-mono text-[#94A3B8] hidden sm:block">
-              Sala: <span className="text-[#C9A96E] font-bold">{roomId}</span> | Identidad: <span className="text-white">{userName}</span> ({userRole})
+              Sala: <span className="text-[#C9A96E] font-bold">[{roomId}]</span> | Cliente: <span className="text-white font-bold">{userName}</span> {registeredClientInfo.empresa ? <span className="text-amber-300 font-bold">({registeredClientInfo.empresa})</span> : null}
             </p>
           </div>
         </div>

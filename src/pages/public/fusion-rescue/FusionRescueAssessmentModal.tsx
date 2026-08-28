@@ -56,7 +56,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     industry: 'Manufactura / SCM',
     solution: 'Oracle Fusion Cloud ERP + SCM',
     goLiveAge: '1–2 años',
-    role: 'CFO / Finanzas',
+    role: 'CFO / VP Finanzas / Director Financiero',
     revenue: '$10M – $50M USD'
   });
 
@@ -68,7 +68,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     jobTitle: '',
     email: '',
     phone: '',
-    privacyAccepted: true
+    privacyAccepted: false
   });
 
   // Answers State: map questionId (q01..q25) -> AnswerValue
@@ -208,8 +208,17 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
     setIsDrafting(true);
 
     try {
+      setContact((prev) => ({
+        ...prev,
+        company: environment.company || prev.company,
+        jobTitle: environment.role || prev.jobTitle || 'CFO / VP Finanzas / Director Financiero'
+      }));
       localStorage.setItem(CACHE_ENV_KEY, JSON.stringify(environment));
-      localStorage.setItem(CACHE_USER_KEY, JSON.stringify(contact));
+      localStorage.setItem(CACHE_USER_KEY, JSON.stringify({
+        ...contact,
+        company: environment.company || contact.company,
+        jobTitle: environment.role || contact.jobTitle || 'CFO / VP Finanzas / Director Financiero'
+      }));
     } catch (e) {
       console.error('Failed saving to localStorage:', e);
     }
@@ -521,6 +530,33 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                   <option>$50M – $250M USD</option>
                   <option>$250M – $1B USD</option>
                   <option>Más de $1B USD</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-200 mb-1.5 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  Cargo
+                </label>
+                <select
+                  value={environment.role}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEnvironment((prev) => ({ ...prev, role: val }));
+                    setContact((prev) => ({ ...prev, jobTitle: val }));
+                  }}
+                  className="w-full px-4 py-3 bg-[#07192F] border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E] transition-colors"
+                >
+                  <option>CFO / VP Finanzas / Director Financiero</option>
+                  <option>CIO / CTO / Director de TI</option>
+                  <option>Director / Gerente de Operaciones</option>
+                  <option>Contralor / Gerente de Contabilidad</option>
+                  <option>Líder / Arquitecto ERP</option>
+                  <option>Director de Cadena de Suministro / SCM</option>
+                  <option>CEO / Director General</option>
+                  <option>Gerente de Sistemas / Infraestructura</option>
+                  <option>Consultor / Asesor Externo</option>
+                  <option>Otro</option>
                 </select>
               </div>
             </div>
@@ -894,35 +930,67 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                     type="text"
                     required
                     value={contact.company || environment.company}
-                    onChange={(e) => setContact({ ...contact, company: e.target.value })}
+                    onChange={(e) => {
+                      setContact({ ...contact, company: e.target.value });
+                      setEnvironment({ ...environment, company: e.target.value });
+                    }}
                     placeholder="Grupo Bal"
                     className="w-full px-4 py-3 bg-[#07192F] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E] font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-200 mb-1">Cargo *</label>
+                  <label className="block text-xs font-medium text-slate-200 mb-1">Email corporativo *</label>
                   <input
-                    type="text"
+                    type="email"
                     required
-                    value={contact.jobTitle || environment.role}
-                    onChange={(e) => setContact({ ...contact, jobTitle: e.target.value })}
-                    placeholder="VP de Finanzas / CIO"
+                    value={contact.email}
+                    onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                    placeholder="c.mendoza@bal.com.mx"
                     className="w-full px-4 py-3 bg-[#07192F] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E] font-medium"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-200 mb-1">Email corporativo *</label>
-                <input
-                  type="email"
-                  required
-                  value={contact.email}
-                  onChange={(e) => setContact({ ...contact, email: e.target.value })}
-                  placeholder="c.mendoza@bal.com.mx"
-                  className="w-full px-4 py-3 bg-[#07192F] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E] font-medium"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-200 mb-1">Monto de Facturación</label>
+                  <select
+                    value={environment.revenue}
+                    onChange={(e) => setEnvironment({ ...environment, revenue: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#07192F] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E] font-medium transition-colors"
+                  >
+                    <option>Menos de $10M USD</option>
+                    <option>$10M – $50M USD</option>
+                    <option>$50M – $250M USD</option>
+                    <option>$250M – $1B USD</option>
+                    <option>Más de $1B USD</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-200 mb-1">Cargo *</label>
+                  <select
+                    value={contact.jobTitle || environment.role}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContact({ ...contact, jobTitle: val });
+                      setEnvironment({ ...environment, role: val });
+                    }}
+                    className="w-full px-4 py-3 bg-[#07192F] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E] font-medium transition-colors"
+                  >
+                    <option>CFO / VP Finanzas / Director Financiero</option>
+                    <option>CIO / CTO / Director de TI</option>
+                    <option>Director / Gerente de Operaciones</option>
+                    <option>Contralor / Gerente de Contabilidad</option>
+                    <option>Líder / Arquitecto ERP</option>
+                    <option>Director de Cadena de Suministro / SCM</option>
+                    <option>CEO / Director General</option>
+                    <option>Gerente de Sistemas / Infraestructura</option>
+                    <option>Consultor / Asesor Externo</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -948,7 +1016,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
                 />
                 <label htmlFor="privacy" className="text-[11px] text-slate-300 leading-normal cursor-pointer">
                   He leído y acepto el{' '}
-                  <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="text-[#C9A96E] underline">
+                  <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="text-[#C9A96E] font-extrabold underline hover:text-[#FFE8A3] transition-colors">
                     Aviso de Privacidad
                   </a>{' '}
                   y autorizo el tratamiento de mis datos para consultar el diagnóstico.

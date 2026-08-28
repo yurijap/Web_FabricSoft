@@ -96,10 +96,10 @@ export default function AdminOfficeHours() {
     let randRoomCode = '';
     for (let i = 0; i < 5; i++) randRoomCode += alphaChars.charAt(Math.floor(Math.random() * alphaChars.length));
 
-    const generatedPin = randPin;
-    const generatedRoomId = `MEET-${randRoomCode}`;
+    const generatedPin = b.pinAcceso || b.codigoReunion || randPin;
+    const generatedRoomId = b.roomId || `MEET-${randRoomCode}`;
     const baseUrl = window.location.origin;
-    const generatedLink = `${baseUrl}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${generatedRoomId}`;
+    const generatedLink = b.meetLink || `${baseUrl}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${generatedRoomId}`;
 
     try {
       const res = await adminApi.patch(`/office-hours/admin/${b._id}/approve`, {
@@ -230,7 +230,8 @@ export default function AdminOfficeHours() {
       };
 
       const roomId = rescheduleModalBooking.roomId || generateAlphaRoomId();
-      const newPin = generateAlphaPin();
+      const existingPin = rescheduleModalBooking.pinAcceso || rescheduleModalBooking.codigoReunion;
+      const newPin = existingPin || generateAlphaPin();
       const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
 
       const payload = {
@@ -946,7 +947,24 @@ export default function AdminOfficeHours() {
 
                         {/* Botones de Acción (Aceptar / Rechazar) y Vista de Reunión Aprobada */}
                         {(b.status === 'confirmado' || b.status === 'aprobada') && b.status !== 'pendiente' ? (() => {
+                          const getFallbackPin = (idStr: string, roomStr?: string) => {
+                            const str = (idStr || roomStr || 'FABRIC').toString();
+                            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                            let hash = 0;
+                            for (let i = 0; i < str.length; i++) {
+                              hash = (hash << 5) - hash + str.charCodeAt(i);
+                              hash |= 0;
+                            }
+                            let pin = '';
+                            for (let i = 0; i < 6; i++) {
+                              const index = Math.abs((hash + i * 37) % chars.length);
+                              pin += chars.charAt(index);
+                            }
+                            return pin;
+                          };
+
                           const effectiveRoomId = b.roomId || (b.meetLink || '').split('/').pop() || 'MEET-8821';
+                          const effectivePin = b.pinAcceso || b.codigoReunion || getFallbackPin(b._id, effectiveRoomId);
                           const guestUrl = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${effectiveRoomId}`;
                           const hostUrl = `${window.location.origin}/reunion/${effectiveRoomId}`;
 
@@ -960,7 +978,7 @@ export default function AdminOfficeHours() {
                             <div className="flex items-center justify-between bg-[#07192F] p-2 rounded-lg border border-[#1E3A5F]">
                               <span className="text-slate-400 font-bold">PIN de Acceso:</span>
                               <strong className="text-[#C9A96E] text-xs font-bold font-mono tracking-widest bg-[#0E2747] px-2.5 py-0.5 rounded border border-[#C9A96E]/40">
-                                {b.pinAcceso || b.codigoReunion || '669933'}
+                                {effectivePin}
                               </strong>
                             </div>
 
@@ -987,9 +1005,9 @@ export default function AdminOfficeHours() {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const fullInvite = `💻 Enlace de la Reunión: ${guestUrl}\n🔑 PIN de Acceso: ${b.pinAcceso || b.codigoReunion || '669933'}`;
+                                      const fullInvite = `💻 Enlace de la Reunión: ${guestUrl}\n🔑 PIN de Acceso: ${effectivePin}`;
                                       navigator.clipboard.writeText(fullInvite);
-                                      showToast('¡Invitación de Cliente Copiada!', `Se copió el enlace y PIN de acceso de ${b.nombre} al portapapeles.`, 'emerald');
+                                      showToast('¡Invitación de Cliente Copiada!', `Se copió el enlace y PIN de acceso (${effectivePin}) de ${b.nombre} al portapapeles.`, 'emerald');
                                     }}
                                     className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-[#0B1F3A] font-bold rounded transition text-[9px] shrink-0 cursor-pointer shadow-md"
                                   >

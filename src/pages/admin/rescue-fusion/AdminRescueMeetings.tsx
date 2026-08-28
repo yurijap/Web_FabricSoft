@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   CheckCircle2,
   AlertCircle,
   X,
@@ -62,12 +63,15 @@ export default function AdminRescueMeetings() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [now, setNow] = useState<Date>(new Date());
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const CARDS_PER_SLIDE = 6;
 
   // Modal State for Rescheduling & Viewing Details
   const [scheduleModalSubmission, setScheduleModalSubmission] = useState<MeetingItem | null>(null);
   const [meetingDate, setMeetingDate] = useState<string>('');
   const [meetingTime, setMeetingTime] = useState<string>('10:00');
   const [meetingLink, setMeetingLink] = useState<string>('');
+  const [meetingPin, setMeetingPin] = useState<string>('');
   const [isSavingMeeting, setIsSavingMeeting] = useState<boolean>(false);
 
   const [selectedSubmission, setSelectedSubmission] = useState<MeetingItem | null>(null);
@@ -240,12 +244,30 @@ export default function AdminRescueMeetings() {
     return `MEET-${code}`;
   };
 
+  const getFallbackPin = (idStr: string, roomStr?: string) => {
+    const str = (idStr || roomStr || 'FABRIC').toString();
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    let pin = '';
+    for (let i = 0; i < 6; i++) {
+      const index = Math.abs((hash + i * 37) % chars.length);
+      pin += chars.charAt(index);
+    }
+    return pin;
+  };
+
   const openScheduleModal = (submission: MeetingItem) => {
     setScheduleModalSubmission(submission);
     setMeetingDate(submission.meeting_date || new Date().toISOString().split('T')[0]);
     setMeetingTime(submission.meeting_time || '10:00');
     
     const roomId = submission.roomId || generateAlphaRoomId();
+    const pin = submission.pinAcceso || submission.codigoReunion || getFallbackPin(submission._id, roomId);
+    setMeetingPin(pin);
     const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
     setMeetingLink(submission.meeting_link || guestLink);
   };
@@ -268,8 +290,9 @@ export default function AdminRescueMeetings() {
       );
 
       const roomId = scheduleModalSubmission.roomId || generateAlphaRoomId();
-      // AL AGENDAR O REAGENDAR, SIEMPRE GENERAR UNA CONTRASEÑA FRESCA Y NUEVA (REEMPLAZANDO LA ANTERIOR)
-      const generatedPin = generateAlphaPin();
+      // MANTENER EL MISMO PIN ORIGINAL GENERADO EN /admin/rescue-fusion/leads AL REAGENDAR
+      const originalPin = scheduleModalSubmission.pinAcceso || scheduleModalSubmission.codigoReunion;
+      const generatedPin = originalPin || meetingPin || getFallbackPin(scheduleModalSubmission._id, roomId);
       const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
 
       const payload = {
@@ -412,224 +435,268 @@ export default function AdminRescueMeetings() {
         
         {/* ── LEFT COLUMN (2 Columns Wide): REUNIONES PRÓXIMAS (Cards Grid) ── */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between border-b border-[#1E3A5F] pb-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="text-emerald-400" size={18} />
-              <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider">
-                Próximas Sesiones Técnicas (En Orden Cronológico)
-              </h2>
-            </div>
-            <span className="text-xs font-mono text-emerald-400 font-bold">
-              {upcomingMeetings.length} {upcomingMeetings.length === 1 ? 'Cita' : 'Citas'} Pendientes
-            </span>
-          </div>
+          {(() => {
+            const totalPages = Math.ceil(upcomingMeetings.length / 6) || 1;
+            const validPage = Math.min(currentPage, totalPages - 1);
+            const displayedUpcoming = upcomingMeetings.slice(validPage * 6, (validPage + 1) * 6);
 
-          {loading ? (
-            <div className="p-12 text-center bg-[#07192F] border border-[#1E3A5F] rounded-3xl space-y-3">
-              <RefreshCw size={28} className="animate-spin text-[#C9A96E] mx-auto" />
-              <p className="font-mono text-xs text-slate-400">Cargando reuniones agendadas...</p>
-            </div>
-          ) : upcomingMeetings.length === 0 ? (
-            <div className="p-12 text-center bg-[#07192F] border border-[#1E3A5F] rounded-3xl space-y-3">
-              <CalendarClock size={36} className="text-slate-600 mx-auto" />
-              <h3 className="text-sm font-bold text-white font-mono">No hay reuniones próximas en este momento</h3>
-              <p className="text-xs text-slate-400 font-mono max-w-sm mx-auto">
-                Las nuevas citas agendadas desde los expedientes de prospectos aparecerán automáticamente ordenadas en este espacio.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {upcomingMeetings.map((item, idx) => {
-                const meetingDateObj = getMeetingDateTime(item);
-                const timeDiffStr = getTimeDiffText(meetingDateObj);
-                const isFirst = idx === 0;
-                const getFallbackPin = (idStr: string, roomStr: string) => {
-                  const str = (idStr || roomStr || 'FABRIC').toString();
-                  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-                  let hash = 0;
-                  for (let i = 0; i < str.length; i++) {
-                    hash = (hash << 5) - hash + str.charCodeAt(i);
-                    hash |= 0;
-                  }
-                  let pin = '';
-                  for (let i = 0; i < 6; i++) {
-                    const index = Math.abs((hash + i * 37) % chars.length);
-                    pin += chars.charAt(index);
-                  }
-                  return pin;
-                };
-
-                const pinCode = item.pinAcceso || item.codigoReunion || getFallbackPin(item._id, item.roomId);
-                const effectiveRoomId = item.roomId || (item.meeting_link ? item.meeting_link.split('/').pop() : null) || 'MEET-8821';
-                const guestUrl = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${effectiveRoomId}`;
-                const hostUrl = `${window.location.origin}/reunion/${effectiveRoomId}`;
-
-                return (
-                  <div
-                    key={item._id}
-                    className={`bg-[#07192F] border rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between relative overflow-hidden shadow-xl hover:border-[#C9A96E]/60 ${
-                      isFirst 
-                        ? 'border-emerald-500/60 ring-2 ring-emerald-500/20 bg-gradient-to-br from-[#07192F] to-[#0E2747]' 
-                        : 'border-[#1E3A5F]'
-                    }`}
-                  >
-                    {/* Badge Top Banner */}
-                    <div className="flex items-center justify-between gap-2 mb-4">
-                      <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold rounded-full inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        {item.status || 'Reunión Agendada'}
-                      </span>
-                      <span className="px-3 py-1 bg-[#123254] text-[#C9A96E] border border-[#C9A96E]/30 text-[10px] font-mono font-bold rounded-full">
-                        {timeDiffStr}
-                      </span>
-                    </div>
-
-                    {/* Prospect Details */}
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-serif font-bold text-white group-hover:text-blue-300 transition">
-                            {item.nombre}
-                          </h3>
-                        </div>
-                        <p className="text-xs text-[#94A3B8] font-mono mt-0.5 flex items-center gap-1.5">
-                          <Building2 size={13} className="text-slate-400 shrink-0" />
-                          <strong className="text-slate-200">{item.empresa}</strong>
-                          {item.cargo && <span>· {item.cargo}</span>}
-                        </p>
-                      </div>
-
-                      {/* Meeting Time Highlight Box */}
-                      <div className="p-4 rounded-2xl bg-[#0E2747] border border-[#1E3A5F] space-y-2">
-                        <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Calendar size={14} className="text-sky-400" /> Fecha:
-                          </span>
-                          <span className="font-bold text-sky-300">{item.meeting_date || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Clock size={14} className="text-emerald-400" /> Horario:
-                          </span>
-                          <span className="font-bold text-emerald-300">{item.meeting_time ? `${item.meeting_time} hrs` : '10:00 hrs'}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs font-mono pt-1 border-t border-[#1E3A5F]">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Key size={14} className="text-amber-400" /> PIN de Acceso:
-                          </span>
-                          <span className="font-bold text-amber-300 font-mono tracking-widest text-sm bg-amber-500/20 px-2.5 py-0.5 rounded-md border border-amber-500/40">
-                            {pinCode}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Contact Info */}
-                      <div className="space-y-1.5 text-xs font-mono text-slate-300">
-                        <div className="flex items-center gap-2 truncate">
-                          <Mail size={13} className="text-slate-500 shrink-0" />
-                          <a href={`mailto:${item.email}`} className="hover:text-sky-300 truncate">{item.email}</a>
-                        </div>
-                        {(item.telefono || item.phone) && (
-                          <div className="flex items-center gap-2">
-                            <Phone size={13} className="text-slate-500 shrink-0" />
-                            <span>{item.telefono || item.phone}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Both Videocall Links Section */}
-                      <div className="space-y-2.5 pt-2 border-t border-[#1E3A5F]">
-                        {/* Enlace Cliente (Invitado) con PIN */}
-                        <div>
-                          <span className="text-emerald-400 block text-[10px] font-mono font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                            <Link size={11} /> Enlace e Invitación para el Cliente:
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={guestUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-emerald-300 hover:underline font-mono font-bold truncate text-[10px] flex-1 bg-[#0E2747] p-2 rounded-lg border border-emerald-500/30"
-                            >
-                              {guestUrl}
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const fullInvite = `💻 Enlace de la Reunión: ${guestUrl}\n🔑 PIN de Acceso: ${pinCode}`;
-                                navigator.clipboard.writeText(fullInvite);
-                                showToast('¡Invitación de Cliente Copiada!', `Se copió la invitación con PIN (${pinCode}) de ${item.nombre} al portapapeles.`, 'emerald');
-                              }}
-                              className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer shadow-md"
-                              title="Copiar Enlace y PIN del cliente"
-                            >
-                              Copiar Cliente
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Enlace Anfitrión (/reunion) */}
-                        <div>
-                          <span className="text-[#C9A96E] block text-[10px] font-mono font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                            <Video size={11} /> Enlace para Anfitrión (/reunion):
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={hostUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-amber-200 hover:underline font-mono font-bold truncate text-[10px] flex-1 bg-[#0E2747] p-2 rounded-lg border border-[#1E3A5F]"
-                            >
-                              {hostUrl}
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(hostUrl);
-                                showToast('¡Enlace de Anfitrión Copiado!', `El enlace de anfitrión (/reunion) de ${item.nombre} ha sido copiado al portapapeles.`, 'amber');
-                              }}
-                              className="px-2.5 py-1.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer shadow-md"
-                            >
-                              Copiar Anfitrión
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Action Footer */}
-                    <div className="mt-6 pt-4 border-t border-[#1E3A5F] flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => setSelectedSubmission(item)}
-                        className="px-3 py-1.5 bg-[#0E2747] hover:bg-[#123254] text-slate-300 text-[11px] font-mono font-bold rounded-lg border border-[#1E3A5F] flex items-center gap-1 transition cursor-pointer"
-                      >
-                        <FileText size={12} />
-                        <span>Expediente</span>
-                      </button>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openScheduleModal(item)}
-                          className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[11px] font-mono font-bold rounded-lg border border-amber-500/30 flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <RefreshCw size={12} />
-                          <span>Re-agendar</span>
-                        </button>
-                        <button
-                          onClick={() => handleMarkCompleted(item)}
-                          className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-mono font-bold rounded-lg border border-emerald-500/30 flex items-center gap-1 transition cursor-pointer"
-                          title="Marcar como realizada"
-                        >
-                          <CheckCircle2 size={12} />
-                          <span>Completada</span>
-                        </button>
-                      </div>
-                    </div>
+            return (
+              <>
+                <div className="flex items-center justify-between border-b border-[#1E3A5F] pb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="text-emerald-400" size={18} />
+                    <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider">
+                      Próximas Sesiones Técnicas (En Orden Cronológico)
+                    </h2>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-emerald-400 font-bold">
+                      {upcomingMeetings.length} {upcomingMeetings.length === 1 ? 'Cita' : 'Citas'} Pendientes
+                    </span>
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-1.5 bg-[#07192F] px-2 py-1 rounded-xl border border-[#1E3A5F] shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                          disabled={validPage === 0}
+                          className="p-1 rounded-lg bg-[#0E2747] hover:bg-[#163B66] text-[#C9A96E] disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                          title="Slide Anterior"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span className="font-mono text-[11px] text-slate-300 font-bold px-1.5">
+                          {validPage + 1} / {totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                          disabled={validPage >= totalPages - 1}
+                          className="p-1 rounded-lg bg-[#0E2747] hover:bg-[#163B66] text-[#C9A96E] disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                          title="Siguiente Slide"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="p-12 text-center bg-[#07192F] border border-[#1E3A5F] rounded-3xl space-y-3">
+                    <RefreshCw size={28} className="animate-spin text-[#C9A96E] mx-auto" />
+                    <p className="font-mono text-xs text-slate-400">Cargando reuniones agendadas...</p>
+                  </div>
+                ) : upcomingMeetings.length === 0 ? (
+                  <div className="p-12 text-center bg-[#07192F] border border-[#1E3A5F] rounded-3xl space-y-3">
+                    <CalendarClock size={36} className="text-slate-600 mx-auto" />
+                    <h3 className="text-sm font-bold text-white font-mono">No hay reuniones próximas en este momento</h3>
+                    <p className="text-xs text-slate-400 font-mono max-w-sm mx-auto">
+                      Las nuevas citas agendadas desde los expedientes de prospectos aparecerán automáticamente ordenadas en este espacio.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 transition-all duration-500">
+                      {displayedUpcoming.map((item, idx) => {
+                        const globalIdx = validPage * 6 + idx;
+                        const meetingDateObj = getMeetingDateTime(item);
+                        const timeDiffStr = getTimeDiffText(meetingDateObj);
+                        const isFirst = globalIdx === 0;
+                        const getFallbackPin = (idStr: string, roomStr: string) => {
+                          const str = (idStr || roomStr || 'FABRIC').toString();
+                          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                          let hash = 0;
+                          for (let i = 0; i < str.length; i++) {
+                            hash = (hash << 5) - hash + str.charCodeAt(i);
+                            hash |= 0;
+                          }
+                          let pin = '';
+                          for (let i = 0; i < 6; i++) {
+                            const index = Math.abs((hash + i * 37) % chars.length);
+                            pin += chars.charAt(index);
+                          }
+                          return pin;
+                        };
+
+                        const pinCode = item.pinAcceso || item.codigoReunion || getFallbackPin(item._id, item.roomId);
+                        const effectiveRoomId = item.roomId || (item.meeting_link ? item.meeting_link.split('/').pop() : null) || 'MEET-8821';
+                        const guestUrl = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${effectiveRoomId}`;
+                        const hostUrl = `${window.location.origin}/reunion/${effectiveRoomId}`;
+
+                        return (
+                          <div
+                            key={item._id}
+                            className={`bg-[#07192F] border rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between relative overflow-hidden shadow-xl hover:border-[#C9A96E]/60 ${
+                              isFirst 
+                                ? 'border-emerald-500/60 ring-2 ring-emerald-500/20 bg-gradient-to-br from-[#07192F] to-[#0E2747]' 
+                                : 'border-[#1E3A5F]'
+                            }`}
+                          >
+                            {/* Badge Top Banner */}
+                            <div className="flex items-center justify-between gap-2 mb-4">
+                              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold rounded-full inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                {item.status || 'Reunión Agendada'}
+                              </span>
+                              <span className="px-3 py-1 bg-[#123254] text-[#C9A96E] border border-[#C9A96E]/30 text-[10px] font-mono font-bold rounded-full">
+                                {timeDiffStr}
+                              </span>
+                            </div>
+
+                            {/* Prospect Details */}
+                            <div className="space-y-4">
+                              <div>
+                                <div className="flex items-center justify-between">
+                                  <h3 className="text-lg font-serif font-bold text-white group-hover:text-blue-300 transition">
+                                    {item.nombre}
+                                  </h3>
+                                </div>
+                                <p className="text-xs text-[#94A3B8] font-mono mt-0.5 flex items-center gap-1.5">
+                                  <Building2 size={13} className="text-slate-400 shrink-0" />
+                                  <strong className="text-slate-200">{item.empresa}</strong>
+                                  {item.cargo && <span>· {item.cargo}</span>}
+                                </p>
+                              </div>
+
+                              <div className="bg-[#030712]/60 rounded-2xl p-3.5 border border-[#1E3A5F]/70 space-y-2">
+                                <div className="flex items-center justify-between text-xs font-mono text-slate-300">
+                                  <span className="text-slate-400 flex items-center gap-1">
+                                    <Calendar size={13} className="text-[#C9A96E]" /> Fecha:
+                                  </span>
+                                  <span className="font-bold text-white bg-[#0E2747] px-2 py-0.5 rounded border border-[#1E3A5F]">
+                                    {item.meeting_date || 'Por agendar'}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs font-mono text-slate-300">
+                                  <span className="text-slate-400 flex items-center gap-1">
+                                    <Clock size={13} className="text-[#C9A96E]" /> Horario:
+                                  </span>
+                                  <span className="font-bold text-amber-300 bg-[#0E2747] px-2 py-0.5 rounded border border-[#1E3A5F]">
+                                    {item.meeting_time || '10:00 AM'}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs font-mono text-slate-300">
+                                  <span className="text-slate-400 flex items-center gap-1">
+                                    <Key size={13} className="text-[#C9A96E]" /> PIN Acceso:
+                                  </span>
+                                  <span className="font-bold text-[#C9A96E] bg-[#0E2747] px-2.5 py-0.5 rounded border border-[#C9A96E]/40 tracking-wider">
+                                    {pinCode}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Both Videocall Links Section */}
+                              <div className="space-y-2.5 pt-2 border-t border-[#1E3A5F]">
+                                {/* Enlace Cliente (Invitado) con PIN */}
+                                <div>
+                                  <span className="text-emerald-400 block text-[10px] font-mono font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <Link size={11} /> Enlace e Invitación para el Cliente:
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={guestUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-emerald-300 hover:underline font-mono font-bold truncate text-[10px] flex-1 bg-[#0E2747] p-2 rounded-lg border border-emerald-500/30"
+                                    >
+                                      {guestUrl}
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const fullInvite = `💻 Enlace de la Reunión: ${guestUrl}\n🔑 PIN de Acceso: ${pinCode}`;
+                                        navigator.clipboard.writeText(fullInvite);
+                                        showToast('¡Invitación de Cliente Copiada!', `Se copió la invitación con PIN (${pinCode}) de ${item.nombre} al portapapeles.`, 'emerald');
+                                      }}
+                                      className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer shadow-md"
+                                      title="Copiar Enlace y PIN del cliente"
+                                    >
+                                      Copiar Cliente
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Enlace Anfitrión (/reunion) */}
+                                <div>
+                                  <span className="text-[#C9A96E] block text-[10px] font-mono font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <Video size={11} /> Enlace para Anfitrión (/reunion):
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={hostUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-amber-200 hover:underline font-mono font-bold truncate text-[10px] flex-1 bg-[#0E2747] p-2 rounded-lg border border-[#1E3A5F]"
+                                    >
+                                      {hostUrl}
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(hostUrl);
+                                        showToast('¡Enlace de Anfitrión Copiado!', `El enlace de anfitrión (/reunion) de ${item.nombre} ha sido copiado al portapapeles.`, 'amber');
+                                      }}
+                                      className="px-2.5 py-1.5 bg-[#C9A96E] hover:bg-[#D4B579] text-[#050203] font-mono text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer shadow-md"
+                                    >
+                                      Copiar Anfitrión
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bottom Action Footer */}
+                            <div className="mt-6 pt-4 border-t border-[#1E3A5F] flex items-center justify-end gap-2">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openScheduleModal(item)}
+                                  className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[11px] font-mono font-bold rounded-lg border border-amber-500/30 flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  <RefreshCw size={12} />
+                                  <span>Re-agendar</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkCompleted(item)}
+                                  className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-mono font-bold rounded-lg border border-emerald-500/30 flex items-center gap-1 transition cursor-pointer"
+                                  title="Marcar como realizada"
+                                >
+                                  <CheckCircle2 size={12} />
+                                  <span>Completada</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Indicador de Puntos Slide en la parte inferior */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-3 pb-1">
+                        {Array.from({ length: totalPages }).map((_, pageIdx) => (
+                          <button
+                            key={pageIdx}
+                            type="button"
+                            onClick={() => setCurrentPage(pageIdx)}
+                            className={`h-2 rounded-full transition-all cursor-pointer ${
+                              validPage === pageIdx
+                                ? 'w-8 bg-[#C9A96E]'
+                                : 'w-2 bg-[#1E3A5F] hover:bg-slate-400'
+                            }`}
+                            title={`Ir a la diapositiva ${pageIdx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* ── RIGHT COLUMN (1 Column Wide): REUNIONES PASADAS & REUNIONES COMPLETADAS ── */}
@@ -679,13 +746,7 @@ export default function AdminRescueMeetings() {
                         <p className="text-xs text-slate-400 font-mono">{item.empresa}</p>
                       </div>
 
-                      <div className="pt-2 border-t border-[#1E3A5F]/60 flex items-center justify-between gap-2">
-                        <button
-                          onClick={() => setSelectedSubmission(item)}
-                          className="text-[11px] font-mono text-sky-400 hover:text-sky-300 underline cursor-pointer"
-                        >
-                          Ver Expediente
-                        </button>
+                      <div className="pt-2 border-t border-[#1E3A5F]/60 flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleMarkCompleted(item)}
                           className="text-[11px] font-mono text-emerald-400 hover:text-emerald-300 underline cursor-pointer flex items-center gap-1 font-bold"
@@ -742,13 +803,7 @@ export default function AdminRescueMeetings() {
                       <p className="text-xs text-slate-400 font-mono">{item.empresa}</p>
                     </div>
 
-                    <div className="pt-2 border-t border-[#1E3A5F]/60 flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => setSelectedSubmission(item)}
-                        className="text-[11px] font-mono text-sky-400 hover:text-sky-300 underline cursor-pointer"
-                      >
-                        Ver Expediente
-                      </button>
+                    <div className="pt-2 border-t border-[#1E3A5F]/60 flex items-center justify-end gap-2">
                       <button
                         onClick={() => openScheduleModal(item)}
                         className="text-[11px] font-mono text-amber-400 hover:text-amber-300 underline cursor-pointer"
@@ -822,6 +877,20 @@ export default function AdminRescueMeetings() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 font-bold uppercase mb-1.5 flex items-center justify-between">
+                    <span>🔑 Contraseña / PIN de Acceso a la Sala</span>
+                    <span className="text-[10px] text-slate-400 font-normal">🔒 Protegido</span>
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    disabled
+                    value={meetingPin}
+                    className="w-full px-4 py-2.5 bg-[#030712]/80 border border-amber-500/40 rounded-xl text-xs font-mono font-bold text-amber-300 tracking-widest outline-none opacity-90 cursor-not-allowed select-all shadow-inner"
+                  />
+                </div>
+
                 <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 space-y-2">
                   <div className="font-bold text-[#C9A96E] flex items-center justify-between">
                     <span className="flex items-center gap-1.5"><Video size={14} /> Enlace de Videollamada Generado:</span>
@@ -835,7 +904,7 @@ export default function AdminRescueMeetings() {
                     className="w-full bg-[#030712]/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold rounded-lg p-2.5 outline-none opacity-90 cursor-not-allowed select-all tracking-wide shadow-inner"
                   />
                   <p className="text-[11px] text-slate-300">
-                    El sistema generará e incluirá automáticamente este enlace directo y la contraseña de acceso al enviar la notificación.
+                    El sistema notificará por correo con este enlace directo y la contraseña de acceso (<strong>{meetingPin}</strong>).
                   </p>
                 </div>
               </div>

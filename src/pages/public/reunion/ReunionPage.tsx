@@ -53,6 +53,7 @@ function VideoPlayer({ stream, isLocal }: { stream: MediaStream | null; isLocal?
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
     }
   }, [stream]);
 
@@ -99,6 +100,12 @@ export default function ReunionPage() {
   // Stream de video local y remoto
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+
+  // Captura de frames base64 para streaming respaldado por servidor
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const hiddenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const localFrameRef = useRef<string | null>(null);
+  const [remotePeerFrames, setRemotePeerFrames] = useState<Record<string, string>>({});
 
   // Referencia PeerConnection para WebRTC nativo P2P
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -341,17 +348,55 @@ export default function ReunionPage() {
     };
   }, [isScreenSharing]);
 
-  useEffect(() => {
-    return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
-      if (recordingStreamRef.current) {
-        recordingStreamRef.current.getTracks().forEach((t) => t.stop());
+  // ── FUNCIÓN COMPLETA DE APAGADO DE HARDWARE (CÁMARA, MICRÓFONO, PANTALLA, GRABACIÓN) ──
+  const stopAllHardwareMedia = () => {
+    try {
+      if (localStream) {
+        localStream.getTracks().forEach((track) => {
+          try {
+            track.stop();
+            track.enabled = false;
+          } catch {}
+        });
+        setLocalStream(null);
       }
       if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current.getTracks().forEach((track) => {
+          try {
+            track.stop();
+            track.enabled = false;
+          } catch {}
+        });
+        screenStreamRef.current = null;
       }
+      if (recordingStreamRef.current) {
+        recordingStreamRef.current.getTracks().forEach((track) => {
+          try {
+            track.stop();
+            track.enabled = false;
+          } catch {}
+        });
+        recordingStreamRef.current = null;
+      }
+      if (pcRef.current) {
+        try {
+          pcRef.current.getSenders().forEach((sender) => {
+            if (sender.track) {
+              try { sender.track.stop(); } catch {}
+            }
+          });
+          pcRef.current.close();
+        } catch {}
+        pcRef.current = null;
+      }
+    } catch (err) {
+      console.warn('Error al apagar componentes de hardware:', err);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopAllHardwareMedia();
     };
   }, []);
 
@@ -413,6 +458,13 @@ export default function ReunionPage() {
     };
   }, [cameraActive]);
 
+  // Asignar stream al video oculto de captura
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
   // Alternar audio y video en localStream
   useEffect(() => {
     if (localStream) {
@@ -421,13 +473,42 @@ export default function ReunionPage() {
     }
   }, [cameraActive, micActive, localStream]);
 
+  // Captura periódica de frames para streaming de respaldo
+  useEffect(() => {
+    if (!cameraActive || !localStream) return;
+
+    const canvas = hiddenCanvasRef.current || document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 240;
+    hiddenCanvasRef.current = canvas;
+    const ctx = canvas.getContext('2d');
+
+    const frameInterval = setInterval(() => {
+      if (localVideoRef.current && ctx && localVideoRef.current.readyState >= 2) {
+        try {
+          ctx.drawImage(localVideoRef.current, 0, 0, 320, 240);
+          localFrameRef.current = canvas.toDataURL('image/jpeg', 0.35);
+        } catch {}
+      }
+    }, 120);
+
+    return () => clearInterval(frameInterval);
+  }, [cameraActive, localStream]);
+
   // ── 2. WEBRTC P2P SIGNALING Y STREAMING DIRECTO DE VIDEO/AUDIO ──
   useEffect(() => {
     if (!localStream) return;
 
-    // Crear conexión WebRTC con servidores STUN de Google
+    // Crear conexión WebRTC con múltiples servidores STUN públicos
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.services.mozilla.com' },
+      ],
     });
     pcRef.current = pc;
 
@@ -440,6 +521,8 @@ export default function ReunionPage() {
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
         setRemoteStream(event.streams[0]);
+      } else if (event.track) {
+        setRemoteStream(new MediaStream([event.track]));
       }
     };
 
@@ -546,6 +629,7 @@ export default function ReunionPage() {
             isVideoOn: cameraActive,
             isAudioOn: micActive,
             isScreenSharing,
+            frameData: cameraActive ? localFrameRef.current : null,
             screenFrameData: isScreenSharing ? screenFrameRef.current : null,
           }),
         });
@@ -565,10 +649,21 @@ export default function ReunionPage() {
               isVideoOn: p.isVideoOn,
               isAudioOn: p.isAudioOn,
               isScreenSharing: p.isScreenSharing,
+              frameData: p.frameData || null,
               screenFrameData: p.screenFrameData || null,
               color: '#38BDF8',
             }));
           setRemotePeers(remotes);
+
+          const newFrames: Record<string, string> = {};
+          remotes.forEach((r) => {
+            if (r.frameData) {
+              newFrames[r.peerId] = r.frameData;
+            }
+          });
+          if (Object.keys(newFrames).length > 0) {
+            setRemotePeerFrames((prev) => ({ ...prev, ...newFrames }));
+          }
         }
 
         if (data.messages && data.messages.length > 0) setChatMessages(data.messages);
@@ -582,15 +677,23 @@ export default function ReunionPage() {
     const interval = setInterval(syncWithServer, 1000);
 
     const handleUnload = () => {
-      navigator.sendBeacon(`${API_BASE}/api/room/leave`, JSON.stringify({ roomId, peerId: localPeerId }));
+      try {
+        navigator.sendBeacon(`${API_BASE}/api/room/leave`, JSON.stringify({ roomId, peerId: localPeerId }));
+      } catch {}
+      stopAllHardwareMedia();
     };
 
     window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('unload', handleUnload);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
       window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('unload', handleUnload);
+      stopAllHardwareMedia();
     };
   }, [roomId, localPeerId, localName, localRole, cameraActive, micActive]);
 
@@ -699,9 +802,7 @@ export default function ReunionPage() {
     if (isRecording || (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive')) {
       stopRecording();
     }
-    if (localStream) {
-      localStream.getTracks().forEach((t) => t.stop());
-    }
+    stopAllHardwareMedia();
     try {
       await fetch(`${API_BASE}/api/room/leave`, {
         method: 'POST',
@@ -980,16 +1081,20 @@ export default function ReunionPage() {
           ) : (
             /* 🎥 MODO CUADRÍCULA MULTI-CÁMARA ESTÁNDAR (MÁS COMPACTO Y DECORATIVO) */
             <div className={`w-full h-full rounded-2xl bg-[#060E1B] border border-[#1E3A5F]/80 shadow-[0_15px_45px_rgba(0,0,0,0.8)] p-2.5 md:p-3 grid gap-2.5 ${getGridClasses(allActiveParticipants.length)} pointer-events-none select-none relative overflow-hidden`}>
-              {allActiveParticipants.map((p) => {
+              {allActiveParticipants.map((p, index) => {
+                const remoteFrame = p.isLocal ? null : (remotePeerFrames[p.peerId] || p.frameData || null);
+
                 return (
                   <div
-                    key={p.peerId}
+                    key={p.peerId || `peer-${index}`}
                     className="w-full h-full rounded-xl bg-[#081628] border border-[#1E3A5F]/80 shadow-md relative overflow-hidden flex flex-col items-center justify-center min-h-[170px] md:min-h-[200px]"
                   >
                     {/* SI TIENE CÁMARA ENCENDIDA */}
                     {p.isVideoOn ? (
                       p.stream ? (
                         <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                      ) : remoteFrame ? (
+                        <img src={remoteFrame} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-[#0A1A30] via-[#071325] to-[#040A14] overflow-hidden p-4">
                           <div className="absolute w-28 h-28 rounded-full border border-[#C9A96E]/20 animate-ping pointer-events-none" />

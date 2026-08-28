@@ -279,7 +279,22 @@ export default function AdminRescueLeads() {
   const [meetingDate, setMeetingDate] = useState<string>('');
   const [meetingTime, setMeetingTime] = useState<string>('10:00');
   const [meetingLink, setMeetingLink] = useState<string>('');
+  const [meetingPin, setMeetingPin] = useState<string>('');
   const [isSavingMeeting, setIsSavingMeeting] = useState(false);
+
+  const generateAlphaPin = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let p = '';
+    for (let i = 0; i < 6; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+    return p;
+  };
+
+  const generateAlphaRoomId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return `MEET-${code}`;
+  };
 
   const openScheduleModal = (submission: SubmissionItem) => {
     setScheduleModalSubmission(submission);
@@ -288,14 +303,9 @@ export default function AdminRescueLeads() {
     setMeetingDate(submission.meeting_date || tomorrow.toISOString().split('T')[0]);
     setMeetingTime(submission.meeting_time || '10:00');
 
-    const generateAlphaRoomId = () => {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let code = '';
-      for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-      return `MEET-${code}`;
-    };
-
     const roomId = submission.roomId || generateAlphaRoomId();
+    const pin = submission.pinAcceso || submission.codigoReunion || generateAlphaPin();
+    setMeetingPin(pin);
     const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
     setMeetingLink(guestLink);
   };
@@ -317,23 +327,10 @@ export default function AdminRescueLeads() {
         scheduleModalSubmission.status === 'Reunión Enviada'
       );
 
-      const generateAlphaPin = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let p = '';
-        for (let i = 0; i < 6; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
-        return p;
-      };
-
-      const generateAlphaRoomId = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-        return `MEET-${code}`;
-      };
-
       const roomId = scheduleModalSubmission.roomId || generateAlphaRoomId();
-      // AL AGENDAR O REAGENDAR, SIEMPRE GENERAR UNA CONTRASEÑA FRESCA Y NUEVA (REEMPLAZANDO LA ANTERIOR)
-      const generatedPin = generateAlphaPin();
+      // MANTENER EL MISMO PIN ORIGINAL AL REAGENDAR
+      const originalPin = scheduleModalSubmission.pinAcceso || scheduleModalSubmission.codigoReunion;
+      const generatedPin = originalPin || meetingPin || generateAlphaPin();
       const guestLink = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
 
       const payload = {
@@ -943,14 +940,6 @@ export default function AdminRescueLeads() {
                         </p>
                       )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                    <button
-                      onClick={() => openScheduleModal(selectedSubmission)}
-                      className="px-4 py-2 bg-[#0E2747] hover:bg-[#123254] border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold rounded-xl transition cursor-pointer"
-                    >
-                      Re-agendar / Modificar
-                    </button>
                   </div>
                 </div>
               ) : selectedSubmission.review_requested ? (
@@ -1663,6 +1652,24 @@ export default function AdminRescueLeads() {
                     className="w-full bg-[#07192F] border border-[#1E3A5F] focus:border-[#C9A96E] text-white text-xs font-mono rounded-xl p-3 outline-none transition"
                   />
                 </div>
+              </div>
+
+              {/* PIN / Contraseña de la Sala (Bloqueado y Protegido - No Modificable) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono font-bold text-amber-300 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Key size={13} />
+                    Contraseña / PIN de Acceso a la Sala:
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">🔒 Protegido</span>
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={meetingPin}
+                  className="w-full bg-[#030712]/80 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold rounded-xl p-3 outline-none opacity-90 cursor-not-allowed select-all tracking-widest shadow-inner"
+                />
               </div>
 
               {/* Input Enlace Generado (Bloqueado y Protegido - No Modificable) */}

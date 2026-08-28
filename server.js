@@ -1300,13 +1300,15 @@ app.post(['/api/office-hours/admin', '/api/office-hours/book'], async (req, res)
 // Cambiar estado o aprobar reunión en MongoDB
 app.patch(['/api/office-hours/admin/:id/status', '/api/office-hours/admin/:id/approve'], async (req, res) => {
   try {
-    const { status, estado, meetLink, codigoReunion, pinAcceso, roomId } = req.body;
+    const { status, estado, meetLink, codigoReunion, pinAcceso, roomId, dia, slot, fecha, hora } = req.body;
     const newStatus = status || estado || 'pendiente';
     const updateObj = { estado: newStatus };
     if (meetLink) updateObj.meetLink = meetLink;
     if (codigoReunion) updateObj.codigoReunion = codigoReunion;
     if (pinAcceso) updateObj.pinAcceso = pinAcceso;
     if (roomId) updateObj.roomId = roomId;
+    if (dia || fecha) updateObj.fecha = dia || fecha;
+    if (slot || hora) updateObj.hora = slot || hora;
 
     const updated = await OfficeHour.findByIdAndUpdate(
       req.params.id,
@@ -1316,6 +1318,43 @@ app.patch(['/api/office-hours/admin/:id/status', '/api/office-hours/admin/:id/ap
     if (!updated) {
       return res.status(404).json({ success: false, error: 'Reunión no encontrada' });
     }
+
+    const freshPin = pinAcceso || codigoReunion || updated.pinAcceso || updated.codigoReunion;
+    const freshLink = meetLink || updated.meetLink;
+    const mDate = dia || fecha || updated.fecha;
+    const mTime = slot || hora || updated.hora;
+
+    let emailResult = null;
+    const isApprovedOrConfirmed = ['confirmado', 'aprobada', 'aprobado', 'confirmada', 'reunión agendada', 'reunión enviada'].includes(newStatus.toLowerCase());
+    if (isApprovedOrConfirmed) {
+      emailResult = await sendMeetingInviteEmailToLead(
+        updated,
+        mDate,
+        mTime,
+        freshLink,
+        false,
+        freshPin
+      );
+    }
+
+    // Sync with FusionRescueLead if matching email or roomId exists
+    try {
+      const recipientEmail = updated.correo || updated.email;
+      const syncObj = {
+        meeting_date: mDate,
+        meeting_time: mTime,
+        meeting_link: freshLink,
+        pinAcceso: freshPin,
+        codigoReunion: freshPin
+      };
+      if (roomId || updated.roomId) syncObj.roomId = roomId || updated.roomId;
+      if (recipientEmail) {
+        await FusionRescueLead.updateMany({ email: recipientEmail }, { $set: syncObj });
+      }
+    } catch (syncErr) {
+      console.warn('⚠️ Sync fallback warning (OfficeHour -> FusionRescueLead):', syncErr.message);
+    }
+
     const formatted = {
       _id: updated._id.toString(),
       nombre: updated.usuario,
@@ -1335,8 +1374,8 @@ app.patch(['/api/office-hours/admin/:id/status', '/api/office-hours/admin/:id/ap
       isCreatedByAdmin: updated.fase === 99,
       createdAt: updated.createdAt
     };
-    console.log(`✅ Reunión aprobada/actualizada en MongoDB Atlas [id=${updated._id}, estado=${updated.estado}, link=${updated.meetLink}]`);
-    res.json({ success: true, data: formatted });
+    console.log(`✅ Reunión aprobada/actualizada en MongoDB Atlas [id=${updated._id}, estado=${updated.estado}, link=${updated.meetLink}, pin=${freshPin}]`);
+    res.json({ success: true, data: formatted, emailResult });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1816,16 +1855,19 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
       console.warn('⚠️ RESEND_API_KEY no configurada. Omite envío de correo de reunión.');
       return { success: false, reason: 'resend_not_configured' };
     }
-    if (!lead || !lead.email) {
+    const recipientEmail = lead ? (lead.email || lead.correo) : null;
+    if (!lead || !recipientEmail) {
       console.warn('⚠️ Prospecto no cuenta con email válido.');
       return { success: false, reason: 'no_email' };
     }
 
-    const fullName = `${lead.first_name || lead.nombre || 'Estimado(a)'} ${lead.last_name || lead.apellidos || ''}`.trim();
+    const fullName = `${lead.first_name || lead.nombre || lead.usuario || 'Estimado(a)'} ${lead.last_name || lead.apellidos || ''}`.trim();
     const company = lead.empresa || lead.company_name || 'tu empresa';
-    const formattedDate = meetingDate || 'Fecha por confirmar';
-    const formattedTime = meetingTime ? `${meetingTime} hrs` : 'Horario por confirmar';
-    const linkUrl = meetingLink || 'https://fabricsoft.mx';
+    const rawDate = meetingDate || lead.meeting_date || lead.dia || lead.fecha;
+    const formattedDate = rawDate || 'Fecha por confirmar';
+    const rawTime = meetingTime || lead.meeting_time || lead.slot || lead.hora;
+    const formattedTime = rawTime ? (rawTime.includes('hrs') ? rawTime : `${rawTime} hrs`) : 'Horario por confirmar';
+    const linkUrl = meetingLink || lead.meeting_link || lead.meetLink || 'https://fabricsoft.mx';
 
     const headerBadge = isReschedule ? 'FABRIC CONSULTING · REUNIÓN REAGENDADA' : 'FABRIC CONSULTING · CONFIRMACIÓN DE SESIÓN';
     const headerTitle = isReschedule ? '🔄 Reunión Técnica Reagendada' : '📅 Confirmación de Reunión Técnica';
@@ -1834,8 +1876,8 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
       : `Confirmación de Reunión Técnica FABRIC: ${formattedDate} (${formattedTime})`;
 
     const bodyMessage = isReschedule
-      ? `Te informamos que tu sesión técnica de revisión del diagnóstico <strong>Fusion Rescue™</strong> para <strong>${company}</strong> ha sido <strong>reagendada exitosamente</strong>. A continuación te compartimos los nuevos detalles de fecha y horario:`
-      : `Te confirmamos que tu sesión técnica de revisión del diagnóstico <strong>Fusion Rescue™</strong> para <strong>${company}</strong> ha sido agendada exitosamente con nuestro equipo técnico especializado.`;
+      ? `Te informamos que tu sesión técnica de revisión para <strong>${company}</strong> ha sido <strong>reagendada exitosamente</strong>. A continuación te compartimos los nuevos detalles de fecha y horario:`
+      : `Te confirmamos que tu sesión técnica de revisión para <strong>${company}</strong> ha sido agendada exitosamente con nuestro equipo técnico especializado.`;
 
     const accessPin = explicitPin || lead.pinAcceso || lead.codigoReunion || 'DRAND9';
 
@@ -1861,11 +1903,11 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
         <div style="background-color: #0E2747; border: 1px solid #C9A96E; padding: 24px; border-radius: 14px; margin: 24px 0;">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #f8fafc;">
             <tr style="border-bottom: 1px solid #1E3A5F;">
-              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold; width: 140px;">📅 Nueva Fecha:</td>
+              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold; width: 140px;">📅 Fecha:</td>
               <td style="padding: 10px 0; font-weight: bold; color: #38bdf8;">${formattedDate}</td>
             </tr>
             <tr style="border-bottom: 1px solid #1E3A5F;">
-              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">⏰ Nuevo Horario:</td>
+              <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">⏰ Horario:</td>
               <td style="padding: 10px 0; font-weight: bold; color: #34d399;">${formattedTime}</td>
             </tr>
             <tr style="border-bottom: 1px solid #1E3A5F;">
@@ -1876,7 +1918,7 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
               <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">🔑 PIN de Acceso:</td>
               <td style="padding: 10px 0; font-weight: bold; color: #fbbf24; font-family: monospace; font-size: 16px;">${accessPin}</td>
             </tr>
-            ${meetingLink ? `
+            ${linkUrl ? `
             <tr>
               <td style="padding: 10px 0; color: #94a3b8; font-weight: bold;">💻 Enlace Videollamada:</td>
               <td style="padding: 10px 0; color: #C9A96E; font-weight: bold; word-break: break-all;">
@@ -1887,10 +1929,10 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
           </table>
         </div>
 
-        ${meetingLink ? `
+        ${linkUrl ? `
         <div style="text-align: center; margin: 28px 0 20px 0;">
           <a href="${linkUrl}" target="_blank" style="display: inline-block; background-color: #C9A96E; color: #050203; padding: 14px 32px; font-weight: bold; text-decoration: none; border-radius: 12px; font-size: 14px; box-shadow: 0 4px 12px rgba(201, 169, 110, 0.3);">
-            💻 Unirme a la Reunión Reagendada
+            ${isReschedule ? '💻 Unirme a la Reunión Reagendada' : '💻 Unirme a la Reunión'}
           </a>
         </div>
         ` : ''}
@@ -1904,7 +1946,7 @@ async function sendMeetingInviteEmailToLead(lead, meetingDate, meetingTime, meet
 
     let sendRes = await resend.emails.send({
       from: 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>',
-      to: [lead.email],
+      to: [recipientEmail],
       subject: emailSubject,
       html: htmlContent
     });
@@ -2124,7 +2166,7 @@ async function sendCancellationEmailToLead(lead, dia, slot) {
 app.patch(['/api/office-hours/admin/:id/cancel', '/api/fusion-rescue/submissions/:id/cancel'], async (req, res) => {
   try {
     const targetId = req.params.id;
-    const { email, dia, slot } = req.body;
+    const { email, dia, slot, nombre, empresa } = req.body;
 
     const queryOr = [];
     if (mongoose.Types.ObjectId.isValid(targetId)) queryOr.push({ _id: targetId });
@@ -2137,8 +2179,21 @@ app.patch(['/api/office-hours/admin/:id/cancel', '/api/fusion-rescue/submissions
       cancelled_at: new Date()
     };
 
+    // Update FusionRescueLead collection
     if (queryOr.length > 0) {
       await FusionRescueLead.updateMany({ $or: queryOr }, { $set: updateObj });
+    }
+
+    // Update OfficeHour collection
+    try {
+      const ohQuery = [];
+      if (mongoose.Types.ObjectId.isValid(targetId)) ohQuery.push({ _id: targetId });
+      if (email) ohQuery.push({ correo: email });
+      if (ohQuery.length > 0) {
+        await OfficeHour.updateMany({ $or: ohQuery }, { $set: { estado: 'cancelado' } });
+      }
+    } catch (ohErr) {
+      console.warn('⚠️ OfficeHour cancellation sync warning:', ohErr.message);
     }
 
     let updated = await FusionRescueLead.findOne({ $or: queryOr }).sort({ updatedAt: -1, _id: -1 });
@@ -2146,12 +2201,13 @@ app.patch(['/api/office-hours/admin/:id/cancel', '/api/fusion-rescue/submissions
       updated = await FusionRescueLead.findById(targetId).catch(() => null);
     }
 
-    const leadToNotify = updated || { email, nombre: req.body.nombre, empresa: req.body.empresa };
+    const leadToNotify = updated || { email, nombre, empresa };
     let emailResult = null;
-    if (leadToNotify && leadToNotify.email) {
+    if (leadToNotify && (leadToNotify.email || leadToNotify.correo)) {
       emailResult = await sendCancellationEmailToLead(leadToNotify, dia, slot);
     }
 
+    console.log(`❌ Cita cancelada de forma permanente en MongoDB Atlas [id=${targetId}, email=${email}]`);
     res.json({ success: true, data: updated, emailResult });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -2165,8 +2221,13 @@ const handleStatusUpdate = async (req, res) => {
       return res.status(400).json({ success: false, error: 'El campo status es requerido' });
     }
     const updateObj = { status };
+    if (meeting_date !== undefined) updateObj.meeting_date = meeting_date;
+    if (meeting_time !== undefined) updateObj.meeting_time = meeting_time;
     if (meeting_link !== undefined) updateObj.meeting_link = meeting_link;
     if (roomId !== undefined) updateObj.roomId = roomId;
+    if (email) updateObj.email = email;
+    if (nombre) updateObj.nombre = nombre;
+    if (empresa) updateObj.empresa = empresa;
     if (pinAcceso !== undefined || codigoReunion !== undefined) {
       const freshPin = pinAcceso || codigoReunion;
       updateObj.pinAcceso = freshPin;
@@ -2210,14 +2271,43 @@ const handleStatusUpdate = async (req, res) => {
       updated = await FusionRescueLead.create(newLeadObj);
     }
 
-    let emailResult = null;
-    if (send_meeting_email !== false && (meeting_date || updated.meeting_date)) {
-      const mDate = meeting_date || updated.meeting_date;
-      const mTime = meeting_time || updated.meeting_time;
-      const mLink = meeting_link !== undefined ? meeting_link : updated.meeting_link;
+    const mDate = meeting_date || updated.meeting_date;
+    const mTime = meeting_time || updated.meeting_time;
+    const mLink = meeting_link !== undefined ? meeting_link : updated.meeting_link;
+    const mPin = pinAcceso || codigoReunion || updated.pinAcceso || updated.codigoReunion;
 
-      const mPin = pinAcceso || codigoReunion || updated.pinAcceso || updated.codigoReunion;
-      emailResult = await sendMeetingInviteEmailToLead(updated, mDate, mTime, mLink, isRescheduleEvent, mPin);
+    const leadToNotify = {
+      ...(updated.toObject ? updated.toObject() : updated),
+      email: updated.email || email,
+      nombre: updated.nombre || nombre,
+      empresa: updated.empresa || empresa,
+      pinAcceso: mPin,
+      codigoReunion: mPin
+    };
+
+    // Sync with OfficeHour if matching email exists
+    try {
+      const targetEmail = leadToNotify.email || email;
+      if (targetEmail) {
+        await OfficeHour.updateMany({ correo: targetEmail }, {
+          $set: {
+            estado: status,
+            fecha: mDate,
+            hora: mTime,
+            meetLink: mLink,
+            pinAcceso: mPin,
+            codigoReunion: mPin,
+            roomId: roomId || updated.roomId
+          }
+        });
+      }
+    } catch (syncErr) {
+      console.warn('⚠️ Sync fallback warning (FusionRescueLead -> OfficeHour):', syncErr.message);
+    }
+
+    let emailResult = null;
+    if (send_meeting_email !== false && mDate) {
+      emailResult = await sendMeetingInviteEmailToLead(leadToNotify, mDate, mTime, mLink, isRescheduleEvent, mPin);
       if (emailResult && emailResult.success) {
         updated = await FusionRescueLead.findByIdAndUpdate(updated._id, {
           status: 'Reunión Enviada',
