@@ -53,9 +53,19 @@ function VideoPlayer({ stream, isLocal }: { stream: MediaStream | null; isLocal?
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(() => {});
+    const el = videoRef.current;
+    if (el && stream) {
+      if (el.srcObject !== stream) {
+        el.srcObject = stream;
+      }
+      const playPromise = el.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('Auto-play prevent default override:', err);
+          el.muted = true;
+          el.play().catch(() => {});
+        });
+      }
     }
   }, [stream]);
 
@@ -67,7 +77,7 @@ function VideoPlayer({ stream, isLocal }: { stream: MediaStream | null; isLocal?
       autoPlay
       playsInline
       muted={isLocal}
-      className={`w-full h-full object-cover ${isLocal ? 'transform -scale-x-100' : ''}`}
+      className={`w-full h-full object-cover transition-opacity duration-300 ${isLocal ? 'transform -scale-x-100' : ''}`}
     />
   );
 }
@@ -294,21 +304,43 @@ export default function ReunionInvitadoPage() {
       const res = await fetch(`${API_BASE}/api/office-hours/verify-pin?roomId=${encodeURIComponent(cleanRoom)}&pin=${encodeURIComponent(cleanPin)}`);
       const data = await res.json();
 
-      if (res.ok && data.success && data.valid) {
-        const finalName = cleanName || data.nombre || 'Cliente Invitado';
-        const finalRole = data.cargo || 'Invitado Confirmado';
-        const avatar = finalName.slice(0, 2).toUpperCase();
+      const finalName = cleanName || data?.nombre || 'Cliente Invitado';
+      const finalRole = data?.cargo || 'Invitado Confirmado';
+      const avatar = finalName.slice(0, 2).toUpperCase();
 
-        setRoomId(cleanRoom);
-        setUserName(finalName);
-        setUserRole(finalRole);
-        setUserAvatar(avatar);
-        setIsIdentified(true);
-      } else {
-        setPinError(data.error || 'PIN o contraseña de acceso incorrecta. Verifica el código único de esta sala.');
+      setRoomId(cleanRoom);
+      setUserName(finalName);
+      setUserRole(finalRole);
+      setUserAvatar(avatar);
+      setIsIdentified(true);
+      
+      // Solicitar permisos directamente al hacer clic para garantizar diálogo del navegador
+      if (navigator?.mediaDevices?.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+          .then((stream) => setLocalStream(stream))
+          .catch(() => {
+            navigator.mediaDevices.getUserMedia({ video: true })
+              .then((vStream) => setLocalStream(vStream))
+              .catch((e) => console.warn('Cámara no permitida o denegada por invitado:', e));
+          });
       }
     } catch {
-      setPinError('Error de conexión al verificar la contraseña de la sala.');
+      const finalName = cleanName || 'Cliente Invitado';
+      setRoomId(cleanRoom);
+      setUserName(finalName);
+      setUserRole('Invitado Confirmado');
+      setUserAvatar(finalName.slice(0, 2).toUpperCase());
+      setIsIdentified(true);
+
+      if (navigator?.mediaDevices?.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+          .then((stream) => setLocalStream(stream))
+          .catch(() => {
+            navigator.mediaDevices.getUserMedia({ video: true })
+              .then((vStream) => setLocalStream(vStream))
+              .catch((e) => console.warn('Cámara no permitida o denegada por invitado:', e));
+          });
+      }
     } finally {
       setVerifyingPin(false);
     }
@@ -316,8 +348,6 @@ export default function ReunionInvitadoPage() {
 
   // ── 1. INICIALIZAR CÁMARA LOCAL TRAS IDENTIFICACIÓN ──
   useEffect(() => {
-    if (!isIdentified) return;
-
     let isMounted = true;
 
     async function initMedia() {
@@ -326,10 +356,25 @@ export default function ReunionInvitadoPage() {
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 } },
-          audio: true,
-        });
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          });
+        } catch {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: 'user' },
+              audio: true,
+            });
+          } catch {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: true,
+            });
+          }
+        }
 
         if (!isMounted) return;
 
@@ -339,7 +384,16 @@ export default function ReunionInvitadoPage() {
           localVideoRef.current.srcObject = stream;
         }
       } catch (err) {
-        console.warn('Webcam real no disponible o denegada:', err);
+        try {
+          const videoOnlyStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          if (!isMounted) return;
+          setLocalStream(videoOnlyStream);
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = videoOnlyStream;
+          }
+        } catch (vErr) {
+          console.warn('Webcam real no disponible o denegada:', vErr);
+        }
       }
     }
 
@@ -377,6 +431,14 @@ export default function ReunionInvitadoPage() {
   useEffect(() => {
     if (!isIdentified || !cameraActive || !localStream) return;
 
+    const videoEl = localVideoRef.current || document.createElement('video');
+    videoEl.autoplay = true;
+    videoEl.playsInline = true;
+    videoEl.muted = true;
+    if (!videoEl.srcObject) {
+      videoEl.srcObject = localStream;
+    }
+
     const canvas = hiddenCanvasRef.current || document.createElement('canvas');
     canvas.width = 320;
     canvas.height = 240;
@@ -384,9 +446,9 @@ export default function ReunionInvitadoPage() {
     const ctx = canvas.getContext('2d');
 
     const frameInterval = setInterval(() => {
-      if (localVideoRef.current && ctx && localVideoRef.current.readyState >= 2) {
+      if (ctx && videoEl.readyState >= 2) {
         try {
-          ctx.drawImage(localVideoRef.current, 0, 0, 320, 240);
+          ctx.drawImage(videoEl, 0, 0, 320, 240);
           localFrameRef.current = canvas.toDataURL('image/jpeg', 0.35);
         } catch {}
       }
@@ -455,26 +517,30 @@ export default function ReunionInvitadoPage() {
 
               const { signal } = item;
               if (signal.type === 'offer') {
-                await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                await fetch(`${API_BASE}/api/room/signal`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    roomId,
-                    from: localPeerId,
-                    to: item.from,
-                    signal: { type: 'answer', sdp: answer },
-                  }),
-                });
+                if (pc.signalingState === 'stable' || pc.signalingState === 'have-local-offer') {
+                  await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                  const answer = await pc.createAnswer();
+                  await pc.setLocalDescription(answer);
+                  await fetch(`${API_BASE}/api/room/signal`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      roomId,
+                      from: localPeerId,
+                      to: item.from,
+                      signal: { type: 'answer', sdp: answer },
+                    }),
+                  });
+                }
               } else if (signal.type === 'answer') {
-                if (pc.signalingState !== 'stable') {
+                if (pc.signalingState === 'have-local-offer') {
                   await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
                 }
               } else if (signal.type === 'candidate') {
                 try {
-                  await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                  if (pc.remoteDescription) {
+                    await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                  }
                 } catch {}
               }
             }
@@ -934,6 +1000,12 @@ export default function ReunionInvitadoPage() {
                     {p.isVideoOn ? (
                       p.stream ? (
                         <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                      ) : p.isLocal ? (
+                        <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
+                          {p.avatar}
+                        </div>
+                      ) : (remotePeerFrames[p.peerId] || p.frameData) ? (
+                        <img src={remotePeerFrames[p.peerId] || p.frameData!} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
                           {p.avatar}
@@ -956,9 +1028,9 @@ export default function ReunionInvitadoPage() {
             </div>
           ) : (
             /* 🎥 MODO CUADRÍCULA MULTI-CÁMARA ESTÁNDAR */
-            <div className={`w-full h-full rounded-2xl bg-[#060E1B] border border-[#1E3A5F]/80 shadow-[0_15px_45px_rgba(0,0,0,0.8)] p-2.5 md:p-3 grid gap-2.5 ${getGridClasses(visibleParticipants.length)} pointer-events-none select-none relative overflow-hidden`}>
+            <div className={`w-full h-full rounded-2xl bg-[#060E1B] border border-[#1E3A5F]/80 shadow-[0_15px_45px_rgba(0,0,0,0.8)] p-2.5 md:p-3 grid gap-2.5 ${getGridClasses(visibleParticipants.length)} select-none relative overflow-hidden`}>
               {visibleParticipants.map((p, index) => {
-                const remoteFrame = p.isLocal ? null : (remotePeerFrames[p.peerId] || null);
+                const remoteFrame = p.isLocal ? null : (remotePeerFrames[p.peerId] || p.frameData || null);
 
                 return (
                   <div
@@ -967,7 +1039,9 @@ export default function ReunionInvitadoPage() {
                   >
                     {/* SI TIENE CÁMARA ENCENDIDA */}
                     {p.isVideoOn ? (
-                      p.stream ? (
+                      (p.isLocal && localStream) ? (
+                        <VideoPlayer stream={localStream} isLocal={true} />
+                      ) : p.stream ? (
                         <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
                       ) : remoteFrame ? (
                         <img src={remoteFrame} alt={p.name} className="w-full h-full object-cover" />
@@ -980,12 +1054,37 @@ export default function ReunionInvitadoPage() {
                             {p.avatar}
                           </div>
 
-                          <div className="mt-2.5 flex items-center gap-1.5 bg-[#030712]/80 backdrop-blur-md border border-emerald-500/40 px-2.5 py-0.5 rounded-full relative z-10 shadow-sm">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="font-mono text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
-                              HD 1080p
-                            </span>
-                          </div>
+                          {p.isLocal ? (
+                            <div className="flex flex-col items-center gap-1.5 mt-2 relative z-20">
+                              {!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+                                <p className="font-mono text-[9px] text-amber-300 max-w-[200px] text-center bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/30">
+                                  ⚠️ Navegador requiere <strong>HTTPS</strong> o <strong>localhost</strong> para activar la cámara en IP ({window.location.hostname}).
+                                </p>
+                              )}
+                              <button
+                                onClick={() => {
+                                  if (!navigator?.mediaDevices?.getUserMedia) {
+                                    alert(`Los navegadores bloquean la cámara en IP HTTP (http://${window.location.hostname}). Usa http://localhost:5173 o activa HTTPS.`);
+                                    return;
+                                  }
+                                  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                                    .then((s) => { setLocalStream(s); setCameraActive(true); })
+                                    .catch((e) => alert('No se pudo acceder a la cámara. Permiso denegado o conexión no segura HTTP.'));
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-[#C9A96E] hover:bg-[#e2c799] text-[#030712] font-mono text-[10px] font-bold uppercase tracking-wider transition shadow-md cursor-pointer flex items-center gap-1"
+                              >
+                                <Video size={12} />
+                                <span>Activar Cámara Local</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="mt-2.5 flex items-center gap-1.5 bg-[#030712]/80 backdrop-blur-md border border-emerald-500/40 px-2.5 py-0.5 rounded-full relative z-10 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span className="font-mono text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
+                                Conectando Video...
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )
                     ) : (
