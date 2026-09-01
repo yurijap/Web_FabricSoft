@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Search, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, User, ShieldAlert, BookOpen } from 'lucide-react';
+import { FileText, Search, RefreshCw, Trash2, ShieldCheck, Mail, User, ShieldAlert, BookOpen, Send, Tag, Check, Download } from 'lucide-react';
 import { useAuthApi } from '../../config/api';
 
 interface PaperRequestItem {
@@ -13,6 +13,23 @@ interface PaperRequestItem {
   createdAt: string;
 }
 
+interface FileItem {
+  _id: string;
+  nombreOriginal: string;
+  tipoMime: string;
+  tamanoBytes: number;
+  seccionTag: string;
+  descripcion?: string;
+  createdAt: string;
+}
+
+const SECCIONES_ETIQUETAS = [
+  { id: 'doctrina', label: 'Doctrina' },
+  { id: 'paper caso ancla', label: 'Paper Caso Ancla' },
+  { id: 'papers casos de exito', label: 'Papers Casos de éxito' },
+  { id: 'papers investigacion', label: 'Papers Investigación' },
+];
+
 export default function AdminDocumentos() {
   const adminApi = useAuthApi();
   const [requests, setRequests] = useState<PaperRequestItem[]>([]);
@@ -21,6 +38,15 @@ export default function AdminDocumentos() {
   const [selectedTab, setSelectedTab] = useState<'investigacion' | 'rescate' | 'todos'>('investigacion');
   const [selected, setSelected] = useState<PaperRequestItem | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Modal para seleccionar y enviar documento por correo
+  const [sendModalRequest, setSendModalRequest] = useState<PaperRequestItem | null>(null);
+  const [allFiles, setAllFiles] = useState<FileItem[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [selectedTagTab, setSelectedTagTab] = useState<string>('papers investigacion');
+  const [selectedFileId, setSelectedFileId] = useState<string>('');
+  const [sendingFile, setSendingFile] = useState(false);
+  const [sendNotice, setSendNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const fetchRequests = () => {
     setLoading(true);
@@ -33,20 +59,67 @@ export default function AdminDocumentos() {
       .finally(() => setLoading(false));
   };
 
+  const fetchFiles = () => {
+    setLoadingFiles(true);
+    adminApi.get('/files')
+      .then(res => {
+        const data = res.data.data ?? [];
+        setAllFiles(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingFiles(false));
+  };
+
   useEffect(() => {
     fetchRequests();
   }, []);
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    setSaving(true);
+  const openSendModal = (reqItem: PaperRequestItem) => {
+    setSendModalRequest(reqItem);
+    setSelectedFileId('');
+    setSendNotice(null);
+    // Asignar pestaña por defecto acorde al tipo de solicitud
+    const p = (reqItem.paperId || '').toLowerCase();
+    if (p.includes('rescate de proyecto')) {
+      setSelectedTagTab('paper caso ancla');
+    } else {
+      setSelectedTagTab('papers investigacion');
+    }
+    fetchFiles();
+  };
+
+  const closeSendModal = () => {
+    setSendModalRequest(null);
+    setSelectedFileId('');
+    setSendNotice(null);
+  };
+
+  const handleSendDocument = async () => {
+    if (!sendModalRequest || !selectedFileId) return;
+    setSendingFile(true);
+    setSendNotice(null);
     try {
-      await adminApi.patch(`/admin/papers/${id}/status`, { status: newStatus }).catch(() => null);
-      setRequests(prev => prev.map(r => r._id === id ? { ...r, status: newStatus } : r));
-      if (selected?._id === id) setSelected(prev => prev ? { ...prev, status: newStatus } : null);
-    } catch {
-      setRequests(prev => prev.map(r => r._id === id ? { ...r, status: newStatus } : r));
+      const res = await adminApi.post(`/admin/papers/${sendModalRequest._id}/send-file`, {
+        fileId: selectedFileId
+      });
+
+      const message = res.data.message || 'Documento enviado con éxito.';
+      setSendNotice({ type: 'success', message });
+
+      // Actualizar estado local a "Enviado"
+      setRequests(prev => prev.map(r => r._id === sendModalRequest._id ? { ...r, status: 'Enviado' } : r));
+      if (selected?._id === sendModalRequest._id) {
+        setSelected(prev => prev ? { ...prev, status: 'Enviado' } : null);
+      }
+
+      setTimeout(() => {
+        closeSendModal();
+      }, 1800);
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || 'Error al enviar el documento.';
+      setSendNotice({ type: 'error', message: errorMsg });
     } finally {
-      setSaving(false);
+      setSendingFile(false);
     }
   };
 
@@ -109,6 +182,18 @@ export default function AdminDocumentos() {
       minute: '2-digit',
     });
   };
+
+  const fmtBytes = (bytes: number) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const filesFilteredByTag = allFiles.filter(
+    f => (f.seccionTag || '').toLowerCase() === selectedTagTab.toLowerCase()
+  );
 
   const solicitadosCount = requests.filter(r => (r.status || '').toLowerCase() === 'solicitado').length;
   const enviadosCount = requests.filter(r => (r.status || '').toLowerCase() === 'enviado').length;
@@ -310,20 +395,19 @@ export default function AdminDocumentos() {
 
                         <td className="py-4 px-5 text-right" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
-                            {!isEnviado && (
-                              <button
-                                onClick={() => handleStatusChange(r._id, 'Enviado')}
-                                disabled={saving}
-                                className="px-2.5 py-1 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 font-mono text-[9px] font-bold uppercase transition"
-                                title="Marcar como enviado"
-                              >
-                                Marcar Enviado
-                              </button>
-                            )}
+                            <button
+                              onClick={() => openSendModal(r)}
+                              className="px-3 py-1.5 rounded-xl border border-[#C9A96E]/50 bg-[#C9A96E]/10 hover:bg-[#C9A96E] text-[#C9A96E] hover:text-[#07192F] font-mono text-[10px] font-bold uppercase transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                              title="Enviar documento por correo"
+                            >
+                              <Send size={12} />
+                              <span>Enviar Documento</span>
+                            </button>
+
                             <button
                               onClick={() => handleDelete(r._id)}
                               disabled={saving}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10"
+                              className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10 cursor-pointer"
                               title="Eliminar registro"
                             >
                               <Trash2 size={14} />
@@ -400,21 +484,194 @@ export default function AdminDocumentos() {
             </div>
 
             <div className="pt-4 flex items-center gap-3">
-              {(selected.status || '').toLowerCase() !== 'enviado' && (
-                <button
-                  onClick={() => handleStatusChange(selected._id, 'Enviado')}
-                  disabled={saving}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <CheckCircle2 size={16} /> Marcar como Enviado
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  const reqItem = selected;
+                  setSelected(null);
+                  openSendModal(reqItem);
+                }}
+                className="flex-1 py-3 bg-[#C9A96E] hover:bg-[#b5955a] text-[#07192F] font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Send size={15} /> Enviar Documento
+              </button>
               <button
                 onClick={() => handleDelete(selected._id)}
                 disabled={saving}
                 className="px-4 py-3 border border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <Trash2 size={15} /> Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Emergente para Selección y Envío de Documentos por Etiqueta */}
+      {sendModalRequest && (
+        <div
+          className="fixed inset-0 bg-[#07192F]/85 backdrop-blur-sm z-[60] flex items-center justify-center p-4 md:p-8"
+          onClick={closeSendModal}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-3xl bg-[#0E2747] border border-[#1E3A5F] rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+          >
+            {/* Cabecera del Modal */}
+            <div className="p-4 md:px-6 bg-[#07192F] border-b border-[#1E3A5F] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-[#C9A96E]/10 border border-[#C9A96E]/30 text-[#C9A96E]">
+                  <Send size={20} />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-white">
+                    Enviar Documento por Correo
+                  </h3>
+                  <p className="font-mono text-xs text-[#94A3B8]">
+                    Destinatario: <span className="text-white font-bold">{sendModalRequest.nombre}</span> ({sendModalRequest.email})
+                  </p>
+                  <p className="font-mono text-[10px] text-[#C9A96E] mt-0.5">
+                    Solicitó: <strong>{sendModalRequest.paperId}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={closeSendModal}
+                className="w-8 h-8 rounded-xl border border-[#1E3A5F] bg-[#123254] text-[#94A3B8] hover:text-white flex items-center justify-center text-lg cursor-pointer transition"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Pestañas de Etiquetas de Secciones */}
+            <div className="p-4 bg-[#0B1F3A] border-b border-[#1E3A5F] flex items-center gap-2 overflow-x-auto">
+              {SECCIONES_ETIQUETAS.map(sec => (
+                <button
+                  key={sec.id}
+                  onClick={() => {
+                    setSelectedTagTab(sec.id);
+                    setSelectedFileId('');
+                  }}
+                  className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer border ${
+                    selectedTagTab === sec.id
+                      ? 'bg-[#C9A96E] text-[#07192F] border-[#C9A96E] shadow-md'
+                      : 'bg-[#0E2747] text-[#94A3B8] border-[#1E3A5F] hover:text-white'
+                  }`}
+                >
+                  <Tag size={13} />
+                  <span>{sec.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Lista de Archivos disponibles en la etiqueta activa */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {sendNotice && (
+                <div
+                  className={`p-4 rounded-xl text-xs font-mono border flex items-center gap-2 ${
+                    sendNotice.type === 'success'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  }`}
+                >
+                  <Check size={16} />
+                  <span>{sendNotice.message}</span>
+                </div>
+              )}
+
+              {loadingFiles ? (
+                <div className="py-12 text-center font-mono text-xs text-[#94A3B8]">
+                  Cargando archivos disponibles desde el Servidor...
+                </div>
+              ) : filesFilteredByTag.length === 0 ? (
+                <div className="py-12 text-center space-y-2 border border-dashed border-[#1E3A5F] rounded-2xl bg-[#07192F]">
+                  <FileText size={32} className="mx-auto text-[#1E3A5F]" />
+                  <p className="font-mono text-xs text-white font-bold">
+                    No hay documentos subidos en la etiqueta "{selectedTagTab.toUpperCase()}"
+                  </p>
+                  <p className="font-mono text-[11px] text-[#94A3B8] max-w-md mx-auto">
+                    Puedes subir archivos para esta sección desde el menú "Control de documentos".
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {filesFilteredByTag.map(file => {
+                    const isSelectedFile = selectedFileId === file._id;
+                    return (
+                      <div
+                        key={file._id}
+                        onClick={() => setSelectedFileId(file._id)}
+                        className={`p-4 rounded-xl border transition cursor-pointer flex flex-col justify-between ${
+                          isSelectedFile
+                            ? 'bg-[#123254] border-[#C9A96E] ring-2 ring-[#C9A96E]/30'
+                            : 'bg-[#07192F] border-[#1E3A5F] hover:border-[#C9A96E]/50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 max-w-[85%]">
+                            <FileText
+                              size={18}
+                              className={isSelectedFile ? 'text-[#C9A96E]' : 'text-[#94A3B8]'}
+                            />
+                            <div className="truncate">
+                              <p className="font-mono text-xs font-bold text-white truncate">
+                                {file.nombreOriginal}
+                              </p>
+                              <span className="font-mono text-[10px] text-[#94A3B8]">
+                                {fmtBytes(file.tamanoBytes)} · {fmtDate(file.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs shrink-0 ${
+                              isSelectedFile
+                                ? 'bg-[#C9A96E] text-[#07192F] border-[#C9A96E]'
+                                : 'border-[#1E3A5F] bg-[#0E2747]'
+                            }`}
+                          >
+                            {isSelectedFile && <Check size={12} className="stroke-[3]" />}
+                          </div>
+                        </div>
+
+                        {file.descripcion && (
+                          <p className="mt-2 text-[11px] text-[#94A3B8] line-clamp-2 italic font-mono bg-[#030712]/40 p-2 rounded-lg border border-[#1E3A5F]/50">
+                            "{file.descripcion}"
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Pie del Modal */}
+            <div className="p-4 md:px-6 bg-[#07192F] border-t border-[#1E3A5F] flex items-center justify-between">
+              <button
+                onClick={closeSendModal}
+                disabled={sendingFile}
+                className="px-4 py-2 bg-[#0E2747] hover:bg-[#123254] text-[#94A3B8] hover:text-white font-mono text-xs rounded-xl border border-[#1E3A5F] transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={handleSendDocument}
+                disabled={!selectedFileId || sendingFile}
+                className="px-6 py-2.5 bg-[#C9A96E] hover:bg-[#b5955a] text-[#07192F] font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {sendingFile ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Enviando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={14} />
+                    <span>Enviar Documento a {sendModalRequest.email}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

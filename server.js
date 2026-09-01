@@ -4,6 +4,13 @@ import mongoose from 'mongoose';
 import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
+import multer from 'multer';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // Límite de 10 MB por archivo
+});
+
 
 // Cargar variables de .env localmente sin dependencias externas
 try {
@@ -297,6 +304,20 @@ const LogSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const FileSchema = new mongoose.Schema({
+  nombreOriginal: String,
+  tipoMime: String,
+  tamanoBytes: Number,
+  seccionTag: { type: String, required: true, index: true }, // Identificación de sección (ej. "doctrina", "paper caso ancla", etc.)
+  descripcion: { type: String, default: '' },
+  contenidoBase64: String, // Almacena el archivo codificado en Base64
+  subidoPor: { type: String, default: 'Sistema' },
+  isTrash: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
+  createdAt: { type: Date, default: Date.now }
+});
+
+
 const Lead = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);
 const OfficeHour = mongoose.models.OfficeHour || mongoose.model('OfficeHour', OfficeHourSchema);
 const PaperRequest = mongoose.models.PaperRequest || mongoose.model('PaperRequest', PaperRequestSchema);
@@ -309,6 +330,9 @@ const GeneralMeeting = mongoose.models.GeneralMeeting || mongoose.model('General
 const WaitlistQuarter = mongoose.models.WaitlistQuarter || mongoose.model('WaitlistQuarter', WaitlistQuarterSchema);
 const RescueAssessment = mongoose.models.RescueAssessment || mongoose.model('RescueAssessment', RescueAssessmentSchema);
 const Log = mongoose.models.Log || mongoose.model('Log', LogSchema);
+const FileAttachment = mongoose.models.FileAttachment || mongoose.model('FileAttachment', FileSchema);
+
+
 
 // Helper para crear logs de auditoría
 async function createLog(accion, categoria, autor = 'Sistema', status = 'OK', detalle = '') {
@@ -800,6 +824,287 @@ app.delete(['/api/admin/papers/:id', '/api/papers/admin/:id'], async (req, res) 
   }
 });
 
+// Enviar documento por correo al solicitante de paper / documento
+app.post(['/api/admin/papers/:id/send-file', '/api/papers/admin/:id/send-file', '/api/papers/:id/send-file'], async (req, res) => {
+  try {
+    const { fileId } = req.body;
+    const requestItem = await PaperRequest.findById(req.params.id);
+    if (!requestItem) {
+      return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+    }
+
+    const archivo = await FileAttachment.findById(fileId);
+    if (!archivo) {
+      return res.status(404).json({ success: false, error: 'Archivo seleccionado no encontrado' });
+    }
+
+    let emailSent = false;
+    let emailDetails = '';
+
+    // Si Resend está configurado, enviar correo con el adjunto
+    if (resend && process.env.RESEND_API_KEY) {
+      try {
+        const fileBuffer = Buffer.from(archivo.contenidoBase64, 'base64');
+        const fromEmail = process.env.EMAIL_FROM || 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>';
+
+        let sendRes = await resend.emails.send({
+          from: fromEmail,
+          to: [requestItem.email],
+          subject: `Documento FABRIC: ${archivo.nombreOriginal} (${requestItem.paperId || 'Solicitado'})`,
+          html: `
+            <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <h2 style="color: #0e2747; margin-bottom: 8px;">Estimado(a) ${requestItem.nombre},</h2>
+              <p>Esperamos que este mensaje le encuentre muy bien.</p>
+              <p>De acuerdo a su solicitud en nuestro portal <strong>FABRIC</strong> para el documento <em>"${requestItem.paperId || 'Documento Técnico'}"</em>, le adjuntamos el archivo correspondiente:</p>
+              <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #c9a96e;">
+                <strong style="color: #0e2747;">📄 Documento Adjunto:</strong> ${archivo.nombreOriginal}<br/>
+                <span style="font-size: 12px; color: #64748b;">Sección: ${archivo.seccionTag.toUpperCase()}</span>
+                ${archivo.descripcion ? `<br/><span style="font-size: 12px; color: #64748b;">Nota: ${archivo.descripcion}</span>` : ''}
+              </div>
+              <p>Quedamos a su entera disposición para cualquier consulta técnica o ejecutiva.</p>
+              <br/>
+              <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #cbd5e1; padding-top: 12px;">
+                Atentamente,<br/>
+                <strong>El Equipo de FABRIC</strong>
+              </p>
+            </div>
+          `,
+          attachments: [
+            {
+              filename: archivo.nombreOriginal,
+              content: fileBuffer,
+            }
+          ]
+        });
+
+        if (sendRes.error && sendRes.error.name === 'validation_error') {
+          console.warn('⚠️ Resend en modo pruebas. Reenviando a saalzarantonio@gmail.com...');
+          sendRes = await resend.emails.send({
+            from: fromEmail,
+            to: ['saalzarantonio@gmail.com'],
+            subject: `[MODO TEST] Documento FABRIC: ${archivo.nombreOriginal} (${requestItem.paperId || 'Solicitado'})`,
+            html: `
+              <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h2 style="color: #0e2747; margin-bottom: 8px;">Estimado(a) ${requestItem.nombre},</h2>
+                <p>Esperamos que este mensaje le encuentre muy bien.</p>
+                <p>De acuerdo a su solicitud en nuestro portal <strong>FABRIC</strong> para el documento <em>"${requestItem.paperId || 'Documento Técnico'}"</em>, le adjuntamos el archivo correspondiente:</p>
+                <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #c9a96e;">
+                  <strong style="color: #0e2747;">📄 Documento Adjunto:</strong> ${archivo.nombreOriginal}<br/>
+                  <span style="font-size: 12px; color: #64748b;">Sección: ${archivo.seccionTag.toUpperCase()}</span>
+                  ${archivo.descripcion ? `<br/><span style="font-size: 12px; color: #64748b;">Nota: ${archivo.descripcion}</span>` : ''}
+                </div>
+                <p>Quedamos a su entera disposición para cualquier consulta técnica o ejecutiva.</p>
+                <br/>
+                <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #cbd5e1; padding-top: 12px;">
+                  Atentamente,<br/>
+                  <strong>El Equipo de FABRIC</strong>
+                </p>
+              </div>
+            `,
+            attachments: [
+              {
+                filename: archivo.nombreOriginal,
+                content: fileBuffer,
+              }
+            ]
+          });
+        }
+
+        if (sendRes.data?.id) {
+          emailSent = true;
+          emailDetails = `Correo enviado mediante Resend ID: ${sendRes.data.id}`;
+        } else if (sendRes.error) {
+          console.error('Error de Resend al enviar:', sendRes.error);
+          emailDetails = `Resend error: ${sendRes.error.message}`;
+        }
+      } catch (mailErr) {
+        console.error('Error al enviar correo con Resend:', mailErr.message);
+        emailDetails = `Fallo el envío por SMTP/Resend: ${mailErr.message}. Estado marcado como enviado de todos modos.`;
+      }
+    } else {
+      emailDetails = `Modo desarrollo/sin API Key. Correo simulado para ${requestItem.email} con archivo [${archivo.nombreOriginal}]`;
+    }
+
+    // Actualizar estatus de la solicitud a "Enviado"
+    requestItem.status = 'Enviado';
+    await requestItem.save();
+
+    createLog(`Documento enviado por correo [${archivo.nombreOriginal}]`, 'Papers', 'Admin', 'OK', `Destinatario: ${requestItem.email} | ${emailDetails}`);
+
+    res.json({
+      success: true,
+      message: `Documento "${archivo.nombreOriginal}" enviado con éxito a ${requestItem.email}.`,
+      data: requestItem,
+      emailSent
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= RUTAS API PARA GESTIÓN DE ARCHIVOS CON ETIQUETAS DE SECCIÓN =================
+
+// Subir archivo asignando seccionTag obligatorio
+app.post('/api/files/upload', upload.single('archivo'), async (req, res) => {
+  try {
+    const { seccionTag, descripcion, subidoPor } = req.body;
+
+    if (!seccionTag) {
+      return res.status(400).json({ success: false, error: 'El parámetro "seccionTag" es obligatorio para categorizar el archivo (ej: "leads", "papers", "evaluaciones", "doctrina").' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No se adjuntó ningún archivo en la petición.' });
+    }
+
+    const contenidoBase64 = req.file.buffer.toString('base64');
+
+    const nuevoArchivo = new FileAttachment({
+      nombreOriginal: req.file.originalname,
+      tipoMime: req.file.mimetype,
+      tamanoBytes: req.file.size,
+      seccionTag: seccionTag.toLowerCase().trim(),
+      descripcion: descripcion || '',
+      contenidoBase64,
+      subidoPor: subidoPor || 'Sistema'
+    });
+
+    const guardado = await nuevoArchivo.save();
+    createLog(`Archivo subido a sección: [${guardado.seccionTag}]`, 'Archivos', guardado.subidoPor, 'OK', `Archivo: ${guardado.nombreOriginal} (${(guardado.tamanoBytes / 1024).toFixed(1)} KB)`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Archivo guardado exitosamente en la base de datos',
+      data: {
+        id: guardado._id,
+        nombreOriginal: guardado.nombreOriginal,
+        tipoMime: guardado.tipoMime,
+        tamanoBytes: guardado.tamanoBytes,
+        seccionTag: guardado.seccionTag,
+        descripcion: guardado.descripcion,
+        subidoPor: guardado.subidoPor,
+        createdAt: guardado.createdAt
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Obtener lista de archivos (opcionalmente filtrado por etiqueta seccionTag o papelera)
+app.get('/api/files', async (req, res) => {
+  try {
+    const { seccionTag, trash } = req.query;
+    const isTrash = trash === 'true';
+
+    const filtro = { isTrash: isTrash ? true : { $ne: true } };
+    if (seccionTag && seccionTag !== 'todos') {
+      filtro.seccionTag = seccionTag.toLowerCase().trim();
+    }
+
+    // Excluimos el campo pesado contenidoBase64 en el listado para respuestas más rápidas
+    const archivos = await FileAttachment.find(filtro, '-contenidoBase64').sort({ createdAt: -1 });
+    res.json({ success: true, count: archivos.length, data: archivos });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Obtener metadatos de un archivo específico por ID
+app.get('/api/files/:id', async (req, res) => {
+  try {
+    const archivo = await FileAttachment.findById(req.params.id, '-contenidoBase64');
+    if (!archivo) {
+      return res.status(404).json({ success: false, error: 'Archivo no encontrado' });
+    }
+    res.json({ success: true, data: archivo });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Descargar o visualizar el archivo directamente por ID
+app.get('/api/files/:id/download', async (req, res) => {
+  try {
+    const { download } = req.query;
+    const archivo = await FileAttachment.findById(req.params.id);
+    if (!archivo) {
+      return res.status(404).json({ success: false, error: 'Archivo no encontrado' });
+    }
+
+    const buffer = Buffer.from(archivo.contenidoBase64, 'base64');
+    const dispositionType = download === 'true' ? 'attachment' : 'inline';
+
+    let mimeType = archivo.tipoMime || 'application/octet-stream';
+    const lowerName = (archivo.nombreOriginal || '').toLowerCase();
+    if (lowerName.endsWith('.pdf')) {
+      mimeType = 'application/pdf';
+    } else if (lowerName.endsWith('.doc')) {
+      mimeType = 'application/msword';
+    } else if (lowerName.endsWith('.docx')) {
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `${dispositionType}; filename="${encodeURIComponent(archivo.nombreOriginal)}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Restaurar archivo de la papelera
+app.patch('/api/files/:id/restore', async (req, res) => {
+  try {
+    const restaurado = await FileAttachment.findByIdAndUpdate(req.params.id, { isTrash: false, deletedAt: null }, { new: true });
+    if (restaurado) {
+      createLog(`Archivo restaurado de la papelera`, 'Archivos', 'Admin', 'OK', `Archivo: ${restaurado.nombreOriginal}`);
+      return res.json({ success: true, data: restaurado, message: 'Archivo restaurado exitosamente' });
+    }
+    res.status(404).json({ success: false, error: 'Archivo no encontrado' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Vaciar papelera de archivos (eliminación permanente de todos en papelera)
+app.delete('/api/files/trash/empty', async (req, res) => {
+  try {
+    await FileAttachment.deleteMany({ isTrash: true });
+    createLog(`Papelera de archivos vaciada`, 'Archivos', 'Admin', 'WARN', 'Se eliminaron definitivamente todos los archivos en papelera');
+    res.json({ success: true, message: 'Papelera vaciada' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Mover a papelera o eliminar definitivamente archivo por ID
+app.delete('/api/files/:id', async (req, res) => {
+  try {
+    const permanent = req.query.permanent === 'true';
+    if (permanent) {
+      const eliminado = await FileAttachment.findByIdAndDelete(req.params.id);
+      if (eliminado) {
+        createLog(`Archivo eliminado DEFINITIVAMENTE`, 'Archivos', 'Admin', 'WARN', `Archivo: ${eliminado.nombreOriginal}`);
+        return res.json({ success: true, message: 'Archivo eliminado definitivamente de la base de datos' });
+      }
+      return res.status(404).json({ success: false, error: 'Archivo no encontrado' });
+    }
+
+    const enPapelera = await FileAttachment.findByIdAndUpdate(req.params.id, { isTrash: true, deletedAt: new Date() }, { new: true });
+    if (enPapelera) {
+      createLog(`Archivo movido a papelera`, 'Archivos', 'Admin', 'WARN', `Archivo: ${enPapelera.nombreOriginal}`);
+      return res.json({ success: true, message: 'Archivo movido a la papelera', data: enPapelera });
+    }
+    res.status(404).json({ success: false, error: 'Archivo no encontrado' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
+
 // ================= RUTAS API PARA DOCTRINA SOLICITADA =================
 app.get(['/api/admin/doctrina', '/api/doctrina/admin', '/api/doctrina/requests'], async (req, res) => {
   try {
@@ -833,6 +1138,124 @@ app.patch(['/api/admin/doctrina/:id/status', '/api/doctrina/admin/:id/status'], 
     const { status } = req.body;
     const updated = await DoctrinaRequest.findByIdAndUpdate(req.params.id, { status }, { new: true });
     res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Enviar documento por correo al solicitante de doctrina
+app.post(['/api/admin/doctrina/:id/send-file', '/api/doctrina/admin/:id/send-file', '/api/doctrina/:id/send-file'], async (req, res) => {
+  try {
+    const { fileId } = req.body;
+    const requestItem = await DoctrinaRequest.findById(req.params.id);
+    if (!requestItem) {
+      return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+    }
+
+    const archivo = await FileAttachment.findById(fileId);
+    if (!archivo) {
+      return res.status(404).json({ success: false, error: 'Archivo seleccionado no encontrado' });
+    }
+
+    let emailSent = false;
+    let emailDetails = '';
+
+    // Si Resend está configurado, enviar correo con el adjunto
+    if (resend && process.env.RESEND_API_KEY) {
+      try {
+        const fileBuffer = Buffer.from(archivo.contenidoBase64, 'base64');
+        const fromEmail = process.env.EMAIL_FROM || 'FABRIC Rescue <notificaciones@fabriconsulting.com.mx>';
+
+        let sendRes = await resend.emails.send({
+          from: fromEmail,
+          to: [requestItem.email],
+          subject: `Documento de Doctrina FABRIC: ${archivo.nombreOriginal}`,
+          html: `
+            <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <h2 style="color: #0e2747; margin-bottom: 8px;">Estimado(a) ${requestItem.nombre},</h2>
+              <p>Esperamos que este mensaje le encuentre muy bien.</p>
+              <p>De acuerdo a su solicitud en nuestro portal <strong>FABRIC</strong>, le adjuntamos el documento correspondiente:</p>
+              <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #c9a96e;">
+                <strong style="color: #0e2747;">📄 Documento:</strong> ${archivo.nombreOriginal}<br/>
+                <span style="font-size: 12px; color: #64748b;">Sección: ${archivo.seccionTag.toUpperCase()}</span>
+                ${archivo.descripcion ? `<br/><span style="font-size: 12px; color: #64748b;">Nota: ${archivo.descripcion}</span>` : ''}
+              </div>
+              <p>Quedamos a su entera disposición para cualquier consulta técnica o ejecutiva.</p>
+              <br/>
+              <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #cbd5e1; padding-top: 12px;">
+                Atentamente,<br/>
+                <strong>El Equipo de FABRIC</strong>
+              </p>
+            </div>
+          `,
+          attachments: [
+            {
+              filename: archivo.nombreOriginal,
+              content: fileBuffer,
+            }
+          ]
+        });
+
+        if (sendRes.error && sendRes.error.name === 'validation_error') {
+          console.warn('⚠️ Resend en modo pruebas. Reenviando a saalzarantonio@gmail.com...');
+          sendRes = await resend.emails.send({
+            from: fromEmail,
+            to: ['saalzarantonio@gmail.com'],
+            subject: `[MODO TEST] Documento de Doctrina FABRIC: ${archivo.nombreOriginal}`,
+            html: `
+              <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h2 style="color: #0e2747; margin-bottom: 8px;">Estimado(a) ${requestItem.nombre},</h2>
+                <p>Esperamos que este mensaje le encuentre muy bien.</p>
+                <p>De acuerdo a su solicitud en nuestro portal <strong>FABRIC</strong>, le adjuntamos el documento correspondiente:</p>
+                <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #c9a96e;">
+                  <strong style="color: #0e2747;">📄 Documento:</strong> ${archivo.nombreOriginal}<br/>
+                  <span style="font-size: 12px; color: #64748b;">Sección: ${archivo.seccionTag.toUpperCase()}</span>
+                  ${archivo.descripcion ? `<br/><span style="font-size: 12px; color: #64748b;">Nota: ${archivo.descripcion}</span>` : ''}
+                </div>
+                <p>Quedamos a su entera disposición para cualquier consulta técnica o ejecutiva.</p>
+                <br/>
+                <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #cbd5e1; padding-top: 12px;">
+                  Atentamente,<br/>
+                  <strong>El Equipo de FABRIC</strong>
+                </p>
+              </div>
+            `,
+            attachments: [
+              {
+                filename: archivo.nombreOriginal,
+                content: fileBuffer,
+              }
+            ]
+          });
+        }
+
+        if (sendRes.data?.id) {
+          emailSent = true;
+          emailDetails = `Correo enviado mediante Resend ID: ${sendRes.data.id}`;
+        } else if (sendRes.error) {
+          console.error('Error de Resend al enviar:', sendRes.error);
+          emailDetails = `Resend error: ${sendRes.error.message}`;
+        }
+      } catch (mailErr) {
+        console.error('Error al enviar correo con Resend:', mailErr.message);
+        emailDetails = `Fallo el envío por SMTP/Resend: ${mailErr.message}. Estado marcado como enviado de todos modos.`;
+      }
+    } else {
+      emailDetails = `Modo desarrollo/sin API Key. Correo simulado para ${requestItem.email} con archivo [${archivo.nombreOriginal}]`;
+    }
+
+    // Actualizar estatus de la solicitud a "Enviado"
+    requestItem.status = 'Enviado';
+    await requestItem.save();
+
+    createLog(`Documento enviado por correo [${archivo.nombreOriginal}]`, 'Doctrina', 'Admin', 'OK', `Destinatario: ${requestItem.email} | ${emailDetails}`);
+
+    res.json({
+      success: true,
+      message: `Documento "${archivo.nombreOriginal}" enviado con éxito a ${requestItem.email}.`,
+      data: requestItem,
+      emailSent
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

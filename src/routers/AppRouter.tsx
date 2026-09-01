@@ -27,6 +27,8 @@ const AdminWaitlist = lazy(() => import('../pages/admin/AdminWaitlist'));
 const AdminRescueAssessment = lazy(() => import('../pages/admin/AdminRescueAssessment'));
 const AdminLogs = lazy(() => import('../pages/admin/AdminLogs'));
 const AdminDoctrina = lazy(() => import('../pages/admin/AdminDoctrina'));
+const AdminControlDocumentos = lazy(() => import('../pages/admin/AdminControlDocumentos'));
+
 
 // Rescue Fusion Admin Pages
 const AdminRescueLeads = lazy(() => import('../pages/admin/rescue-fusion/AdminRescueLeads'));
@@ -259,6 +261,8 @@ export const AppRouter = () => {
               <Route path="rescue-fusion/settings" element={<AdminRescueSettings />} />
               <Route path="logs" element={<AdminLogs />} />
               <Route path="doctrina" element={<AdminDoctrina />} />
+              <Route path="control-documentos" element={<AdminControlDocumentos />} />
+
             </Route>
           </Route>
 

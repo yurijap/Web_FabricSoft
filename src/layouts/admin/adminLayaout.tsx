@@ -55,6 +55,8 @@ const NAV_GROUPS: NavGroup[] = [
       { path: '/admin/validacion-directa', label: 'VALIDACIÓN DIRECTA', icon: ShieldCheck },
       { path: '/admin/waitlist', label: 'Wait List', icon: Sliders },
       { path: '/admin/doctrina', label: 'Doctrina', icon: FileText },
+      { path: '/admin/control-documentos', label: 'Control de documentos', icon: ClipboardList },
+
     ],
   },
   {
