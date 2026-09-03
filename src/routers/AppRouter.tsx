@@ -37,6 +37,9 @@ const AdminRescueDashboard = lazy(() => import('../pages/admin/rescue-fusion/Adm
 const AdminRescueCampaigns = lazy(() => import('../pages/admin/rescue-fusion/AdminRescueCampaigns'));
 const AdminRescueSettings = lazy(() => import('../pages/admin/rescue-fusion/AdminRescueSettings'));
 
+// ERP Modernization Admin Pages
+const AdminErpModernizationLeads = lazy(() => import('../pages/admin/erp-modernization/AdminErpModernizationLeads'));
+
 // Páginas Públicas
 import Home from '../pages/public/home/home';
 const CasoPage = lazy(() => import('../pages/public/casos/CasoPage'));
@@ -67,6 +70,9 @@ const OptimizadorOciPage = lazy(() => import('../pages/public/optimizador-oci/Op
 
 // Fusion Rescue
 const FusionRescuePage = lazy(() => import('../pages/public/fusion-rescue/FusionRescuePage'));
+
+// ERP Modernization Roadmap
+const ErpModernizationPage = lazy(() => import('../pages/public/erp-modernization/ErpModernizationPage'));
 
 // Sala de Videollamada (Host e Invitados)
 const ReunionPage = lazy(() => import('../pages/public/reunion/ReunionPage'));
@@ -199,6 +205,9 @@ export const AppRouter = () => {
             <Route path="fusion-rescue" element={<FusionRescuePage />} />
             <Route path="fusion-rescue/assessment" element={<FusionRescuePage />} />
 
+            {/* ERP Modernization Roadmap */}
+            <Route path="erp-modernization" element={<ErpModernizationPage />} />
+
             {/* Investigación */}
             <Route path="research-letters" element={<ResearchLettersPage />} />
             <Route path="investigacion/paper/:num" element={<PaperPage />} />
@@ -259,6 +268,7 @@ export const AppRouter = () => {
               <Route path="rescue-fusion/dashboard" element={<AdminRescueDashboard />} />
               <Route path="rescue-fusion/campaigns" element={<AdminRescueCampaigns />} />
               <Route path="rescue-fusion/settings" element={<AdminRescueSettings />} />
+              <Route path="erp-modernization/leads" element={<AdminErpModernizationLeads />} />
               <Route path="logs" element={<AdminLogs />} />
               <Route path="doctrina" element={<AdminDoctrina />} />
               <Route path="control-documentos" element={<AdminControlDocumentos />} />

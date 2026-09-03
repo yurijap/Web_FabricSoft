@@ -115,9 +115,7 @@ export default function Header() {
     navigate({ pathname: '/', hash: targetHash });
   };
 
-  const isFusionRescuePage = location.pathname.startsWith('/fusion-rescue');
-
-  const fusionRescueLink = !isFusionRescuePage ? (
+  const fusionRescueLink = (
     <Link
       to="/fusion-rescue"
       className="hidden sm:inline-flex items-center gap-2 relative group font-mono font-semibold text-[10px] tracking-[0.22em] uppercase px-0 py-2 transition-colors duration-300 active:scale-[0.98]"
@@ -128,7 +126,20 @@ export default function Header() {
         <span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-right scale-x-100 transition-transform duration-300 ease-out group-hover:scale-x-0" style={{ background: 'var(--accent)' }} />
       </span>
     </Link>
-  ) : null;
+  );
+
+  const erpModernizationLink = (
+    <Link
+      to="/erp-modernization"
+      className="hidden sm:inline-flex items-center gap-2 relative group font-mono font-semibold text-[10px] tracking-[0.22em] uppercase px-0 py-2 transition-colors duration-300 active:scale-[0.98]"
+      style={{ color: 'var(--accent)' }}
+    >
+      <span className="relative">
+        ERP Modernization
+        <span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-right scale-x-100 transition-transform duration-300 ease-out group-hover:scale-x-0" style={{ background: 'var(--accent)' }} />
+      </span>
+    </Link>
+  );
 
   const startLink = (
     <Link
@@ -190,6 +201,7 @@ export default function Header() {
             style={{ transitionDelay: '180ms' }}
           >
             {fusionRescueLink}
+            {erpModernizationLink}
             {startLink}
             <ThemeToggle />
             {/* Traductor desactivado temporalmente por rendimiento. */}
@@ -266,12 +278,22 @@ export default function Header() {
           })}
         </nav>
 
-        <div className={`px-8 py-8 border-t border-[#2A2A2A]/40 transition-all duration-700 ${mobileOpen ? 'opacity-100 translate-y-0 delay-[500ms]' : 'opacity-0 translate-y-8'}`}>
-          {/* Traductor desactivado temporalmente por rendimiento. */}
-          {/* <div className="mb-6 flex justify-center">
-            <LanguageToggle />
-          </div> */}
-          <div className="mb-3">
+        <div className={`px-8 py-8 border-t border-[#2A2A2A]/40 space-y-2 transition-all duration-700 ${mobileOpen ? 'opacity-100 translate-y-0 delay-[500ms]' : 'opacity-0 translate-y-8'}`}>
+          <Link
+            to="/fusion-rescue"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center justify-center gap-2 w-full py-2.5 bg-transparent border border-[#C9A96E]/40 hover:border-[#C9A96E] text-[#C9A96E] font-mono font-bold text-[10px] tracking-[0.2em] uppercase rounded-full transition-all"
+          >
+            <span>Fusion Rescue</span>
+          </Link>
+          <Link
+            to="/erp-modernization"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center justify-center gap-2 w-full py-2.5 bg-transparent border border-[#C9A96E]/40 hover:border-[#C9A96E] text-[#C9A96E] font-mono font-bold text-[10px] tracking-[0.2em] uppercase rounded-full transition-all"
+          >
+            <span>ERP Modernization</span>
+          </Link>
+          <div className="pt-1">
             <ThemeToggle mobile />
           </div>
           <Link

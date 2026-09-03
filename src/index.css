@@ -603,7 +603,6 @@ html[data-theme="light"] {
     [class*="text-[#888]"],
     [class*="text-[#8a8a8a]"],
     [class*="text-[#a0a0a0]"],
-    [class*="text-white"],
     [class*="text-zinc-100"] {
       color: var(--text-primary) !important;
     }

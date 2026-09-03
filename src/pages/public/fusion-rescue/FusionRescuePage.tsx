@@ -57,7 +57,7 @@ export const FusionRescuePage: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#07192F] text-white font-sans selection:bg-[#C9A96E] selection:text-black pt-28 md:pt-36">
+    <div className="w-full min-h-screen font-sans selection:bg-[#C9A96E] selection:text-black pt-28 md:pt-36">
       {/* If assessment wizard is active */}
       {showAssessment ? (
         <div className="py-8 px-4 sm:px-8 md:px-12 lg:px-16 w-full">
@@ -82,7 +82,7 @@ export const FusionRescuePage: React.FC = () => {
       ) : (
         <>
           {/* Hero Section */}
-          <section className="relative pt-12 pb-20 overflow-hidden border-b border-[#C9A96E]/20 w-full bg-[#07192F]">
+          <section className="relative pt-12 pb-20 overflow-hidden border-b border-[#C9A96E]/20 w-full">
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-tr from-[#C9A96E]/15 to-[#8C7243]/10 rounded-full blur-[140px] pointer-events-none" />
 
             <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 relative z-10 text-center">
@@ -93,13 +93,13 @@ export const FusionRescuePage: React.FC = () => {
               </div>
 
               {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6 max-w-6xl mx-auto">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-6 max-w-6xl mx-auto">
                 ¿Oracle Fusion está funcionando para el negocio o simplemente está en producción?
               </h1>
 
               {/* Subheadline */}
-              <p className="text-lg sm:text-xl md:text-2xl text-slate-200 max-w-5xl mx-auto leading-relaxed mb-10 font-normal">
-                Evalúa en pocos minutos el estado de tu implementación de <strong className="text-white font-semibold">Oracle Fusion Cloud ERP</strong> e identifica posibles riesgos en procesos, finanzas, datos, integraciones, adopción y soporte.
+              <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-5xl mx-auto leading-relaxed mb-10 font-normal">
+                Evalúa en pocos minutos el estado de tu implementación de <strong className="font-semibold">Oracle Fusion Cloud ERP</strong> e identifica posibles riesgos en procesos, finanzas, datos, integraciones, adopción y soporte.
               </p>
 
               {/* Primary CTA */}
@@ -113,7 +113,7 @@ export const FusionRescuePage: React.FC = () => {
                 </button>
 
                 {/* Microcopy */}
-                <p className="text-xs font-mono text-slate-300 tracking-wider">
+                <p className="text-xs font-mono text-slate-400 tracking-wider">
                   25 preguntas · Resultado inmediato · Sin costo
                 </p>
               </div>
@@ -124,7 +124,7 @@ export const FusionRescuePage: React.FC = () => {
           <section className="py-20 bg-[#0E2747]/90 border-b border-[#C9A96E]/20 w-full">
             <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16">
               <div className="text-center max-w-5xl mx-auto mb-14">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-4">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4">
                   Una implementación puede estar técnicamente terminada y seguir teniendo problemas para el negocio.
                 </h2>
                 <p className="text-base md:text-lg text-slate-300">
@@ -172,13 +172,13 @@ export const FusionRescuePage: React.FC = () => {
           </section>
 
           {/* Sección: Qué evaluamos (6 Dimensiones) */}
-          <section className="py-14 sm:py-20 border-b border-[#C9A96E]/20 w-full bg-[#07192F]">
+          <section className="py-14 sm:py-20 border-b border-[#C9A96E]/20 w-full">
             <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16">
               <div className="text-center max-w-5xl mx-auto mb-10 sm:mb-16">
                 <span className="text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-widest">
                   COBERTURA INTEGRAL
                 </span>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mt-2 mb-4">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mt-2 mb-4">
                   El Fusion Health Check analiza seis dimensiones
                 </h2>
                 <p className="text-sm sm:text-base text-slate-300">
@@ -192,7 +192,7 @@ export const FusionRescuePage: React.FC = () => {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-4 sm:mb-6">
                     <Layers className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">1. Procesos</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">1. Procesos</h3>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                     Determina si Fusion realmente soporta la operación de punta a punta o si existen procesos paralelos y workarounds fuera del sistema.
                   </p>
@@ -203,7 +203,7 @@ export const FusionRescuePage: React.FC = () => {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-4 sm:mb-6">
                     <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">2. Finanzas & Reporting</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">2. Finanzas & Reporting</h3>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                     Evalúa cierre, conciliaciones, reporting financiero, estructura contable y dependencia de actividades manuales.
                   </p>
@@ -214,7 +214,7 @@ export const FusionRescuePage: React.FC = () => {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-4 sm:mb-6">
                     <Database className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">3. Datos</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">3. Datos</h3>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                     Analiza calidad, gobierno, consistencia y confiabilidad de los datos maestros y transaccionales migrados.
                   </p>
@@ -225,7 +225,7 @@ export const FusionRescuePage: React.FC = () => {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-4 sm:mb-6">
                     <Cpu className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">4. Integraciones</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">4. Integraciones</h3>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                     Evalúa estabilidad, monitoreo, manejo de errores y mantenibilidad de las interfaces entre sistemas.
                   </p>
@@ -236,7 +236,7 @@ export const FusionRescuePage: React.FC = () => {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-4 sm:mb-6">
                     <Users className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">5. Adopción</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">5. Adopción</h3>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                     Determina si los usuarios realmente trabajan en Fusion y si existe ownership claro de los procesos de negocio.
                   </p>
@@ -247,7 +247,7 @@ export const FusionRescuePage: React.FC = () => {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#C9A96E]/15 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-4 sm:mb-6">
                     <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">6. Governance & Support</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">6. Governance & Support</h3>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                     Evalúa backlog, modelo de soporte, ownership, pruebas de actualizaciones y resolución sistemática de causa raíz.
                   </p>
@@ -266,7 +266,7 @@ export const FusionRescuePage: React.FC = () => {
                     <span className="text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-widest">
                       RESULTADOS CLAROS
                     </span>
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-white mt-2">
+                    <h2 className="text-3xl md:text-4xl font-extrabold mt-2">
                       Al finalizar recibirás:
                     </h2>
                   </div>
@@ -344,23 +344,23 @@ export const FusionRescuePage: React.FC = () => {
           </section>
 
           {/* Sección Institucional: ¿Por qué FABRIC? */}
-          <section className="py-20 border-b border-[#C9A96E]/20 w-full bg-[#07192F]">
+          <section className="py-20 border-b border-[#C9A96E]/20 w-full">
             <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0E2747] border border-[#C9A96E]/40 text-slate-200 text-xs font-mono font-semibold mb-6">
                 <Building2 className="w-3.5 h-3.5 text-[#C9A96E]" />
                 <span>FABRIC SOFT MÉXICO</span>
               </div>
 
-              <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-6">
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-6">
                 ¿Por qué FABRIC?
               </h2>
 
-              <p className="text-lg md:text-xl text-slate-200 leading-relaxed mb-6 max-w-5xl mx-auto">
-                <strong className="text-white font-semibold">FABRIC SOFT MÉXICO</strong> ayuda a organizaciones a implementar, optimizar y rescatar entornos empresariales basados en <strong className="text-white font-semibold">Oracle ERP Fusion Cloud, Cloud e Inteligencia Artificial</strong>.
+              <p className="text-lg md:text-xl text-slate-300 leading-relaxed mb-6 max-w-5xl mx-auto">
+                <strong className="font-semibold">FABRIC SOFT MÉXICO</strong> ayuda a organizaciones a implementar, optimizar y rescatar entornos empresariales basados en <strong className="font-semibold">Oracle ERP Fusion Cloud, Cloud e Inteligencia Artificial</strong>.
               </p>
 
               <p className="text-base text-slate-300 leading-relaxed mb-10 max-w-4xl mx-auto">
-                Nuestro enfoque no comienza proponiendo una reimplementación. Primero buscamos identificar: <span className="text-slate-100 italic font-medium">qué está fallando, por qué está fallando y cuál es la intervención mínima necesaria para corregirlo.</span>
+                Nuestro enfoque no comienza proponiendo una reimplementación. Primero buscamos identificar: <span className="italic font-medium">qué está fallando, por qué está fallando y cuál es la intervención mínima necesaria para corregirlo.</span>
               </p>
 
               <button
@@ -374,7 +374,7 @@ export const FusionRescuePage: React.FC = () => {
           </section>
 
           {/* Footer institucional */}
-          <footer className="py-12 bg-[#07192F] text-center font-mono text-xs text-slate-300 border-t border-[#C9A96E]/20">
+          <footer className="py-12 text-center font-mono text-xs text-slate-400 border-t border-[#C9A96E]/20">
             <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 space-y-3">
               <p className="text-[#C9A96E] font-bold">FABRIC FUSION RESCUE HEALTH CHECK™</p>
               <p>Oracle Fusion Cloud ERP es una marca registrada de Oracle Corporation.</p>

@@ -71,6 +71,13 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    group: 'ERP Modernization',
+    defaultOpen: true,
+    items: [
+      { path: '/admin/erp-modernization/leads', label: 'Leads Modernization', icon: ShieldCheck },
+    ],
+  },
+  {
     group: 'Sistema',
     defaultOpen: false,
     items: [

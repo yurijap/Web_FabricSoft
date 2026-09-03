@@ -281,6 +281,53 @@ const FusionRescueAnalytics = mongoose.models.FusionRescueAnalytics || mongoose.
 
 const FusionRescueLead = mongoose.models.FusionRescueLead || mongoose.model('FusionRescueLead', FusionRescueLeadSchema, 'fusion_rescue_leads');
 
+// ================= SCHEMA PARA ERP MODERNIZATION ROADMAP =================
+const ErpModernizationLeadSchema = new mongoose.Schema({
+  first_name: String,
+  last_name: String,
+  company: String,
+  job_title: String,
+  work_email: String,
+  country: String,
+  phone: String,
+
+  // ERP actual
+  current_erp: String,
+  erp_version: String,
+  current_modules: [String],
+
+  // Evaluacion BANT
+  main_need: String,
+  business_impact: String,
+  problem_description: String,
+  authority_role: String,
+  budget_status: String,
+  timing: String,
+
+  // Precalificacion y Gestion
+  bant_prequalification: { type: String, enum: ['HIGH', 'MEDIUM', 'NURTURE'], default: 'NURTURE' },
+  assigned_sdr: { type: String, enum: ['Ximena', 'Fabrizio'], default: 'Ximena' },
+  validation_status: { type: String, enum: ['PENDING', 'CONTACTED', 'VALIDATED', 'DISQUALIFIED'], default: 'PENDING' },
+  qualified_lead: { type: Boolean, default: false },
+  disqualification_reason: String,
+  meeting_booked: { type: Boolean, default: false },
+  booking_time: String,
+
+  // Atribucion UTM
+  utm_source: String,
+  utm_medium: String,
+  utm_campaign: String,
+  utm_content: String,
+  utm_term: String,
+  content_id: String,
+  landing_page: String,
+  referrer: String,
+  first_touch_date: String,
+  source_erp: String
+}, { timestamps: true });
+
+const ErpModernizationLead = mongoose.models.ErpModernizationLead || mongoose.model('ErpModernizationLead', ErpModernizationLeadSchema, 'erp_modernization_leads');
+
 const RescueAssessmentSchema = new mongoose.Schema({
   nombre: String,
   email: String,
@@ -1846,6 +1893,182 @@ app.post('/api/office-hours/slots', async (req, res) => {
       }
     }
     res.status(201).json({ success: true, data: docs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= RUTAS API PARA ERP MODERNIZATION ROADMAP =================
+app.post(['/api/erp-modernization/lead', '/api/erp-modernization/submit'], async (req, res) => {
+  try {
+    const data = req.body;
+
+    // Calculo de precalificacion BANT
+    const isHighNeed = Boolean(data.mainNeed || data.main_need);
+    const isHighAuthority = [
+      'Soy responsable de la decisión.',
+      'Formo parte del comité de decisión.',
+      'Lidero la evaluación técnica o funcional.',
+      'Estoy construyendo el business case.'
+    ].includes(data.authorityRole || data.authority_role);
+    
+    const isHighBudget = [
+      'Ya existe presupuesto aprobado.',
+      'Existe una partida estimada, pendiente de aprobación.',
+      'Estamos definiendo el presupuesto.'
+    ].includes(data.budgetStatus || data.budget_status);
+
+    const isHighTiming = [
+      'Ya estamos evaluando proveedores o partners.',
+      'Durante los próximos 3 meses.',
+      'Durante los próximos 3–6 meses.'
+    ].includes(data.timing);
+
+    let bantPrequalification = 'NURTURE';
+    if (isHighNeed && isHighAuthority && isHighBudget && isHighTiming) {
+      bantPrequalification = 'HIGH';
+    } else if (isHighNeed && (isHighBudget || (data.budgetStatus || data.budget_status) === 'Necesitamos construir primero el business case.') && (isHighTiming || data.timing === 'Durante los próximos 6–12 meses.')) {
+      bantPrequalification = 'MEDIUM';
+    }
+
+    // Asignación equitativa a SDR (Ximena / Fabrizio)
+    const countTotal = await ErpModernizationLead.countDocuments();
+    const assignedSdr = countTotal % 2 === 0 ? 'Ximena' : 'Fabrizio';
+
+    const newLead = new ErpModernizationLead({
+      first_name: data.firstName || data.first_name || '',
+      last_name: data.lastName || data.last_name || '',
+      company: data.company || '',
+      job_title: data.jobTitle || data.job_title || '',
+      work_email: data.workEmail || data.work_email || '',
+      country: data.country || 'México',
+      phone: data.phone || '',
+      current_erp: data.currentErp || data.current_erp || 'Oracle E-Business Suite',
+      erp_version: data.erpVersion || data.erp_version || '',
+      current_modules: data.currentModules || data.current_modules || [],
+      main_need: data.mainNeed || data.main_need || '',
+      business_impact: data.businessImpact || data.business_impact || '',
+      problem_description: data.problemDescription || data.problem_description || '',
+      authority_role: data.authorityRole || data.authority_role || '',
+      budget_status: data.budgetStatus || data.budget_status || '',
+      timing: data.timing || '',
+      bant_prequalification: bantPrequalification,
+      assigned_sdr: assignedSdr,
+      utm_source: data.utm_source,
+      utm_medium: data.utm_medium,
+      utm_campaign: data.utm_campaign,
+      utm_content: data.utm_content,
+      utm_term: data.utm_term,
+      content_id: data.content_id,
+      landing_page: data.landing_page || '/erp-modernization',
+      referrer: data.referrer,
+      first_touch_date: data.first_touch_date,
+      source_erp: data.sourceErp || data.source_erp || 'general'
+    });
+
+    const saved = await newLead.save();
+
+    createLog(
+      `Nuevo Lead ERP Modernization (${bantPrequalification})`,
+      'ERP Modernization',
+      assignedSdr,
+      'OK',
+      `${saved.first_name} ${saved.last_name} · ${saved.company} (${saved.current_erp})`
+    );
+
+    // Enviar correo de notificación interna vía Resend
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: 'FABRIC ERP <notificaciones@fabricsoft.com.mx>',
+          to: ['julio@fabricsoft.com.mx', 'fabrizio@fabricsoft.com.mx', 'ximena@fabricsoft.com.mx'],
+          subject: `NUEVO ERP MODERNIZATION LEAD - ${saved.company} - ${bantPrequalification}`,
+          text: `
+NUEVO ERP MODERNIZATION LEAD
+
+DATOS DEL CONTACTO:
+Nombre: ${saved.first_name} ${saved.last_name}
+Empresa: ${saved.company}
+Cargo: ${saved.job_title}
+Email: ${saved.work_email}
+Teléfono: ${saved.phone || 'No especificado'}
+País: ${saved.country}
+
+ENTORNO ERP ACTUAL:
+ERP actual: ${saved.current_erp}
+Versión: ${saved.erp_version || 'No especificada'}
+Módulos: ${saved.current_modules.join(', ')}
+
+PRECALIFICACIÓN BANT:
+Need: ${saved.main_need}
+Impacto: ${saved.business_impact}
+Detalle Abierto: ${saved.problem_description || 'N/A'}
+Authority: ${saved.authority_role}
+Budget: ${saved.budget_status}
+Timing: ${saved.timing}
+
+PRECALIFICACIÓN INTERNA: ${saved.bant_prequalification}
+
+DATOS DE ATRIBUCIÓN Y GESTIÓN:
+Source: ${saved.utm_source || 'Directo'}
+Medium: ${saved.utm_medium || 'N/A'}
+Campaign: ${saved.utm_campaign || 'N/A'}
+Content ID: ${saved.content_id || 'N/A'}
+Source ERP: ${saved.source_erp}
+Llamada agendada: No
+Responsable asignado: ${saved.assigned_sdr}
+          `.trim()
+        });
+      } catch (mailErr) {
+        console.warn('Advertencia enviando correo de notificacion interna ERP Modernization:', mailErr.message);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      lead_id: saved._id,
+      prequalification: bantPrequalification,
+      assigned_sdr: assignedSdr,
+      allow_booking: bantPrequalification === 'HIGH'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/erp-modernization/booking-confirmation', async (req, res) => {
+  try {
+    const { lead_id, booking_time, sdr_assigned } = req.body;
+    const updated = await ErpModernizationLead.findByIdAndUpdate(
+      lead_id,
+      {
+        meeting_booked: true,
+        booking_time: booking_time || new Date().toISOString(),
+        assigned_sdr: sdr_assigned || 'Ximena'
+      },
+      { new: true }
+    );
+
+    if (updated) {
+      createLog(
+        `Llamada de Validación Agendada`,
+        'ERP Modernization',
+        updated.assigned_sdr,
+        'OK',
+        `Lead: ${updated.first_name} ${updated.last_name} (${updated.company})`
+      );
+    }
+
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get(['/api/erp-modernization/leads', '/api/admin/erp-modernization/leads'], async (req, res) => {
+  try {
+    const leads = await ErpModernizationLead.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: leads });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
