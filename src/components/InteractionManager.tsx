@@ -255,10 +255,10 @@ export default function InteractionManager({
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
         .im-modal { animation: slideUp 220ms cubic-bezier(0.16,1,0.3,1); }
-        .im-doc-row:hover { border-color: var(--accent) !important; }
-        .im-slot-btn:hover:not(:disabled) { border-color: var(--accent) !important; color: var(--accent) !important; }
-        .im-slot-btn.selected { background: var(--accent) !important; color: var(--bg-base) !important; border-color: var(--accent) !important; }
-        .im-day-btn.active { color: var(--accent) !important; border-color: var(--accent) !important; }
+        .im-slot-btn:hover:not(:disabled) { border-color: var(--accent) !important; color: #FFFFFF !important; background: rgba(201,169,110,0.3) !important; }
+        .im-slot-btn.selected { background: #C9A96E !important; color: #0B1F3A !important; border-color: #FFE28A !important; font-weight: 900 !important; }
+        .im-day-btn:hover:not(.active) { border-color: var(--accent) !important; background: rgba(201,169,110,0.2) !important; }
+        .im-day-btn.active { background: #C9A96E !important; color: #0B1F3A !important; border-color: #FFE28A !important; font-weight: 900 !important; }
         .im-ref-row:hover { border-color: var(--accent) !important; background: rgba(201,169,110,0.04) !important; }
         .im-paper-tab.active { border-bottom: 2px solid var(--accent) !important; color: var(--accent) !important; }
         /* Office Hours modal — responsive */
@@ -382,9 +382,9 @@ export default function InteractionManager({
           <div style={{ padding: "24px 28px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
             <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: "var(--accent)" }} />
             <div style={{ paddingLeft: 14 }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.25em", textTransform: "uppercase" }}>FABRIC Office Hours</div>
+              <div style={{ fontFamily: "var(--sans)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", letterSpacing: "0.15em", textTransform: "uppercase" }}>FABRIC Office Hours</div>
             </div>
-            <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 18, cursor: "pointer" }}>×</button>
+            <button onClick={close} style={{ width: 36, height: 36, border: "1px solid var(--border-strong)", background: "transparent", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>×</button>
           </div>
 
           <div className="im-oh-body">
@@ -392,22 +392,22 @@ export default function InteractionManager({
             <div className="im-oh-left">
               <div className="im-oh-left-inner">
                 <div className="im-oh-left-avatar">
-                  <div style={{ width: 48, height: 48, border: "1px solid var(--accent)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--serif)", fontSize: 24, color: "var(--accent)", fontStyle: "italic", flexShrink: 0 }}>J</div>
+                  <div style={{ width: 48, height: 48, border: "2px solid var(--accent)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--serif)", fontSize: 24, color: "#FFFFFF", fontWeight: 700, fontStyle: "italic", flexShrink: 0 }}>J</div>
                   <div>
-                    <div style={{ fontFamily: "var(--serif)", fontSize: 17, marginBottom: 2 }}>Julio Álvarez</div>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", letterSpacing: "0.1em" }}>Founder · FABRIC</div>
+                    <div style={{ fontFamily: "var(--sans)", fontSize: 17, fontWeight: 700, color: "#FFFFFF", marginBottom: 2 }}>Julio Álvarez</div>
+                    <div style={{ fontFamily: "var(--sans)", fontSize: 12, fontWeight: 600, color: "#FFFFFF", letterSpacing: "0.05em" }}>Founder · FABRIC</div>
                   </div>
                 </div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.15em", textTransform: "uppercase", width: "100%", marginTop: 4 }}>30 min · Video Call</div>
-                <div className="im-oh-left-criteria" style={{ marginBottom: 4 }}>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 10 }}>Criterios de acceso</div>
+                <div style={{ fontFamily: "var(--sans)", fontSize: 12, fontWeight: 700, color: "#FFFFFF", letterSpacing: "0.08em", textTransform: "uppercase", width: "100%", marginTop: 8, marginBottom: 12 }}>30 min · Video Call</div>
+                <div className="im-oh-left-criteria" style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: "var(--sans)", fontSize: 13, fontWeight: 700, color: "#FFFFFF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Criterios de acceso</div>
                   {["Lunes a Viernes (09:00 AM - 06:00 PM)", "USD 50M+ revenue anual", "CFO / CIO / CTO / Dir. Transformación", "Iniciativa Oracle activa o planeada"].map(c => (
-                    <div key={c} style={{ display: "flex", gap: 8, marginBottom: 8, fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                      <span style={{ color: "var(--accent)", flexShrink: 0 }}>·</span>{c}
+                    <div key={c} style={{ display: "flex", gap: 8, marginBottom: 8, fontFamily: "var(--sans)", fontSize: 13, fontWeight: 700, color: "#FFFFFF", lineHeight: 1.4 }}>
+                      <span style={{ color: "var(--accent)", fontWeight: 900, flexShrink: 0 }}>·</span>{c}
                     </div>
                   ))}
                 </div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", padding: "8px 12px", border: "1px solid var(--border)", letterSpacing: "0.05em", lineHeight: 1.5, width: "100%", boxSizing: "border-box" }}>
+                <div style={{ fontFamily: "var(--sans)", fontSize: 11, fontWeight: 700, color: "#FFFFFF", padding: "10px 12px", border: "1px solid var(--border-strong)", background: "rgba(255,255,255,0.05)", letterSpacing: "0.05em", lineHeight: 1.5, width: "100%", boxSizing: "border-box" }}>
                   Confidencial · NDA mutuo al confirmar
                 </div>
               </div>
@@ -425,11 +425,11 @@ export default function InteractionManager({
                         if (calMonth === 1) { setCalMonth(12); setCalYear(y => y - 1); }
                         else { setCalMonth(m => m - 1); }
                       }}
-                      style={{ padding: "6px 12px", border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 13, cursor: "pointer" }}
+                      style={{ padding: "8px 14px", border: "1px solid var(--border-strong)", background: "rgba(255,255,255,0.08)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                     >
                       ←
                     </button>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 600 }}>
+                    <div style={{ fontFamily: "var(--sans)", fontSize: 13, color: "#FFFFFF", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 800 }}>
                       {MONTH_NAMES[calMonth - 1]} DE {calYear} · DÍAS HÁBILES
                     </div>
                     <button
@@ -438,14 +438,14 @@ export default function InteractionManager({
                         if (calMonth === 12) { setCalMonth(1); setCalYear(y => y + 1); }
                         else { setCalMonth(m => m + 1); }
                       }}
-                      style={{ padding: "6px 12px", border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontFamily: "var(--mono)", fontSize: 13, cursor: "pointer" }}
+                      style={{ padding: "8px 14px", border: "1px solid var(--border-strong)", background: "rgba(255,255,255,0.08)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                     >
                       →
                     </button>
                   </div>
 
                   {monthLoading ? (
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", letterSpacing: "0.14em", padding: "24px 0", textAlign: "center" }}>
+                    <div style={{ fontFamily: "var(--sans)", fontSize: 13, fontWeight: 700, color: "#FFFFFF", letterSpacing: "0.08em", padding: "24px 0", textAlign: "center" }}>
                       Consultando disponibilidad en la base de datos...
                     </div>
                   ) : (
@@ -464,11 +464,11 @@ export default function InteractionManager({
 
                         if (availableWeekdayDates.length === 0) {
                           return (
-                            <div style={{ padding: "28px 20px", border: "1px dashed var(--border)", textAlign: "center", borderRadius: 4, background: "rgba(255,255,255,0.02)" }}>
-                              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 8 }}>
+                            <div style={{ padding: "28px 20px", border: "1px dashed var(--border-strong)", textAlign: "center", borderRadius: 4, background: "rgba(255,255,255,0.04)" }}>
+                              <div style={{ fontFamily: "var(--sans)", fontSize: 13, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
                                 Sin citas disponibles
                               </div>
-                              <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", lineHeight: 1.6 }}>
+                              <div style={{ fontFamily: "var(--sans)", fontSize: 13, color: "#FFFFFF", fontWeight: 600, lineHeight: 1.6 }}>
                                 No hay citas de ingeniería disponibles para {MONTH_NAMES[calMonth - 1]} de {calYear}.<br />
                                 Usa las flechas ← → para consultar otros meses.
                               </div>
@@ -478,7 +478,7 @@ export default function InteractionManager({
 
                         return (
                           <>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "var(--text-tertiary)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 10 }}>
+                            <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
                               1. Selecciona un Día Hábil Aperturado (Lunes a Viernes)
                             </div>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
@@ -494,22 +494,23 @@ export default function InteractionManager({
                                     onClick={() => setSelectedDay(iso)}
                                     className={`im-day-btn${isSelected ? " active" : ""}`}
                                     style={{
-                                      padding: "8px 12px",
-                                      border: isSelected ? "1px solid var(--accent)" : "1px solid var(--border)",
-                                      background: isSelected ? "rgba(201,169,110,0.15)" : "transparent",
-                                      color: isSelected ? "var(--accent)" : "var(--text-secondary)",
-                                      fontFamily: "var(--mono)",
-                                      fontSize: 11,
+                                      padding: "10px 14px",
+                                      border: isSelected ? "2px solid #FFE28A" : "1px solid var(--border-strong)",
+                                      background: isSelected ? "#C9A96E" : "rgba(255,255,255,0.06)",
+                                      color: isSelected ? "#0B1F3A" : "#FFFFFF",
+                                      fontFamily: "var(--sans)",
+                                      fontSize: 13,
+                                      fontWeight: 900,
                                       cursor: "pointer",
                                       transition: "all 200ms",
-                                      letterSpacing: "0.08em",
+                                      letterSpacing: "0.05em",
                                       display: "flex",
                                       alignItems: "center",
-                                      gap: 6
+                                      gap: 8
                                     }}
                                   >
-                                    <span>{label}</span>
-                                    <span style={{ fontSize: 9, padding: "2px 5px", background: "rgba(201,169,110,0.2)", color: "var(--accent)", borderRadius: 3 }}>
+                                    <span style={{ color: isSelected ? "#0B1F3A" : "#FFFFFF", fontWeight: 900 }}>{label}</span>
+                                    <span style={{ fontSize: 10, fontWeight: 900, padding: "3px 7px", background: isSelected ? "#0B1F3A" : "rgba(255,255,255,0.2)", color: isSelected ? "#FFE28A" : "#FFFFFF", borderRadius: 4 }}>
                                       {count} {count === 1 ? 'slot' : 'slots'}
                                     </span>
                                   </button>
@@ -519,20 +520,20 @@ export default function InteractionManager({
 
                             {selectedDay && (
                               <div>
-                                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>
+                                <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
                                   2. Selecciona Horario Disponibles (30 min) · {new Date(selectedDay + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                                 </div>
                                 {slotsLoading ? (
-                                  <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", padding: "16px 0" }}>
+                                  <div style={{ fontFamily: "var(--sans)", fontSize: 13, fontWeight: 700, color: "#FFFFFF", padding: "16px 0" }}>
                                     Cargando horarios de la base de datos...
                                   </div>
                                 ) : (
-                                  <div className="im-oh-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                                  <div className="im-oh-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                                     {slots.filter(slot => {
                                       const isPastSlot = selectedDay === TODAY_ISO && convert12hTo24h(slot.time) <= NOW_HH_MM;
                                       return !slot.taken && !isPastSlot;
                                     }).length === 0 ? (
-                                      <div style={{ gridColumn: 'span 3', fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-tertiary)", padding: "16px 0", textAlign: "center" }}>
+                                      <div style={{ gridColumn: 'span 3', fontFamily: "var(--sans)", fontSize: 13, fontWeight: 700, color: "#FFFFFF", padding: "16px 0", textAlign: "center" }}>
                                         Sin citas disponibles
                                       </div>
                                     ) : (
@@ -547,7 +548,7 @@ export default function InteractionManager({
                                             type="button"
                                             onClick={() => setSelectedSlot(slot.time)}
                                             className={`im-slot-btn${selectedSlot === slot.time ? " selected" : ""}`}
-                                            style={{ padding: "12px 8px", border: "1px solid var(--border)", background: selectedSlot === slot.time ? "rgba(201,169,110,0.15)" : "transparent", fontFamily: "var(--mono)", fontSize: 12, color: selectedSlot === slot.time ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", transition: "all 200ms", letterSpacing: "0.05em" }}>
+                                            style={{ padding: "12px 10px", border: selectedSlot === slot.time ? "2px solid #FFFFFF" : "1px solid var(--border-strong)", background: selectedSlot === slot.time ? "var(--accent)" : "rgba(255,255,255,0.06)", fontFamily: "var(--sans)", fontSize: 14, fontWeight: 800, color: "#FFFFFF", cursor: "pointer", transition: "all 200ms", letterSpacing: "0.05em" }}>
                                             {slot.time}
                                           </button>
                                         ))
@@ -566,42 +567,42 @@ export default function InteractionManager({
                 <div>
                   {!submitted ? (
                     <>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
+                      <div style={{ fontFamily: "var(--sans)", fontSize: 13, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 16, textTransform: "uppercase" }}>
                         3. Ingresa tus datos para confirmar · {formatDayLabel(selectedDay)} · {selectedSlot}
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                         <div>
-                          <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Nombre completo *</div>
+                          <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Nombre completo *</div>
                           <input type="text" value={formData.nombre} onChange={e => setFormData(p => ({ ...p, nombre: e.target.value }))}
-                            style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                            style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border-strong)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 14, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
                         </div>
 
-                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Empresa *</div>
+                            <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Empresa *</div>
                             <input type="text" value={formData.empresa} onChange={e => setFormData(p => ({ ...p, empresa: e.target.value }))}
-                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border-strong)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 14, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
                           </div>
 
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Email Corporativo *</div>
+                            <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Email Corporativo *</div>
                             <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
-                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border-strong)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 14, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
                           </div>
                         </div>
 
-                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Cargo / Puesto</div>
+                            <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Cargo / Puesto</div>
                             <input type="text" placeholder="Ej. CFO / CTO" value={formData.cargo} onChange={e => setFormData(p => ({ ...p, cargo: e.target.value }))}
-                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border-strong)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 13, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
                           </div>
 
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Revenue Anual</div>
+                            <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Revenue Anual</div>
                             <select value={formData.revenue} onChange={e => setFormData(p => ({ ...p, revenue: e.target.value }))}
-                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.revenue ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
-                              <option value="">Seleccionar...</option>
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border-strong)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 13, fontWeight: 600, outline: "none", boxSizing: "border-box" }}>
+                              <option value="" style={{ color: "#888" }}>Seleccionar...</option>
                               <option>USD 50M-250M</option>
                               <option>USD 250M-1B</option>
                               <option>Mas de USD 1B</option>
@@ -609,12 +610,12 @@ export default function InteractionManager({
                           </div>
                         </div>
 
-                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div className="im-oh-selects" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Plazo Estimado</div>
+                            <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Plazo Estimado</div>
                             <select value={formData.plazo} onChange={e => setFormData(p => ({ ...p, plazo: e.target.value }))}
-                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: formData.plazo ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }}>
-                              <option value="">Seleccionar...</option>
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border-strong)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 13, fontWeight: 600, outline: "none", boxSizing: "border-box" }}>
+                              <option value="" style={{ color: "#888" }}>Seleccionar...</option>
                               <option>{'<3 meses'}</option>
                               <option>3-6 meses</option>
                               <option>6-12 meses</option>
@@ -622,14 +623,14 @@ export default function InteractionManager({
                           </div>
 
                           <div>
-                            <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-tertiary)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Iniciativa Oracle</div>
+                            <div style={{ fontFamily: "var(--sans)", fontSize: 12, color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Iniciativa Oracle</div>
                             <input placeholder="Ej. Migración Fusion ERP" value={formData.iniciativa} onChange={e => setFormData(p => ({ ...p, iniciativa: e.target.value }))}
-                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)", fontFamily: "var(--mono)", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "12px 14px", background: "var(--bg-base)", border: "1px solid var(--border-strong)", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 13, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
                           </div>
                         </div>
 
                         {apiError && active === "office-hours" && (
-                          <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#B85450", letterSpacing: "0.05em" }}>{apiError}</span>
+                          <span style={{ fontFamily: "var(--sans)", fontSize: 12, fontWeight: 700, color: "#FF6B6B", letterSpacing: "0.05em" }}>{apiError}</span>
                         )}
 
                         <button
@@ -662,11 +663,11 @@ export default function InteractionManager({
                               setLoading(false);
                             }
                           }}
-                          style={{ marginTop: 8, padding: "14px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "var(--bg-base)", border: "none", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
+                          style={{ marginTop: 8, padding: "14px", background: loading ? "rgba(201,169,110,0.5)" : "var(--accent)", color: "#FFFFFF", border: "none", fontFamily: "var(--sans)", fontSize: 13, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", cursor: loading ? "wait" : "pointer" }}
                         >
                           {loading ? "Confirmando..." : "Confirmar y reservar"}
                         </button>
-                        <button onClick={() => setSelectedSlot(null)} style={{ padding: "10px", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.1em" }}>
+                        <button onClick={() => setSelectedSlot(null)} style={{ padding: "10px", background: "rgba(255,255,255,0.06)", color: "#FFFFFF", border: "1px solid var(--border-strong)", fontFamily: "var(--sans)", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em" }}>
                           ← Cambiar horario / fecha
                         </button>
                       </div>
@@ -674,13 +675,13 @@ export default function InteractionManager({
                   ) : (
                     <div style={{ textAlign: "center", padding: "32px 0" }}>
                       <div style={{ fontFamily: "var(--serif)", fontSize: 48, color: "var(--accent)", marginBottom: 16 }}>✓</div>
-                      <div style={{ fontFamily: "var(--serif)", fontSize: 24, marginBottom: 12 }}>Conversación <em>agendada exitosamente.</em></div>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.7 }}>
+                      <div style={{ fontFamily: "var(--serif)", fontSize: 24, color: "#FFFFFF", marginBottom: 12 }}>Conversación <em style={{ color: "var(--accent)" }}>agendada exitosamente.</em></div>
+                      <div style={{ fontFamily: "var(--sans)", fontSize: 13, fontWeight: 600, color: "#FFFFFF", lineHeight: 1.7 }}>
                         Tu cita se ha guardado directamente en la base de datos.<br />
-                        Recibirás confirmación en <strong style={{ color: "var(--accent)" }}>{formData.email}</strong>.<br />
+                        Recibirás confirmación en <strong style={{ color: "var(--accent)", fontWeight: 800 }}>{formData.email}</strong>.<br />
                         Julio revisará tus criterios y se enviará NDA mutuo 24h antes.
                       </div>
-                      <button onClick={close} style={{ marginTop: 24, padding: "12px 24px", background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 10, cursor: "pointer", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                      <button onClick={close} style={{ marginTop: 24, padding: "12px 24px", background: "var(--accent)", border: "none", color: "#FFFFFF", fontFamily: "var(--sans)", fontSize: 12, fontWeight: 800, cursor: "pointer", letterSpacing: "0.15em", textTransform: "uppercase" }}>
                         Cerrar
                       </button>
                     </div>
