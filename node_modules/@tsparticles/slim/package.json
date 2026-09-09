@@ -1,0 +1,141 @@
+{
+  "name": "@tsparticles/slim",
+  "version": "4.4.0",
+  "description": "Slim tsParticles bundle — core engine with essential plugins, presets, and interactions for lightweight particle animations. Ready to use components available for React, Vue.js (2.x and 3.x), Angular, Svelte, jQuery, Preact, Riot.js, Inferno.",
+  "homepage": "https://particles.js.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsparticles/tsparticles.git",
+    "directory": "bundles/slim"
+  },
+  "keywords": [
+    "front-end",
+    "frontend",
+    "tsparticles",
+    "particles.js",
+    "particlesjs",
+    "particles",
+    "particle",
+    "canvas",
+    "jsparticles",
+    "xparticles",
+    "particles-js",
+    "particles-bg",
+    "particles-bg-vue",
+    "particles-ts",
+    "particles.ts",
+    "react-particles-js",
+    "react-particles.js",
+    "react-particles",
+    "react",
+    "reactjs",
+    "vue-particles",
+    "ngx-particles",
+    "angular-particles",
+    "particleground",
+    "vue",
+    "vuejs",
+    "preact",
+    "preactjs",
+    "jquery",
+    "angularjs",
+    "angular",
+    "typescript",
+    "javascript",
+    "animation",
+    "web",
+    "html5",
+    "web-design",
+    "webdesign",
+    "css",
+    "html",
+    "css3",
+    "animated",
+    "background",
+    "confetti",
+    "canvas",
+    "fireworks",
+    "fireworks-js",
+    "confetti-js",
+    "confettijs",
+    "fireworksjs",
+    "canvas-confetti"
+  ],
+  "author": "Matteo Bruni <matteo.bruni@me.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tsparticles/tsparticles/issues"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/matteobruni"
+    },
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/tsparticles"
+    },
+    {
+      "type": "buymeacoffee",
+      "url": "https://www.buymeacoffee.com/matteobruni"
+    }
+  ],
+  "sideEffects": false,
+  "jsdelivr": "tsparticles.slim.bundle.min.js",
+  "unpkg": "tsparticles.slim.bundle.min.js",
+  "browser": "browser/index.js",
+  "main": "cjs/index.js",
+  "module": "esm/index.js",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "browser": "./browser/index.js",
+      "import": "./esm/index.js",
+      "require": "./cjs/index.js",
+      "default": "./esm/index.js"
+    },
+    "./lazy": {
+      "types": "./types/index.lazy.d.ts",
+      "browser": "./browser/index.lazy.js",
+      "import": "./esm/index.lazy.js",
+      "require": "./cjs/index.lazy.js",
+      "default": "./esm/index.lazy.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@tsparticles/basic": "4.4.0",
+    "@tsparticles/engine": "4.4.0",
+    "@tsparticles/interaction-external-attract": "4.4.0",
+    "@tsparticles/interaction-external-bounce": "4.4.0",
+    "@tsparticles/interaction-external-bubble": "4.4.0",
+    "@tsparticles/interaction-external-connect": "4.4.0",
+    "@tsparticles/interaction-external-destroy": "4.4.0",
+    "@tsparticles/interaction-external-grab": "4.4.0",
+    "@tsparticles/interaction-external-parallax": "4.4.0",
+    "@tsparticles/interaction-external-pause": "4.4.0",
+    "@tsparticles/interaction-external-push": "4.4.0",
+    "@tsparticles/interaction-external-remove": "4.4.0",
+    "@tsparticles/interaction-external-repulse": "4.4.0",
+    "@tsparticles/interaction-external-slow": "4.4.0",
+    "@tsparticles/interaction-particles-attract": "4.4.0",
+    "@tsparticles/interaction-particles-collisions": "4.4.0",
+    "@tsparticles/interaction-particles-links": "4.4.0",
+    "@tsparticles/plugin-easing-quad": "4.4.0",
+    "@tsparticles/plugin-interactivity": "4.4.0",
+    "@tsparticles/shape-emoji": "4.4.0",
+    "@tsparticles/shape-image": "4.4.0",
+    "@tsparticles/shape-line": "4.4.0",
+    "@tsparticles/shape-polygon": "4.4.0",
+    "@tsparticles/shape-square": "4.4.0",
+    "@tsparticles/shape-star": "4.4.0",
+    "@tsparticles/updater-life": "4.4.0",
+    "@tsparticles/updater-paint": "4.4.0",
+    "@tsparticles/updater-rotate": "4.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module"
+}

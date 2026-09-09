@@ -304,8 +304,14 @@ export default function ReunionInvitadoPage() {
       const res = await fetch(`${API_BASE}/api/office-hours/verify-pin?roomId=${encodeURIComponent(cleanRoom)}&pin=${encodeURIComponent(cleanPin)}`);
       const data = await res.json();
 
-      const finalName = cleanName || data?.nombre || 'Cliente Invitado';
-      const finalRole = data?.cargo || 'Invitado Confirmado';
+      if (!data || !data.success || !data.valid) {
+        setPinError(data?.error || 'PIN de acceso incorrecto. No se permite el acceso a esta reunión.');
+        setIsIdentified(false);
+        return;
+      }
+
+      const finalName = cleanName || data.nombre || 'Cliente Invitado';
+      const finalRole = data.cargo || 'Invitado Confirmado';
       const avatar = finalName.slice(0, 2).toUpperCase();
 
       setRoomId(cleanRoom);
@@ -313,7 +319,7 @@ export default function ReunionInvitadoPage() {
       setUserRole(finalRole);
       setUserAvatar(avatar);
       setIsIdentified(true);
-      
+
       // Solicitar permisos directamente al hacer clic para garantizar diálogo del navegador
       if (navigator?.mediaDevices?.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -324,34 +330,90 @@ export default function ReunionInvitadoPage() {
               .catch((e) => console.warn('Cámara no permitida o denegada por invitado:', e));
           });
       }
-    } catch {
-      const finalName = cleanName || 'Cliente Invitado';
-      setRoomId(cleanRoom);
-      setUserName(finalName);
-      setUserRole('Invitado Confirmado');
-      setUserAvatar(finalName.slice(0, 2).toUpperCase());
-      setIsIdentified(true);
-
-      if (navigator?.mediaDevices?.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then((stream) => setLocalStream(stream))
-          .catch(() => {
-            navigator.mediaDevices.getUserMedia({ video: true })
-              .then((vStream) => setLocalStream(vStream))
-              .catch((e) => console.warn('Cámara no permitida o denegada por invitado:', e));
-          });
-      }
+    } catch (err) {
+      console.error('Error verificando PIN con base de datos:', err);
+      setPinError('No se pudo verificar el PIN con la base de datos. Verifica que el servidor backend esté activo.');
+      setIsIdentified(false);
     } finally {
       setVerifyingPin(false);
     }
   };
 
-  // ── 1. INICIALIZAR CÁMARA LOCAL TRAS IDENTIFICACIÓN ──
+  const createVirtualCameraStream = (name: string, role: string) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 240;
+    const ctx = canvas.getContext('2d');
+
+    let angle = 0;
+    const draw = () => {
+      if (!ctx) return;
+      angle += 0.1;
+
+      const grad = ctx.createLinearGradient(0, 0, 320, 240);
+      grad.addColorStop(0, '#0B1F3A');
+      grad.addColorStop(0.5, '#0E2747');
+      grad.addColorStop(1, '#07192F');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 320, 240);
+
+      const radius = 35 + Math.sin(angle) * 4;
+      ctx.beginPath();
+      ctx.arc(160, 100, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(201, 169, 110, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(160, 100, 30, 0, Math.PI * 2);
+      ctx.fillStyle = '#123254';
+      ctx.fill();
+
+      const initials = (name || 'IN').slice(0, 2).toUpperCase();
+      ctx.font = 'bold 18px serif';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initials, 160, 100);
+
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText((name || 'Invitado').slice(0, 18), 160, 160);
+
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#C9A96E';
+      ctx.fillText((role || 'Cliente').slice(0, 20), 160, 180);
+
+      ctx.fillStyle = '#4ADE80';
+      ctx.beginPath();
+      ctx.arc(105, 210, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = '#4ADE80';
+      ctx.textAlign = 'left';
+      ctx.fillText('CÁMARA VIRTUAL EN VIVO', 115, 212);
+    };
+
+    const animInterval = setInterval(draw, 100);
+    const stream = canvas.captureStream(15);
+    if (stream.getVideoTracks()[0]) {
+      stream.getVideoTracks()[0].onended = () => clearInterval(animInterval);
+    }
+    return stream;
+  };
+
+  // ── 1. ACTIVAR CÁMARA Y MICRÓFONO LOCAL ──
   useEffect(() => {
+    if (!isIdentified) return;
+
     let isMounted = true;
 
     async function initMedia() {
       if (!navigator?.mediaDevices?.getUserMedia) {
+        if (!isMounted) return;
+        const virtualStream = createVirtualCameraStream(userName || registeredClientInfo.nombre || 'Invitado', userRole || 'Cliente');
+        setLocalStream(virtualStream);
         return;
       }
 
@@ -392,7 +454,13 @@ export default function ReunionInvitadoPage() {
             localVideoRef.current.srcObject = videoOnlyStream;
           }
         } catch (vErr) {
-          console.warn('Webcam real no disponible o denegada:', vErr);
+          console.warn('Webcam real no disponible o denegada, usando cámara virtual:', vErr);
+          if (!isMounted) return;
+          const virtualStream = createVirtualCameraStream(userName || registeredClientInfo.nombre || 'Invitado', userRole || 'Cliente');
+          setLocalStream(virtualStream);
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = virtualStream;
+          }
         }
       }
     }
@@ -503,6 +571,25 @@ export default function ReunionInvitadoPage() {
         }
       };
 
+      // Auto-crear oferta cuando el invitado agrega sus tracks locales
+      pc.onnegotiationneeded = async () => {
+        try {
+          if (pc.signalingState !== 'stable') return;
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          fetch(`${API_BASE}/api/room/signal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              roomId,
+              from: localPeerId,
+              to: 'all',
+              signal: { type: 'offer', sdp: offer },
+            }),
+          }).catch(() => {});
+        } catch {}
+      };
+
       const signalInterval = setInterval(async () => {
         try {
           const res = await fetch(`${API_BASE}/api/room/signal?roomId=${roomId}&peerId=${localPeerId}`);
@@ -511,7 +598,8 @@ export default function ReunionInvitadoPage() {
           
           if (data.signals) {
             for (const item of data.signals) {
-              const sigId = `${item.from}_${JSON.stringify(item.signal).slice(0, 30)}`;
+              // Usar timestamp del servidor para ID único — evita colisiones en ICE candidates
+              const sigId = `${item.from}_${item.time ?? JSON.stringify(item.signal)}`;
               if (processedSignalIds.current.has(sigId)) continue;
               processedSignalIds.current.add(sigId);
 
@@ -556,7 +644,25 @@ export default function ReunionInvitadoPage() {
     } catch (err) {
       console.warn('WebRTC peer connection non-fatal setup warning:', err);
     }
-  }, [isIdentified, localStream, roomId, localPeerId]);
+  // IMPORTANTE: localStream NO está en deps — no recrear la PC cuando cambia el stream
+  // Los tracks se agregan/reemplazan en el useEffect de abajo
+  }, [isIdentified, roomId, localPeerId]);
+
+  // Agregar o reemplazar tracks en la PC existente cuando el stream local cambia
+  // Esto evita tener que cerrar y reabrir la PeerConnection por cada cambio de cámara
+  useEffect(() => {
+    if (!localStream || !pcRef.current) return;
+    const pc = pcRef.current;
+    const senders = pc.getSenders();
+    localStream.getTracks().forEach((track) => {
+      const existingSender = senders.find((s) => s.track?.kind === track.kind);
+      if (existingSender) {
+        existingSender.replaceTrack(track).catch(() => {});
+      } else {
+        try { pc.addTrack(track, localStream); } catch {}
+      }
+    });
+  }, [localStream]);
 
   // ── FUNCIÓN COMPLETA DE APAGADO DE HARDWARE (CÁMARA, MICRÓFONO, PANTALLA) ──
   const stopAllHardwareMedia = () => {
