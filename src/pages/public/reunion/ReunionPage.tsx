@@ -41,7 +41,6 @@ interface PeerParticipant {
   isAudioOn: boolean;
   color: string;
   isScreenSharing?: boolean;
-  frameData?: string | null;
   screenFrameData?: string | null;
   stream?: MediaStream | null;
 }
@@ -429,80 +428,13 @@ export default function ReunionPage() {
     return `${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  const createVirtualCameraStream = (name: string, role: string) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 240;
-    const ctx = canvas.getContext('2d');
-
-    let angle = 0;
-    const draw = () => {
-      if (!ctx) return;
-      angle += 0.1;
-
-      const grad = ctx.createLinearGradient(0, 0, 320, 240);
-      grad.addColorStop(0, '#0B1F3A');
-      grad.addColorStop(0.5, '#0E2747');
-      grad.addColorStop(1, '#07192F');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 320, 240);
-
-      const radius = 35 + Math.sin(angle) * 4;
-      ctx.beginPath();
-      ctx.arc(160, 100, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(201, 169, 110, 0.6)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(160, 100, 30, 0, Math.PI * 2);
-      ctx.fillStyle = '#123254';
-      ctx.fill();
-
-      const initials = (name || 'AN').slice(0, 2).toUpperCase();
-      ctx.font = 'bold 18px serif';
-      ctx.fillStyle = '#FFFFFF';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(initials, 160, 100);
-
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillText((name || 'Anfitrión').slice(0, 18), 160, 160);
-
-      ctx.font = '10px monospace';
-      ctx.fillStyle = '#C9A96E';
-      ctx.fillText((role || 'Líder').slice(0, 20), 160, 180);
-
-      ctx.fillStyle = '#4ADE80';
-      ctx.beginPath();
-      ctx.arc(105, 210, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.font = 'bold 9px monospace';
-      ctx.fillStyle = '#4ADE80';
-      ctx.textAlign = 'left';
-      ctx.fillText('CÁMARA VIRTUAL EN VIVO', 115, 212);
-    };
-
-    const animInterval = setInterval(draw, 100);
-    const stream = canvas.captureStream(15);
-    if (stream.getVideoTracks()[0]) {
-      stream.getVideoTracks()[0].onended = () => clearInterval(animInterval);
-    }
-    return stream;
-  };
-
   // ── 1. ACTIVAR CÁMARA Y MICRÓFONO LOCAL ──
   useEffect(() => {
     let isMounted = true;
 
     async function initMedia() {
       if (!navigator?.mediaDevices?.getUserMedia) {
-        if (!isMounted) return;
-        const virtualStream = createVirtualCameraStream(localName || 'Anfitrión', localRole || 'Líder');
-        setLocalStream(virtualStream);
-        setHasRealWebcam(true);
+        if (isMounted) setHasRealWebcam(false);
         return;
       }
 
@@ -538,11 +470,8 @@ export default function ReunionPage() {
           setLocalStream(videoOnlyStream);
           setHasRealWebcam(true);
         } catch (vErr) {
-          console.warn('Webcam real no encontrada o denegada, usando cámara virtual:', vErr);
-          if (!isMounted) return;
-          const virtualStream = createVirtualCameraStream(localName || 'Anfitrión', localRole || 'Líder');
-          setLocalStream(virtualStream);
-          setHasRealWebcam(true);
+          console.warn('Webcam real no encontrada o denegada:', vErr);
+          if (isMounted) setHasRealWebcam(false);
         }
       }
     }
@@ -651,25 +580,6 @@ export default function ReunionPage() {
       }
     };
 
-    // Auto-crear oferta cuando se agregan tracks o cambia la negociación
-    pc.onnegotiationneeded = async () => {
-      try {
-        if (pc.signalingState !== 'stable') return;
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        fetch(`${API_BASE}/api/room/signal`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            roomId,
-            from: localPeerId,
-            to: 'all',
-            signal: { type: 'offer', sdp: offer },
-          }),
-        }).catch(() => {});
-      } catch {}
-    };
-
     // Polling de señales WebRTC desde el servidor
     const signalInterval = setInterval(async () => {
       try {
@@ -679,8 +589,7 @@ export default function ReunionPage() {
         
         if (data.signals) {
           for (const item of data.signals) {
-            // Usar timestamp del servidor para ID único — evita colisiones en ICE candidates
-            const sigId = `${item.from}_${item.time ?? JSON.stringify(item.signal)}`;
+            const sigId = `${item.from}_${JSON.stringify(item.signal).slice(0, 30)}`;
             if (processedSignalIds.current.has(sigId)) continue;
             processedSignalIds.current.add(sigId);
 
@@ -724,8 +633,26 @@ export default function ReunionPage() {
     };
   }, [localStream, roomId, localPeerId]);
 
-  // La oferta WebRTC se gestiona automáticamente via pc.onnegotiationneeded
-  // (eliminado useEffect manual que solo enviaba offer al primer peer)
+  // Si hay pares remotos y somos el Líder, crear una oferta de conexión WebRTC
+  useEffect(() => {
+    if (remotePeers.length > 0 && pcRef.current && pcRef.current.signalingState === 'stable') {
+      const targetPeer = remotePeers[0].peerId;
+      pcRef.current.createOffer().then((offer) => {
+        return pcRef.current?.setLocalDescription(offer).then(() => {
+          return fetch(`${API_BASE}/api/room/signal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              roomId,
+              from: localPeerId,
+              to: targetPeer,
+              signal: { type: 'offer', sdp: offer },
+            }),
+          });
+        });
+      }).catch(() => {});
+    }
+  }, [remotePeers, roomId, localPeerId]);
 
   // ── 3. SINCRONIZACIÓN CON EL BACKEND EXPRESS DE SALA ──
   useEffect(() => {

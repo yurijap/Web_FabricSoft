@@ -132,7 +132,7 @@ export const ErpModernizationPage: React.FC = () => {
         path: '/erp-modernization',
         source_erp: erpParam,
         ...utmParams
-      }).catch(() => { });
+      }).catch(() => {});
     }
   }, [location.search]);
 
@@ -140,7 +140,7 @@ export const ErpModernizationPage: React.FC = () => {
   const handleSelectErpCard = (erp: SourceErp) => {
     setSelectedErp(erp);
     trackErpEvent('erp_source_selected', { source_erp: erp });
-
+    
     // Actualizar select de ERP actual en formulario
     let defaultErpName = 'Oracle E-Business Suite';
     if (erp === 'jde') defaultErpName = 'JD Edwards EnterpriseOne';
@@ -275,13 +275,13 @@ export const ErpModernizationPage: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen font-sans selection:bg-[#C9A96E] selection:text-black pt-28 md:pt-36">
-
+      
       {/* 1. HERO SECTION */}
       <section className="relative pt-12 pb-20 overflow-hidden border-b border-[#C9A96E]/20 w-full">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-tr from-[#C9A96E]/15 to-[#8C7243]/10 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 relative z-10 text-center">
-
+          
           {/* Badge */}
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#0E2747] border border-[#C9A96E]/40 text-[#C9A96E] text-xs font-mono font-bold tracking-widest uppercase mb-8 shadow-inner">
             <Activity className="w-4 h-4 text-[#C9A96E] animate-pulse" />
@@ -399,10 +399,11 @@ export const ErpModernizationPage: React.FC = () => {
             {/* Card 1: EBS */}
             <div
               onClick={() => handleSelectErpCard('ebs')}
-              className={`p-7 rounded-3xl cursor-pointer transition-all border ${selectedErp === 'ebs'
-                ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
-                : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
-                }`}
+              className={`p-7 rounded-3xl cursor-pointer transition-all border ${
+                selectedErp === 'ebs'
+                  ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
+                  : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
+              }`}
             >
               <div className="w-12 h-12 rounded-2xl bg-[#C9A96E]/20 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-6 font-mono font-bold text-sm">
                 EBS
@@ -419,10 +420,11 @@ export const ErpModernizationPage: React.FC = () => {
             {/* Card 2: JDE */}
             <div
               onClick={() => handleSelectErpCard('jde')}
-              className={`p-7 rounded-3xl cursor-pointer transition-all border ${selectedErp === 'jde'
-                ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
-                : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
-                }`}
+              className={`p-7 rounded-3xl cursor-pointer transition-all border ${
+                selectedErp === 'jde'
+                  ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
+                  : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
+              }`}
             >
               <div className="w-12 h-12 rounded-2xl bg-[#C9A96E]/20 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-6 font-mono font-bold text-sm">
                 JDE
@@ -439,10 +441,11 @@ export const ErpModernizationPage: React.FC = () => {
             {/* Card 3: PeopleSoft */}
             <div
               onClick={() => handleSelectErpCard('peoplesoft')}
-              className={`p-7 rounded-3xl cursor-pointer transition-all border ${selectedErp === 'peoplesoft'
-                ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
-                : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
-                }`}
+              className={`p-7 rounded-3xl cursor-pointer transition-all border ${
+                selectedErp === 'peoplesoft'
+                  ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
+                  : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
+              }`}
             >
               <div className="w-12 h-12 rounded-2xl bg-[#C9A96E]/20 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-6 font-mono font-bold text-sm">
                 PSFT
@@ -459,10 +462,11 @@ export const ErpModernizationPage: React.FC = () => {
             {/* Card 4: SAP */}
             <div
               onClick={() => handleSelectErpCard('sap')}
-              className={`p-7 rounded-3xl cursor-pointer transition-all border ${selectedErp === 'sap'
-                ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
-                : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
-                }`}
+              className={`p-7 rounded-3xl cursor-pointer transition-all border ${
+                selectedErp === 'sap'
+                  ? 'bg-[#0E2747] border-[#C9A96E] shadow-2xl scale-[1.02]'
+                  : 'bg-[#0E2747]/60 border-slate-700 hover:border-[#C9A96E]/50'
+              }`}
             >
               <div className="w-12 h-12 rounded-2xl bg-[#C9A96E]/20 border border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center mb-6 font-mono font-bold text-sm">
                 SAP
@@ -486,10 +490,12 @@ export const ErpModernizationPage: React.FC = () => {
             <span className="text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-widest">
               ARQUITECTURA DE SIGUIENTE GENERACIÓN
             </span>
-
             <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">
               Una plataforma empresarial preparada para operar, crecer y evolucionar
             </h2>
+            <p className="text-base text-slate-300">
+              Criterios técnicos e institucionales de modernización sobre Oracle Fusion Cloud.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -511,16 +517,12 @@ export const ErpModernizationPage: React.FC = () => {
                 desc: 'Información y analítica empresarial integrada en tiempo real sin requerir datawarehouses externos complejos.'
               },
               {
-                title: 'Operaciones Multiempresa y Multinacionales',
-                desc: 'Operaciones multiempresa, multimoneda y multinacionales.'
+                title: 'Operaciones Multinaiconales',
+                desc: 'Soporte nativo para operaciones multiempresa, multimoneda y cumplimiento fiscal regional.'
               },
               {
-                title: 'Menor Dependencia Heredada',
-                desc: 'Menor dependencia de infraestructura y personalizaciones heredadas.'
-              },
-              {
-                title: 'Controles y Trazabilidad',
-                desc: 'Controles, seguridad y trazabilidad dentro de los procesos.'
+                title: 'Trazabilidad y Seguridad',
+                desc: 'Menor dependencia de infraestructura heredada, con controles y gobierno embebido en el proceso.'
               }
             ].map((item, idx) => (
               <div key={idx} className="p-7 rounded-2xl bg-[#123254] border border-[#C9A96E]/30">
@@ -598,9 +600,9 @@ export const ErpModernizationPage: React.FC = () => {
       {/* 6. FORMULARIO Y PRECALIFICACIÓN BANT (EN 2 PASOS / AGRADECIMIENTO) */}
       <section ref={formRef} className="py-20 border-b border-[#C9A96E]/20 w-full">
         <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 max-w-4xl mx-auto">
-
+          
           <div className="bg-[#0E2747] border border-[#C9A96E]/40 rounded-3xl p-6 sm:p-10 md:p-12 shadow-2xl">
-
+            
             {/* Header del formulario */}
             <div className="border-b border-[#C9A96E]/20 pb-6 mb-8 text-center sm:text-left">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
@@ -785,10 +787,11 @@ export const ErpModernizationPage: React.FC = () => {
                           key={mod}
                           type="button"
                           onClick={() => toggleModule(mod)}
-                          className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-left flex items-center justify-between cursor-pointer border ${isSel
-                            ? 'bg-[#C9A96E] text-[#050203] border-[#C9A96E]'
-                            : 'bg-[#07192F] text-slate-200 border-slate-700 hover:border-[#C9A96E]/50'
-                            }`}
+                          className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-left flex items-center justify-between cursor-pointer border ${
+                            isSel
+                              ? 'bg-[#C9A96E] text-[#050203] border-[#C9A96E]'
+                              : 'bg-[#07192F] text-slate-200 border-slate-700 hover:border-[#C9A96E]/50'
+                          }`}
                         >
                           <span>{mod}</span>
                           {isSel && <CheckCircle2 className="w-3.5 h-3.5 text-[#050203]" />}
@@ -828,7 +831,7 @@ export const ErpModernizationPage: React.FC = () => {
             {/* PASO 2: PREGUNTAS BANT */}
             {formStep === 2 && (
               <form onSubmit={handleFinalSubmit} className="space-y-6">
-
+                
                 {/* NEED */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-[#C9A96E] uppercase tracking-wider">
