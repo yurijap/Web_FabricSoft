@@ -24,6 +24,7 @@
     "@tsparticles/engine": "^4.0.4",
     "@tsparticles/react": "^4.0.4",
     "@tsparticles/slim": "^4.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
     "axios": "^1.16.1",
     "chart.js": "^4.5.1",
     "cors": "^2.8.6",
@@ -34,7 +35,7 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "luxon": "^3.7.2",
-    "mongoose": "^9.9.1",
+    "mongoose": "^8.12.0",
     "multer": "^2.2.0",
     "react": "^19.2.6",
     "react-chartjs-2": "^5.3.1",
@@ -45,7 +46,6 @@
     "svix": "^1.99.1",
     "tailwindcss": "^4.3.0",
     "vite": "^6.3.5",
-    "@vitejs/plugin-react": "^4.3.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -53,6 +53,7 @@
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

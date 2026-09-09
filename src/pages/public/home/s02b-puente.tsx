@@ -3155,7 +3155,7 @@ export default function S02bPuente() {
           </div>
 
           {/* Herramienta 1: ERP TCO Comparator */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16 items-start">
+          <div id="erp-tco-calculator" className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16 items-start scroll-mt-24">
             <div className="p-6 md:p-8 rounded-xl border border-zinc-800 bg-zinc-950/60 h-full">
               <span className="fabric-badge-premium mb-4 inline-block">Costo Total de Propiedad</span>
               <h3 className="text-3xl md:text-4xl font-serif text-[#C9A96E] font-light leading-tight mb-4">

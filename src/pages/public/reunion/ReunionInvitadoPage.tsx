@@ -47,37 +47,92 @@ const PRESET_PROFILES = [
   { id: '5', name: 'Lic. Miguel Ángel Torres', role: 'Operador de Finanzas & Conciliación', avatar: 'MT', color: '#A855F7' },
 ];
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+const getApiBase = () => {
+  if (typeof window === 'undefined') return '';
+  const { protocol, hostname, port } = window.location;
+  if (port === '5173' || port === '3000' || port === '4173') {
+    return ''; // Usa el proxy de Vite en lugar de ir directo
+  }
+  return window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+};
 
-function VideoPlayer({ stream, isLocal }: { stream: MediaStream | null; isLocal?: boolean }) {
+const API_BASE = getApiBase();
+
+function VideoPlayer({
+  stream,
+  isLocal,
+  isScreenShare,
+}: {
+  stream: MediaStream | null;
+  isLocal?: boolean;
+  isScreenShare?: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const el = videoRef.current;
-    if (el && stream) {
-      if (el.srcObject !== stream) {
-        el.srcObject = stream;
-      }
-      const playPromise = el.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn('Auto-play prevent default override:', err);
-          el.muted = true;
-          el.play().catch(() => {});
-        });
-      }
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
     }
+    el.play().catch(() => { });
   }, [stream]);
 
   if (!stream) return null;
+
+  const shouldMirror = isLocal && !isScreenShare;
 
   return (
     <video
       ref={videoRef}
       autoPlay
       playsInline
-      muted={isLocal}
-      className={`w-full h-full object-cover transition-opacity duration-300 ${isLocal ? 'transform -scale-x-100' : ''}`}
+      muted={true}
+      disablePictureInPicture
+      className={`w-full h-full object-cover ${shouldMirror ? 'transform -scale-x-100' : ''}`}
+    />
+  );
+}
+
+function RemoteAudio({
+  stream,
+  volume,
+  muted,
+}: {
+  stream: MediaStream | null;
+  volume: number;
+  muted: boolean;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !stream) return;
+
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+    el.volume = muted ? 0 : Math.max(0, Math.min(1, volume / 100));
+
+    if (muted) {
+      el.muted = true;
+    } else {
+      el.muted = false;
+      void el.play().catch((err) => {
+        console.debug('Autoplay de audio remoto bloqueado:', err);
+      });
+    }
+  }, [stream, volume, muted]);
+
+  if (!stream || stream.getAudioTracks().length === 0) return null;
+
+  return (
+    <audio
+      ref={audioRef}
+      data-remote-audio="true"
+      autoPlay
+      playsInline
+      aria-hidden="true"
     />
   );
 }
@@ -104,7 +159,13 @@ export default function ReunionInvitadoPage() {
   }, [urlParamRoomId]);
 
   // Peer ID único para esta pestaña
-  const [localPeerId] = useState<string>(() => `guest_${Math.random().toString(36).substring(2, 8)}`);
+  const [localPeerId] = useState<string>(() => {
+    const existing = sessionStorage.getItem('fabric_meet_guest_peer_id');
+    if (existing) return existing;
+    const newId = `guest_${Math.random().toString(36).substring(2, 8)}`;
+    sessionStorage.setItem('fabric_meet_guest_peer_id', newId);
+    return newId;
+  });
 
   // Paso de Identificación y Verificación de PIN
   const [isIdentified, setIsIdentified] = useState(false);
@@ -127,7 +188,6 @@ export default function ReunionInvitadoPage() {
   // Cargar automáticamente el nombre completo del cliente asignado a este enlace
   useEffect(() => {
     const targetRoom = (urlParamRoomId || inputRoomId || 'MEET-8821').toUpperCase();
-    const API_BASE = window.location.origin.includes('localhost') ? 'http://localhost:4000' : '';
     fetch(`${API_BASE}/api/office-hours/room-info?roomId=${encodeURIComponent(targetRoom)}`)
       .then(res => res.json())
       .then(data => {
@@ -397,20 +457,23 @@ export default function ReunionInvitadoPage() {
       }
     }
 
-    if (cameraActive) {
+    if (isIdentified && !localStream) {
       initMedia();
-    } else {
-      if (localStream) {
-        localStream.getTracks().forEach((t) => t.stop());
-        setLocalStream(null);
-      }
-      localFrameRef.current = null;
     }
 
     return () => {
       isMounted = false;
     };
-  }, [isIdentified, cameraActive]);
+  }, [isIdentified]);
+
+  // Limpieza al salir de la llamada
+  useEffect(() => {
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, [localStream]);
 
   // Asignar stream al video oculto de captura
   useEffect(() => {
@@ -419,13 +482,18 @@ export default function ReunionInvitadoPage() {
     }
   }, [localStream]);
 
-  // Alternar audio y video en localStream
+  // Alternar audio y video en localStream de forma independiente
   useEffect(() => {
     if (localStream) {
       localStream.getVideoTracks().forEach((t) => (t.enabled = cameraActive));
+    }
+  }, [cameraActive, localStream]);
+
+  useEffect(() => {
+    if (localStream) {
       localStream.getAudioTracks().forEach((t) => (t.enabled = micActive));
     }
-  }, [cameraActive, micActive, localStream]);
+  }, [micActive, localStream]);
 
   // Captura periódica de frames para streaming de respaldo
   useEffect(() => {
@@ -458,8 +526,11 @@ export default function ReunionInvitadoPage() {
   }, [isIdentified, cameraActive, localStream]);
 
   // ── 2. WEBRTC P2P SIGNALING CON SEÑALIZACIÓN CONTINUA ──
+  const remoteStreamRef = useRef<MediaStream>(new MediaStream());
+  const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
+
   useEffect(() => {
-    if (!isIdentified) return;
+    if (!isIdentified || !localStream) return;
 
     try {
       const pc = new RTCPeerConnection({
@@ -468,24 +539,53 @@ export default function ReunionInvitadoPage() {
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
           { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' },
-          { urls: 'stun:stun.services.mozilla.com' },
         ],
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require',
       });
       pcRef.current = pc;
 
-      if (localStream) {
-        localStream.getTracks().forEach((track) => {
-          try { pc.addTrack(track, localStream); } catch {}
-        });
-      }
+      // Agregar TODOS los tracks locales (video + audio) al peer connection
+      localStream.getTracks().forEach((track) => {
+        try {
+          pc.addTrack(track, localStream);
+          console.log(`[WebRTC Guest] Track local agregado: ${track.kind} (${track.id})`);
+        } catch (err) {
+          console.warn('[WebRTC Guest] Error al agregar track local:', err);
+        }
+      });
 
       pc.ontrack = (event) => {
-        if (event.streams && event.streams[0]) {
-          setRemoteStream(event.streams[0]);
-        } else if (event.track) {
-          setRemoteStream(new MediaStream([event.track]));
+        console.log(`[WebRTC Guest] Track remoto recibido: ${event.track.kind} (${event.track.id}) readyState=${event.track.readyState}`);
+
+        const stableStream = remoteStreamRef.current;
+
+        // Agregar el track al stream estable si no existe aún
+        if (!stableStream.getTracks().some((t) => t.id === event.track.id)) {
+          try {
+            stableStream.addTrack(event.track);
+          } catch (err) {
+            console.warn('[WebRTC Guest] Error al agregar track remoto:', err);
+          }
         }
+
+        // También recoger tracks del stream del navegador
+        const browserStream = event.streams?.[0];
+        if (browserStream) {
+          browserStream.getTracks().forEach((track) => {
+            if (!stableStream.getTracks().some((t) => t.id === track.id)) {
+              try { stableStream.addTrack(track); } catch {}
+            }
+          });
+        }
+
+        if (event.track.kind === 'audio') {
+          event.track.enabled = true;
+        }
+
+        // Forzar re-render con un nuevo MediaStream que contenga todos los tracks
+        // (React solo re-renderiza si la referencia del objeto cambia)
+        setRemoteStream(new MediaStream(stableStream.getTracks()));
       };
 
       pc.onicecandidate = (event) => {
@@ -503,6 +603,17 @@ export default function ReunionInvitadoPage() {
         }
       };
 
+      pc.onconnectionstatechange = () => {
+        console.log(`[WebRTC Guest] connectionState: ${pc.connectionState}`);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log(`[WebRTC Guest] iceConnectionState: ${pc.iceConnectionState}`);
+        if (pc.iceConnectionState === 'failed') {
+          try { pc.restartIce(); } catch {}
+        }
+      };
+
       const signalInterval = setInterval(async () => {
         try {
           const res = await fetch(`${API_BASE}/api/room/signal?roomId=${roomId}&peerId=${localPeerId}`);
@@ -511,14 +622,26 @@ export default function ReunionInvitadoPage() {
           
           if (data.signals) {
             for (const item of data.signals) {
-              const sigId = `${item.from}_${JSON.stringify(item.signal).slice(0, 30)}`;
+              const sigId = `${item.from}_${JSON.stringify(item.signal).slice(0, 50)}`;
               if (processedSignalIds.current.has(sigId)) continue;
               processedSignalIds.current.add(sigId);
 
               const { signal } = item;
-              if (signal.type === 'offer') {
-                if (pc.signalingState === 'stable' || pc.signalingState === 'have-local-offer') {
+
+              try {
+                if (signal.type === 'offer') {
+                  if (pc.signalingState !== 'stable') {
+                    try { await pc.setLocalDescription({ type: 'rollback' }); } catch {}
+                  }
+
                   await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+
+                  // Aplicar candidatos pendientes
+                  for (const candidate of pendingCandidatesRef.current) {
+                    try { await pc.addIceCandidate(candidate); } catch {}
+                  }
+                  pendingCandidatesRef.current = [];
+
                   const answer = await pc.createAnswer();
                   await pc.setLocalDescription(answer);
                   await fetch(`${API_BASE}/api/room/signal`, {
@@ -531,17 +654,27 @@ export default function ReunionInvitadoPage() {
                       signal: { type: 'answer', sdp: answer },
                     }),
                   });
-                }
-              } else if (signal.type === 'answer') {
-                if (pc.signalingState === 'have-local-offer') {
-                  await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-                }
-              } else if (signal.type === 'candidate') {
-                try {
-                  if (pc.remoteDescription) {
-                    await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                  console.log('[WebRTC Guest] Oferta procesada, respuesta enviada');
+                } else if (signal.type === 'answer') {
+                  if (pc.signalingState === 'have-local-offer') {
+                    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                    for (const candidate of pendingCandidatesRef.current) {
+                      try { await pc.addIceCandidate(candidate); } catch {}
+                    }
+                    pendingCandidatesRef.current = [];
                   }
-                } catch {}
+                } else if (signal.type === 'candidate') {
+                  if (pc.remoteDescription) {
+                    try {
+                      await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                    } catch {}
+                  } else {
+                    // Encolar si aún no tenemos remoteDescription
+                    pendingCandidatesRef.current.push(new RTCIceCandidate(signal.candidate));
+                  }
+                }
+              } catch (err) {
+                console.warn('[WebRTC Guest] Error procesando señal:', err);
               }
             }
           }
@@ -890,8 +1023,17 @@ export default function ReunionInvitadoPage() {
   return (
     <div className="h-screen bg-[#030712] text-white flex flex-col font-sans select-none overflow-hidden">
       
-      {/* Elemento de video oculto usado para captura de frames de respaldo */}
-      <video ref={localVideoRef} autoPlay playsInline muted className="hidden" />
+      {/* Elemento de video oculto para captura de fotogramas */}
+      <video ref={localVideoRef} autoPlay playsInline muted className="absolute top-0 left-0 w-1 h-1 opacity-0 pointer-events-none -z-50" />
+
+      {/* Audio remoto dedicado — reproduce el sonido del anfitrión/otros participantes */}
+      {remoteStream && (
+        <RemoteAudio
+          stream={remoteStream}
+          volume={volume}
+          muted={isMutedVolume}
+        />
+      )}
 
       {/* ── BARRA SUPERIOR (HEADER) ── */}
       <header className="h-16 bg-[#060D1A] border-b border-[#1E3A5F]/70 px-6 flex items-center justify-between shrink-0 backdrop-blur-xl relative z-30 shadow-md">
@@ -968,9 +1110,9 @@ export default function ReunionInvitadoPage() {
               {/* CUADRO PRINCIPAL EN GRANDE DE PANTALLA COMPARTIDA */}
               <div className="flex-1 bg-[#060E1B] border border-emerald-500/50 rounded-2xl overflow-hidden relative shadow-[0_0_35px_rgba(16,185,129,0.2)] flex items-center justify-center min-h-[260px]">
                 {screenStreamRef.current ? (
-                  <VideoPlayer stream={screenStreamRef.current} isLocal={false} />
+                  <VideoPlayer stream={screenStreamRef.current} isLocal={true} isScreenShare={true} />
                 ) : remoteStream ? (
-                  <VideoPlayer stream={remoteStream} isLocal={false} />
+                  <VideoPlayer stream={remoteStream} isLocal={false} isScreenShare={true} />
                 ) : remoteScreenFrame ? (
                   <img src={remoteScreenFrame} alt="Pantalla Compartida" className="w-full h-full object-contain" />
                 ) : (
@@ -998,14 +1140,16 @@ export default function ReunionInvitadoPage() {
                     className="w-36 h-full rounded-lg bg-[#030712] border border-[#1E3A5F] relative overflow-hidden shrink-0 flex flex-col items-center justify-center shadow-sm"
                   >
                     {p.isVideoOn ? (
-                      p.stream ? (
-                        <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                      (p.isLocal && localStream) ? (
+                        <VideoPlayer stream={localStream} isLocal={true} />
                       ) : p.isLocal ? (
                         <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
                           {p.avatar}
                         </div>
                       ) : (remotePeerFrames[p.peerId] || p.frameData) ? (
                         <img src={remotePeerFrames[p.peerId] || p.frameData!} alt={p.name} className="w-full h-full object-cover" />
+                      ) : p.stream ? (
+                        <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
                           {p.avatar}
@@ -1027,105 +1171,147 @@ export default function ReunionInvitadoPage() {
               </div>
             </div>
           ) : (
-            /* 🎥 MODO CUADRÍCULA MULTI-CÁMARA ESTÁNDAR */
-            <div className={`w-full h-full rounded-2xl bg-[#060E1B] border border-[#1E3A5F]/80 shadow-[0_15px_45px_rgba(0,0,0,0.8)] p-2.5 md:p-3 grid gap-2.5 ${getGridClasses(visibleParticipants.length)} select-none relative overflow-hidden`}>
-              {visibleParticipants.map((p, index) => {
-                const remoteFrame = p.isLocal ? null : (remotePeerFrames[p.peerId] || p.frameData || null);
+            /* 🎥 MODO CUADRÍCULA ADAPTATIVA (1 A 4 EN PANTALLA PRINCIPAL, 5+ EN TIRA INFERIOR) */
+            (() => {
+              // Ordenar para mostrar primero los que tienen cámara activa o son participantes remotos
+              const sortedParticipants = [...visibleParticipants].sort((a, b) => {
+                if (a.isVideoOn && !b.isVideoOn) return -1;
+                if (!a.isVideoOn && b.isVideoOn) return 1;
+                if (!a.isLocal && b.isLocal) return -1;
+                if (a.isLocal && !b.isLocal) return 1;
+                return 0;
+              });
 
-                return (
-                  <div
-                    key={p.peerId || `peer-${index}`}
-                    className="w-full h-full rounded-xl bg-[#081628] border border-[#1E3A5F]/80 shadow-md relative overflow-hidden flex flex-col items-center justify-center min-h-[170px] md:min-h-[200px]"
-                  >
-                    {/* SI TIENE CÁMARA ENCENDIDA */}
-                    {p.isVideoOn ? (
-                      (p.isLocal && localStream) ? (
-                        <VideoPlayer stream={localStream} isLocal={true} />
-                      ) : p.stream ? (
-                        <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
-                      ) : remoteFrame ? (
-                        <img src={remoteFrame} alt={p.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-[#0A1A30] via-[#071325] to-[#040A14] overflow-hidden p-4">
-                          <div className="absolute w-28 h-28 rounded-full border border-[#C9A96E]/20 animate-ping pointer-events-none" />
-                          <div className="absolute w-22 h-22 rounded-full border border-[#38BDF8]/30 animate-pulse pointer-events-none" />
+              const mainParticipants = sortedParticipants.slice(0, 4);
+              const overflowParticipants = sortedParticipants.slice(4);
 
-                          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-[#C9A96E] bg-[#0E2747] flex items-center justify-center text-white font-serif font-bold text-xl md:text-2xl shadow-xl relative z-10">
-                            {p.avatar}
-                          </div>
+              const getAdaptiveGridClass = (count: number) => {
+                switch (count) {
+                  case 1:
+                    return 'grid-cols-1 grid-rows-1';
+                  case 2:
+                    return 'grid-cols-1 md:grid-cols-2 grid-rows-1';
+                  case 3:
+                    return 'grid-cols-1 md:grid-cols-3 grid-rows-1';
+                  case 4:
+                  default:
+                    return 'grid-cols-2 grid-rows-2';
+                }
+              };
 
-                          {p.isLocal ? (
-                            <div className="flex flex-col items-center gap-1.5 mt-2 relative z-20">
-                              {!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
-                                <p className="font-mono text-[9px] text-amber-300 max-w-[200px] text-center bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/30">
-                                  ⚠️ Navegador requiere <strong>HTTPS</strong> o <strong>localhost</strong> para activar la cámara en IP ({window.location.hostname}).
+              return (
+                <div className="w-full h-full flex flex-col gap-2.5 relative z-10 select-none overflow-hidden">
+                  {/* CUADRÍCULA PRINCIPAL (HASTA 4 PERSONAS ACOMODADAS PERFECTAMENTE) */}
+                  <div className={`flex-1 w-full rounded-2xl bg-[#060E1B] border border-[#1E3A5F]/80 shadow-[0_15px_45px_rgba(0,0,0,0.8)] p-2.5 md:p-3 grid gap-2.5 ${getAdaptiveGridClass(mainParticipants.length)} relative overflow-hidden min-h-[260px]`}>
+                    {mainParticipants.map((p, index) => {
+                      const remoteFrame = p.isLocal ? null : (remotePeerFrames[p.peerId] || p.frameData || null);
+
+                      return (
+                        <div
+                          key={p.peerId || `peer-${index}`}
+                          className={`w-full h-full rounded-xl bg-[#081628] border ${p.isVideoOn ? 'border-[#C9A96E]/50 shadow-[0_0_15px_rgba(201,169,110,0.15)]' : 'border-[#1E3A5F]/80'} shadow-md relative overflow-hidden flex flex-col items-center justify-center min-h-[170px]`}
+                        >
+                          {/* CÁMARA ENCENDIDA O APAGADA */}
+                          {p.isVideoOn ? (
+                            (p.isLocal && localStream) ? (
+                              <VideoPlayer stream={localStream} isLocal={true} />
+                            ) : (p.stream && p.stream.getVideoTracks().length > 0) ? (
+                              <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                            ) : remoteFrame ? (
+                              <img src={remoteFrame} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-[#0A1A30] via-[#071325] to-[#040A14] overflow-hidden p-4">
+                                <div className="absolute w-24 h-24 rounded-full border border-[#C9A96E]/20 animate-ping pointer-events-none" />
+                                <div className="w-16 h-16 rounded-full border-2 border-[#C9A96E] bg-[#0E2747] flex items-center justify-center text-white font-serif font-bold text-xl shadow-xl z-10">
+                                  {p.avatar}
+                                </div>
+                                <p className="font-mono text-[10px] text-[#C9A96E] mt-2 font-bold uppercase tracking-wider z-10">
+                                  Conectando Video...
                                 </p>
-                              )}
-                              <button
-                                onClick={() => {
-                                  if (!navigator?.mediaDevices?.getUserMedia) {
-                                    alert(`Los navegadores bloquean la cámara en IP HTTP (http://${window.location.hostname}). Usa http://localhost:5173 o activa HTTPS.`);
-                                    return;
-                                  }
-                                  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                                    .then((s) => { setLocalStream(s); setCameraActive(true); })
-                                    .catch((e) => alert('No se pudo acceder a la cámara. Permiso denegado o conexión no segura HTTP.'));
-                                }}
-                                className="px-3 py-1.5 rounded-xl bg-[#C9A96E] hover:bg-[#e2c799] text-[#030712] font-mono text-[10px] font-bold uppercase tracking-wider transition shadow-md cursor-pointer flex items-center gap-1"
-                              >
-                                <Video size={12} />
-                                <span>Activar Cámara Local</span>
-                              </button>
-                            </div>
+                              </div>
+                            )
                           ) : (
-                            <div className="mt-2.5 flex items-center gap-1.5 bg-[#030712]/80 backdrop-blur-md border border-emerald-500/40 px-2.5 py-0.5 rounded-full relative z-10 shadow-sm">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              <span className="font-mono text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
-                                Conectando Video...
-                              </span>
+                            <div className="flex flex-col items-center justify-center p-4 text-center space-y-2 bg-[#050B14] w-full h-full">
+                              <div className="w-14 h-14 rounded-full bg-[#081628] border border-[#C9A96E]/40 flex items-center justify-center text-white font-serif font-bold text-xl shadow-md">
+                                {p.avatar}
+                              </div>
+                              <div>
+                                <p className="font-serif font-bold text-xs text-white">{p.name} {p.isLocal ? '(Tú)' : ''}</p>
+                                <span className="font-mono text-[9px] text-[#C9A96E] uppercase tracking-wider block mt-0.5">{p.role}</span>
+                              </div>
                             </div>
                           )}
-                        </div>
-                      )
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-4 text-center space-y-2 bg-[#050B14] w-full h-full">
-                        <div className="w-14 h-14 rounded-full bg-[#081628] border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-sm">
-                          <VideoOff size={24} />
-                        </div>
-                        <div>
-                          <p className="font-serif font-bold text-xs text-white">{p.name}</p>
-                          <span className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block mt-0.5">En Pausa</span>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Badge Overlay Superior Izquierdo */}
-                    <div className="absolute top-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] flex items-center gap-1.5 shadow-md z-20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="font-mono text-[10px] font-bold text-white tracking-wider">
-                        {p.name} {p.isLocal ? '(Tú)' : ''}
-                      </span>
-                    </div>
+                          {/* Overlay Nombre */}
+                          <div className="absolute top-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] flex items-center gap-1.5 shadow-md z-20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="font-mono text-[10px] font-bold text-white tracking-wider">
+                              {p.name} {p.isLocal ? '(Tú)' : ''}
+                            </span>
+                          </div>
 
-                    {/* Badge Overlay Inferior Izquierdo */}
-                    <div className="absolute bottom-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] shadow-md z-20">
-                      <p className="font-mono text-[9px] text-[#C9A96E] uppercase tracking-wider font-semibold">
-                        {p.role}
-                      </p>
-                    </div>
+                          {/* Overlay Rol */}
+                          <div className="absolute bottom-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] shadow-md z-20">
+                            <p className="font-mono text-[9px] text-[#C9A96E] uppercase tracking-wider font-semibold">
+                              {p.role}
+                            </p>
+                          </div>
 
-                    {/* Badge Overlay Inferior Derecho (Micrófono) */}
-                    <div className="absolute bottom-2.5 right-2.5 bg-[#030712]/90 backdrop-blur-md p-1.5 rounded-lg border border-[#1E3A5F] shadow-md z-20">
-                      {p.isAudioOn ? (
-                        <Mic size={13} className="text-emerald-400" />
-                      ) : (
-                        <MicOff size={13} className="text-rose-400" />
-                      )}
-                    </div>
+                          {/* Overlay Micrófono */}
+                          <div className="absolute bottom-2.5 right-2.5 bg-[#030712]/90 backdrop-blur-md p-1.5 rounded-lg border border-[#1E3A5F] shadow-md z-20">
+                            {p.isAudioOn ? (
+                              <Mic size={13} className="text-emerald-400" />
+                            ) : (
+                              <MicOff size={13} className="text-rose-400" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* 👥 TIRA INFERIOR SI HAY MÁS DE 4 PARTICIPANTES */}
+                  {overflowParticipants.length > 0 && (
+                    <div className="h-24 bg-[#081528] border border-[#1E3A5F] rounded-xl p-1.5 flex items-center gap-2 overflow-x-auto shrink-0 shadow-md">
+                      {overflowParticipants.map((p) => {
+                        const remoteFrame = p.isLocal ? null : (remotePeerFrames[p.peerId] || p.frameData || null);
+                        return (
+                          <div
+                            key={p.peerId}
+                            className="w-36 h-full rounded-lg bg-[#030712] border border-[#1E3A5F] relative overflow-hidden shrink-0 flex flex-col items-center justify-center shadow-sm"
+                          >
+                            {p.isVideoOn ? (
+                              (p.isLocal && localStream) ? (
+                                <VideoPlayer stream={localStream} isLocal={true} />
+                              ) : (p.stream && p.stream.getVideoTracks().length > 0) ? (
+                                <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                              ) : remoteFrame ? (
+                                <img src={remoteFrame} alt={p.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
+                                  {p.avatar}
+                                </div>
+                              )
+                            ) : (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#1E3A5F] text-slate-300 font-serif font-bold text-xs flex items-center justify-center">
+                                  {p.avatar}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="absolute bottom-1 left-1 bg-[#030712]/90 px-1.5 py-0.5 rounded border border-[#1E3A5F] text-[8px] font-mono text-slate-200 font-bold truncate max-w-[120px] flex items-center gap-1">
+                              {!p.isAudioOn && <MicOff size={9} className="text-rose-400" />}
+                              <span>{p.name} {p.isLocal ? '(Tú)' : ''}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
 

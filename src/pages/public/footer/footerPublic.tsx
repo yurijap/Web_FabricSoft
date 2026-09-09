@@ -19,7 +19,7 @@ const footerLinks: Record<string, FooterLink[]> = {
     { label: 'Modelo de No-Alineación', path: '/doctrina/no-alineacion' },
   ],
   comparadores: [
-    { label: 'ERP TCO Calculator',      path: '/#comparadores' },
+    { label: 'ERP TCO Calculator',      path: '/#erp-tco-calculator' },
     { label: 'Cloud Cost Comparator',   path: '/#infra-cost-simulator' },
     { label: 'Optimizador de Nube OCI', path: '/optimizador-oci' },
   ],

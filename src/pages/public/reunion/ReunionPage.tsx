@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Video, VideoOff, Mic, MicOff, Volume2, VolumeX, 
-  FileText, PhoneOff, Send, MessageSquare, Users, 
+import {
+  Video, VideoOff, Mic, MicOff, Volume2, VolumeX,
+  FileText, PhoneOff, Send, MessageSquare, Users,
   ShieldCheck, ArrowLeft, Copy, CheckCircle2, Sparkles,
-  Info, LogIn, LogOut, Lock, UserCheck, Circle, Monitor
+  Info, LogIn, LogOut, Circle, Monitor, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, LayoutGrid
 } from 'lucide-react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -41,41 +41,125 @@ interface PeerParticipant {
   isAudioOn: boolean;
   color: string;
   isScreenSharing?: boolean;
+  frameData?: string | null;
   screenFrameData?: string | null;
   stream?: MediaStream | null;
 }
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+const getApiBase = () => {
+  if (typeof window === 'undefined') return '';
+  const { protocol, hostname, port } = window.location;
+  if (port === '5173' || port === '3000' || port === '4173') {
+    return ''; // Usa el proxy de Vite en lugar de ir directo
+  }
+  return window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+};
 
-function VideoPlayer({ stream, isLocal }: { stream: MediaStream | null; isLocal?: boolean }) {
+const API_BASE = getApiBase();
+
+function VideoPlayer({
+  stream,
+  isLocal,
+  isScreenShare,
+}: {
+  stream: MediaStream | null;
+  isLocal?: boolean;
+  isScreenShare?: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const el = videoRef.current;
-    if (el && stream) {
-      if (el.srcObject !== stream) {
-        el.srcObject = stream;
-      }
-      const playPromise = el.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn('Auto-play prevent default override:', err);
-          el.muted = true;
-          el.play().catch(() => {});
-        });
-      }
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
     }
+    el.play().catch(() => { });
   }, [stream]);
 
   if (!stream) return null;
+
+  const shouldMirror = isLocal && !isScreenShare;
 
   return (
     <video
       ref={videoRef}
       autoPlay
       playsInline
-      muted={isLocal}
-      className={`w-full h-full object-cover transition-opacity duration-300 ${isLocal ? 'transform -scale-x-100' : ''}`}
+      muted={true}
+      disablePictureInPicture
+      className={`w-full h-full object-cover ${shouldMirror ? 'transform -scale-x-100' : ''}`}
+    />
+  );
+}
+
+function RemoteAudio({
+  stream,
+  volume,
+  muted,
+}: {
+  stream: MediaStream | null;
+  volume: number;
+  muted: boolean;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !stream) return;
+
+    // El audio remoto SIEMPRE sale por este elemento dedicado.
+    // El <video> está muteado para evitar doble reproducción.
+    el.autoplay = true;
+    el.playsInline = true;
+    el.preload = 'auto';
+    el.srcObject = stream;
+    el.volume = muted ? 0 : Math.max(0, Math.min(1, volume / 100));
+    el.muted = muted;
+
+    const tryPlay = () => {
+      if (el.muted || el.volume === 0) return;
+      void el.play().catch(() => {
+        // Chrome/Edge/Safari pueden bloquear autoplay hasta una interacción.
+      });
+    };
+
+    // Los tracks remotos pueden llegar después de montar el <audio>.
+    stream.getAudioTracks().forEach((track) => {
+      track.enabled = true;
+      track.onunmute = tryPlay;
+    });
+
+    el.addEventListener('loadedmetadata', tryPlay);
+    el.addEventListener('canplay', tryPlay);
+    el.addEventListener('canplaythrough', tryPlay);
+
+    // Intento inmediato y otro al siguiente ciclo del navegador.
+    tryPlay();
+    const timer = window.setTimeout(tryPlay, 100);
+
+    return () => {
+      window.clearTimeout(timer);
+      el.removeEventListener('loadedmetadata', tryPlay);
+      el.removeEventListener('canplay', tryPlay);
+      el.removeEventListener('canplaythrough', tryPlay);
+      stream.getAudioTracks().forEach((track) => {
+        if (track.onunmute === tryPlay) track.onunmute = null;
+      });
+      el.pause();
+      el.srcObject = null;
+    };
+  }, [stream, volume, muted]);
+
+  if (!stream || stream.getAudioTracks().length === 0) return null;
+
+  return (
+    <audio
+      ref={audioRef}
+      data-remote-audio="true"
+      autoPlay
+      playsInline
+      aria-hidden="true"
     />
   );
 }
@@ -92,17 +176,27 @@ export default function ReunionPage() {
 
   const [localName, setLocalName] = useState<string>('Anfitrión de la Sala');
   const localRole = 'Anfitrión de la Sala';
-  const [localPeerId] = useState<string>(() => `leader_${Math.random().toString(36).substring(2, 8)}`);
+  const [localPeerId] = useState<string>(() => {
+    const existing = sessionStorage.getItem('fabric_meet_leader_peer_id');
+    if (existing) return existing;
+    const newId = `leader_${Math.random().toString(36).substring(2, 8)}`;
+    sessionStorage.setItem('fabric_meet_leader_peer_id', newId);
+    return newId;
+  });
 
   // Estados de control local
   const [cameraActive, setCameraActive] = useState(true);
   const [micActive, setMicActive] = useState(true);
   const [volume, setVolume] = useState(85);
   const [isMutedVolume, setIsMutedVolume] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState('Conectando...');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'transcript' | 'activity' | 'participants'>('chat');
-  const [hasRealWebcam, setHasRealWebcam] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
 
   // Reloj de la sesión
   const [callDuration, setCallDuration] = useState(0);
@@ -110,16 +204,24 @@ export default function ReunionPage() {
   // Stream de video local y remoto
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
+  const remoteStreamsRef = useRef<Record<string, MediaStream>>({});
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const [localDisplayStream, setLocalDisplayStream] = useState<MediaStream | null>(null);
+  const [localFrameData, setLocalFrameData] = useState<string | null>(null);
+  const [localScreenFrameData, setLocalScreenFrameData] = useState<string | null>(null);
 
   // Captura de frames base64 para streaming respaldado por servidor
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const hiddenCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const localFrameRef = useRef<string | null>(null);
-  const [remotePeerFrames, setRemotePeerFrames] = useState<Record<string, string>>({});
 
   // Referencia PeerConnection para WebRTC nativo P2P
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const processedSignalIds = useRef<Set<string>>(new Set());
+  const offeredPeersRef = useRef<Set<string>>(new Set());
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const statsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Participantes remotos del servidor
   const [remotePeers, setRemotePeers] = useState<PeerParticipant[]>([]);
@@ -169,13 +271,13 @@ export default function ReunionPage() {
         try {
           const source = audioCtx.createMediaStreamSource(localStream);
           source.connect(audioDestination);
-        } catch {}
+        } catch { }
       }
       if (remoteStream && remoteStream.getAudioTracks().length > 0) {
         try {
           const source = audioCtx.createMediaStreamSource(remoteStream);
           source.connect(audioDestination);
-        } catch {}
+        } catch { }
       }
 
       // 3. Bucle de dibujo a 30 FPS del marco de video de la llamada
@@ -200,7 +302,7 @@ export default function ReunionPage() {
                   if (video.readyState >= 2) {
                     ctx.drawImage(video, c * w + 6, r * h + 6, w - 12, h - 12);
                   }
-                } catch {}
+                } catch { }
               });
             } else {
               ctx.fillStyle = '#081528';
@@ -229,8 +331,8 @@ export default function ReunionPage() {
       const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
         ? { mimeType: 'video/webm;codecs=vp9,opus' }
         : MediaRecorder.isTypeSupported('video/webm')
-        ? { mimeType: 'video/webm' }
-        : undefined;
+          ? { mimeType: 'video/webm' }
+          : undefined;
 
       const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
@@ -283,7 +385,7 @@ export default function ReunionPage() {
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    }, 100);
+    }, 1000);
 
     alert(`¡Grabación finalizada! El archivo del cuadro de video "${fileName}" se ha guardado y descargado en tu equipo.`);
   };
@@ -295,32 +397,47 @@ export default function ReunionPage() {
   const startScreenShare = async () => {
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: { frameRate: { ideal: 30, max: 30 } },
         audio: true,
       });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      if (!screenTrack) return;
+      try { screenTrack.contentHint = 'detail'; } catch { }
+
       screenStreamRef.current = screenStream;
-      setLocalStream(screenStream);
+      setLocalDisplayStream(screenStream);
       setIsScreenSharing(true);
 
-      if (screenStream.getVideoTracks()[0]) {
-        screenStream.getVideoTracks()[0].onended = () => {
-          stopScreenShare();
-        };
+      for (const pc of peerConnectionsRef.current.values()) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+        if (sender) {
+          try { await sender.replaceTrack(screenTrack); } catch (e) { console.warn('No se pudo cambiar a pantalla:', e); }
+        }
       }
+
+      screenTrack.onended = () => stopScreenShare();
     } catch (err) {
       console.warn('Compartir pantalla cancelado:', err);
     }
   };
 
-  const stopScreenShare = () => {
+  const stopScreenShare = async () => {
+    const cameraTrack = cameraStreamRef.current?.getVideoTracks()[0];
+    for (const pc of peerConnectionsRef.current.values()) {
+      const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+      if (sender && cameraTrack) {
+        try { await sender.replaceTrack(cameraTrack); } catch (e) { console.warn('No se pudo restaurar la cámara:', e); }
+      }
+    }
+
     if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current.getTracks().forEach((track) => {
+        try { track.stop(); } catch { }
+      });
       screenStreamRef.current = null;
     }
+    setLocalDisplayStream(cameraStreamRef.current || localStream);
     setIsScreenSharing(false);
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then((camStream) => setLocalStream(camStream))
-      .catch(() => {});
   };
 
   const screenFrameRef = useRef<string | null>(null);
@@ -339,16 +456,16 @@ export default function ReunionPage() {
     videoEl.srcObject = screenStreamRef.current;
 
     const canvas = document.createElement('canvas');
-    canvas.width = 960;
-    canvas.height = 540;
+    canvas.width = 480;
+    canvas.height = 270;
     const ctx = canvas.getContext('2d');
 
     const interval = setInterval(() => {
       if (ctx && videoEl.readyState >= 2) {
         try {
-          ctx.drawImage(videoEl, 0, 0, 960, 540);
-          screenFrameRef.current = canvas.toDataURL('image/jpeg', 0.45);
-        } catch {}
+          ctx.drawImage(videoEl, 0, 0, 480, 270);
+          screenFrameRef.current = canvas.toDataURL('image/jpeg', 0.25);
+        } catch { }
       }
     }, 100);
 
@@ -361,52 +478,32 @@ export default function ReunionPage() {
   // ── FUNCIÓN COMPLETA DE APAGADO DE HARDWARE (CÁMARA, MICRÓFONO, PANTALLA, GRABACIÓN) ──
   const stopAllHardwareMedia = () => {
     try {
-      if (localStream) {
-        localStream.getTracks().forEach((track) => {
-          try {
-            track.stop();
-            track.enabled = false;
-          } catch {}
-        });
-        setLocalStream(null);
+      screenStreamRef.current?.getTracks().forEach((track) => { try { track.stop(); } catch { } });
+      screenStreamRef.current = null;
+
+      recordingStreamRef.current?.getTracks().forEach((track) => { try { track.stop(); } catch { } });
+      recordingStreamRef.current = null;
+
+      for (const pc of peerConnectionsRef.current.values()) {
+        try { pc.ontrack = null; pc.onicecandidate = null; pc.close(); } catch { }
       }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((track) => {
-          try {
-            track.stop();
-            track.enabled = false;
-          } catch {}
-        });
-        screenStreamRef.current = null;
-      }
-      if (recordingStreamRef.current) {
-        recordingStreamRef.current.getTracks().forEach((track) => {
-          try {
-            track.stop();
-            track.enabled = false;
-          } catch {}
-        });
-        recordingStreamRef.current = null;
-      }
-      if (pcRef.current) {
-        try {
-          pcRef.current.getSenders().forEach((sender) => {
-            if (sender.track) {
-              try { sender.track.stop(); } catch {}
-            }
-          });
-          pcRef.current.close();
-        } catch {}
-        pcRef.current = null;
-      }
+      peerConnectionsRef.current.clear();
+      pendingCandidatesRef.current.clear();
+      offeredPeersRef.current.clear();
+      processedSignalIds.current.clear();
+      pcRef.current = null;
+
+      cameraStreamRef.current?.getTracks().forEach((track) => { try { track.stop(); } catch { } });
+      cameraStreamRef.current = null;
+      localStreamRef.current = null;
+      remoteStreamsRef.current = {};
     } catch (err) {
-      console.warn('Error al apagar componentes de hardware:', err);
+      console.warn('Error al apagar componentes multimedia:', err);
     }
   };
 
   useEffect(() => {
     return () => {
-      stopAllHardwareMedia();
     };
   }, []);
 
@@ -428,13 +525,13 @@ export default function ReunionPage() {
     return `${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  // ── 1. ACTIVAR CÁMARA Y MICRÓFONO LOCAL ──
+  // ── 1. ACTIVAR CÁMARA Y MICRÓFONO LOCAL DE FORMA INDEPENDIENTE ──
   useEffect(() => {
     let isMounted = true;
 
     async function initMedia() {
+      if (localStream) return;
       if (!navigator?.mediaDevices?.getUserMedia) {
-        if (isMounted) setHasRealWebcam(false);
         return;
       }
 
@@ -442,217 +539,432 @@ export default function ReunionPage() {
         let stream: MediaStream;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: { facingMode: 'user', width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 } },
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
           });
         } catch {
           try {
             stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: 'user' },
-              audio: true,
+              video: { facingMode: 'user', frameRate: { ideal: 30, max: 30 } },
+              audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
             });
           } catch {
             stream = await navigator.mediaDevices.getUserMedia({
-              video: true,
-              audio: true,
+              video: { width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 } },
+              audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
             });
           }
         }
 
         if (!isMounted) return;
 
+        cameraStreamRef.current = stream;
+        stream.getVideoTracks().forEach((track) => { try { track.contentHint = 'motion'; } catch { } });
+        stream.getAudioTracks().forEach((track) => { try { track.contentHint = 'speech'; } catch { } });
+        localStreamRef.current = stream;
         setLocalStream(stream);
-        setHasRealWebcam(true);
+        setLocalDisplayStream(stream);
       } catch (err) {
         try {
-          const videoOnlyStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const videoOnlyStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 } },
+          });
           if (!isMounted) return;
+          cameraStreamRef.current = videoOnlyStream;
+          videoOnlyStream.getVideoTracks().forEach((track) => { try { track.contentHint = 'motion'; } catch { } });
+          localStreamRef.current = videoOnlyStream;
           setLocalStream(videoOnlyStream);
-          setHasRealWebcam(true);
+          setLocalDisplayStream(videoOnlyStream);
         } catch (vErr) {
           console.warn('Webcam real no encontrada o denegada:', vErr);
-          if (isMounted) setHasRealWebcam(false);
         }
       }
     }
 
-    if (cameraActive) {
-      initMedia();
-    } else {
-      if (localStream) {
-        localStream.getTracks().forEach((t) => t.stop());
-        setLocalStream(null);
-      }
-    }
+    initMedia();
 
     return () => {
       isMounted = false;
     };
-  }, [cameraActive]);
+  }, []);
+
+
   useEffect(() => {
     if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.srcObject = localDisplayStream || localStream;
     }
-  }, [localStream]);
+  }, [localStream, localDisplayStream]);
 
-  // Alternar audio y video en localStream
+  // Alternar audio y video en localStream de forma independiente
   useEffect(() => {
     if (localStream) {
       localStream.getVideoTracks().forEach((t) => (t.enabled = cameraActive));
+    }
+  }, [cameraActive, localStream, localDisplayStream]);
+
+  useEffect(() => {
+    if (localStream) {
       localStream.getAudioTracks().forEach((t) => (t.enabled = micActive));
     }
-  }, [cameraActive, micActive, localStream]);
+  }, [micActive, localStream]);
 
-  // Captura periódica de frames para streaming de respaldo
+  // Fallback visual ligero: WebRTC sigue siendo el transporte principal.
+  // Si la señalización tarda o falla, el usuario todavía puede ver una vista previa
+  // pequeña mientras se recupera la conexión P2P.
   useEffect(() => {
-    if (!cameraActive || !localStream) return;
+    let cancelled = false;
+    const canvas = document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 180;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
 
-    const videoEl = localVideoRef.current || document.createElement('video');
-    videoEl.autoplay = true;
-    videoEl.playsInline = true;
-    videoEl.muted = true;
-    if (!videoEl.srcObject) {
-      videoEl.srcObject = localStream;
+    const capture = () => {
+      if (cancelled) return;
+      const video = localVideoRef.current;
+      if (video && video.readyState >= 2 && video.videoWidth > 0) {
+        try {
+          ctx.drawImage(video, 0, 0, 320, 180);
+          setLocalFrameData(canvas.toDataURL('image/jpeg', 0.35));
+        } catch { }
+      }
+    };
+
+    const timer = window.setInterval(capture, 1000);
+    capture();
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [localStream]);
+
+  // ── 2. WEBRTC P2P: UNA CONEXIÓN POR PARTICIPANTE ──
+  const sendSignal = async (peerId: string, signal: any) => {
+    try {
+      await fetch(`${API_BASE}/api/room/signal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, from: localPeerId, to: peerId, signal }),
+        keepalive: signal?.type === 'candidate',
+      });
+    } catch (e) {
+      console.warn('No se pudo enviar señal WebRTC:', e);
+    }
+  };
+
+  const applySenderQuality = async (pc: RTCPeerConnection) => {
+    const senders = pc.getSenders();
+    for (const sender of senders) {
+      if (!sender.track) continue;
+      try {
+        const params = sender.getParameters();
+        if (!params.encodings?.length) params.encodings = [{}];
+
+        if (sender.track.kind === 'video') {
+          params.encodings[0].maxBitrate = 1_800_000;
+          params.encodings[0].maxFramerate = 30;
+          params.degradationPreference = 'maintain-framerate';
+        } else if (sender.track.kind === 'audio') {
+          params.encodings[0].maxBitrate = 64_000;
+        }
+        await sender.setParameters(params);
+      } catch { }
+    }
+  };
+
+  const createPeerConnection = (peerId: string) => {
+    if (!localStream || peerId === localPeerId) return null;
+
+    const existing = peerConnectionsRef.current.get(peerId);
+    if (existing && existing.connectionState !== 'closed') return existing;
+
+    const turnUrl = (import.meta as any).env?.VITE_TURN_URL;
+    const turnUsername = (import.meta as any).env?.VITE_TURN_USERNAME;
+    const turnCredential = (import.meta as any).env?.VITE_TURN_CREDENTIAL;
+
+    const iceServers: RTCIceServer[] = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ];
+    if (turnUrl && turnUsername && turnCredential) {
+      iceServers.push({ urls: turnUrl, username: turnUsername, credential: turnCredential });
     }
 
-    const canvas = hiddenCanvasRef.current || document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 240;
-    hiddenCanvasRef.current = canvas;
-    const ctx = canvas.getContext('2d');
+    const pc = new RTCPeerConnection({
+      iceServers,
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
+    });
 
-    const frameInterval = setInterval(() => {
-      if (ctx && videoEl.readyState >= 2) {
-        try {
-          ctx.drawImage(videoEl, 0, 0, 320, 240);
-          localFrameRef.current = canvas.toDataURL('image/jpeg', 0.35);
-        } catch {}
+    localStream.getTracks().forEach((track) => {
+      try { pc.addTrack(track, localStream); } catch (e) { console.warn('No se pudo agregar track:', e); }
+    });
+
+    applySenderQuality(pc).catch(() => { });
+
+    pc.ontrack = (event) => {
+      // IMPORTANTE: audio y video pueden llegar en eventos separados.
+      // Creamos un único MediaStream estable por participante.
+      let stream = remoteStreamsRef.current[peerId];
+
+      if (!stream) {
+        stream = new MediaStream();
+        remoteStreamsRef.current[peerId] = stream;
       }
-    }, 120);
 
-    return () => clearInterval(frameInterval);
-  }, [cameraActive, localStream]);
+      // Agregar SIEMPRE el track recibido al stream del participante.
+      if (!stream.getTracks().some((track) => track.id === event.track.id)) {
+        try {
+          stream.addTrack(event.track);
+        } catch (err) {
+          console.warn('No se pudo agregar track remoto:', err);
+        }
+      }
 
-  // ── 2. WEBRTC P2P SIGNALING Y STREAMING DIRECTO DE VIDEO/AUDIO ──
+      // También conservar todos los tracks del stream que entregue el navegador.
+      const incomingStream = event.streams?.[0];
+      if (incomingStream) {
+        incomingStream.getTracks().forEach((track) => {
+          if (!stream!.getTracks().some((existing) => existing.id === track.id)) {
+            try {
+              stream!.addTrack(track);
+            } catch { }
+          }
+        });
+      }
+
+      // MUY IMPORTANTE para audio: el track remoto debe quedar habilitado.
+      if (event.track.kind === 'audio') {
+        event.track.enabled = true;
+        console.log(`[WebRTC] Audio remoto recibido de ${peerId}`, {
+          trackId: event.track.id,
+          readyState: event.track.readyState,
+          muted: event.track.muted,
+        });
+
+        event.track.onunmute = () => {
+          document.querySelectorAll<HTMLAudioElement>(
+            'audio[data-remote-audio="true"]'
+          ).forEach((audio) => {
+            audio.muted = false;
+            audio.volume = isMutedVolume ? 0 : Math.max(0, Math.min(1, volume / 100));
+            void audio.play().catch(() => { });
+          });
+        };
+      }
+
+      remoteStreamsRef.current[peerId] = stream;
+      setRemoteStreams((prev) => ({ ...prev, [peerId]: stream! }));
+      setRemoteStream(stream!);
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) sendSignal(peerId, { type: 'candidate', candidate: event.candidate });
+    };
+
+    pc.onicecandidateerror = (event) => {
+      console.warn('ICE candidate error:', event.errorCode, event.errorText);
+    };
+
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      if (state === 'connected') setConnectionQuality('Conectado');
+      else if (state === 'connecting') setConnectionQuality('Conectando...');
+      else if (state === 'disconnected') setConnectionQuality('Red inestable');
+      else if (state === 'failed') setConnectionQuality('Conexión fallida');
+
+      if (state === 'failed') {
+        try { pc.restartIce(); } catch { }
+      }
+
+      if (state === 'closed') {
+        peerConnectionsRef.current.delete(peerId);
+        remoteStreamsRef.current[peerId] && delete remoteStreamsRef.current[peerId];
+        setRemoteStreams((prev) => {
+          const next = { ...prev };
+          delete next[peerId];
+          return next;
+        });
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'failed') {
+        try { pc.restartIce(); } catch { }
+      }
+    };
+
+    peerConnectionsRef.current.set(peerId, pc);
+    if (!pcRef.current) pcRef.current = pc;
+    return pc;
+  };
+
+  const sendOfferToPeer = async (peerId: string) => {
+    if (!localStream || peerId === localPeerId) return;
+    if (localPeerId > peerId || offeredPeersRef.current.has(peerId)) return;
+
+    const pc = createPeerConnection(peerId);
+    if (!pc || pc.signalingState !== 'stable') return;
+
+    try {
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+      await pc.setLocalDescription(offer);
+      await sendSignal(peerId, { type: 'offer', sdp: pc.localDescription });
+      offeredPeersRef.current.add(peerId);
+    } catch (e) {
+      offeredPeersRef.current.delete(peerId);
+      console.warn('Error creando oferta WebRTC:', e);
+    }
+  };
+  useEffect(() => {
+    remotePeers.forEach((peer) => {
+      createPeerConnection(peer.peerId);
+      sendOfferToPeer(peer.peerId);
+    });
+  }, [remotePeers, localStream]);
+
   useEffect(() => {
     if (!localStream) return;
+    let active = true;
+    let polling = false;
 
-    // Crear conexión WebRTC con múltiples servidores STUN públicos
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        { urls: 'stun:stun.services.mozilla.com' },
-      ],
-    });
-    pcRef.current = pc;
-
-    // Añadir tracks de audio/video a la conexión
-    localStream.getTracks().forEach((track) => {
-      pc.addTrack(track, localStream);
-    });
-
-    // Al recibir el stream del participante remoto
-    pc.ontrack = (event) => {
-      if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
-      } else if (event.track) {
-        setRemoteStream(new MediaStream([event.track]));
-      }
-    };
-
-    // Enviar ICE candidates al servidor de señalización
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        fetch(`${API_BASE}/api/room/signal`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            roomId,
-            from: localPeerId,
-            to: 'all',
-            signal: { type: 'candidate', candidate: event.candidate },
-          }),
-        }).catch(() => {});
-      }
-    };
-
-    // Polling de señales WebRTC desde el servidor
-    const signalInterval = setInterval(async () => {
+    const processSignals = async () => {
+      if (!active || polling) return;
+      polling = true;
       try {
-        const res = await fetch(`${API_BASE}/api/room/signal?roomId=${roomId}&peerId=${localPeerId}`);
+        const res = await fetch(`${API_BASE}/api/room/signal?roomId=${encodeURIComponent(roomId)}&peerId=${encodeURIComponent(localPeerId)}`, {
+          cache: 'no-store',
+        });
         if (!res.ok) return;
         const data = await res.json();
-        
-        if (data.signals) {
-          for (const item of data.signals) {
-            const sigId = `${item.from}_${JSON.stringify(item.signal).slice(0, 30)}`;
-            if (processedSignalIds.current.has(sigId)) continue;
-            processedSignalIds.current.add(sigId);
+        if (!Array.isArray(data.signals)) return;
 
-            const { signal } = item;
-            if (signal.type === 'offer') {
-              if (pc.signalingState === 'stable' || pc.signalingState === 'have-local-offer') {
-                await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                await fetch(`${API_BASE}/api/room/signal`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    roomId,
-                    from: localPeerId,
-                    to: item.from,
-                    signal: { type: 'answer', sdp: answer },
-                  }),
-                });
+        for (const item of data.signals) {
+          const sig = item?.signal;
+          const from = item?.from;
+          if (!from || from === localPeerId || !sig) continue;
+
+          const signalKey = item.id || `${from}_${sig.type}_${sig.candidate?.candidate || sig.sdp?.sdp || ''}`;
+          if (processedSignalIds.current.has(signalKey)) continue;
+          processedSignalIds.current.add(signalKey);
+
+          const pc = createPeerConnection(from);
+          if (!pc) continue;
+
+          try {
+            if (sig.type === 'offer' && sig.sdp) {
+              // El peer con ID mayor acepta la oferta del menor.
+              if (pc.signalingState !== 'stable') {
+                try { await pc.setLocalDescription({ type: 'rollback' }); } catch { }
               }
-            } else if (signal.type === 'answer') {
+
+              await pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+              const queued = pendingCandidatesRef.current.get(from) || [];
+              for (const candidate of queued) {
+                try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch { }
+              }
+              pendingCandidatesRef.current.delete(from);
+
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              await sendSignal(from, { type: 'answer', sdp: pc.localDescription });
+              await applySenderQuality(pc);
+            } else if (sig.type === 'answer' && sig.sdp) {
               if (pc.signalingState === 'have-local-offer') {
-                await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-              }
-            } else if (signal.type === 'candidate') {
-              try {
-                if (pc.remoteDescription) {
-                  await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                await pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+                const queued = pendingCandidatesRef.current.get(from) || [];
+                for (const candidate of queued) {
+                  try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch { }
                 }
-              } catch {}
+                pendingCandidatesRef.current.delete(from);
+                await applySenderQuality(pc);
+              }
+            } else if (sig.type === 'candidate' && sig.candidate) {
+              if (pc.remoteDescription) {
+                await pc.addIceCandidate(new RTCIceCandidate(sig.candidate));
+              } else {
+                const queued = pendingCandidatesRef.current.get(from) || [];
+                queued.push(sig.candidate);
+                pendingCandidatesRef.current.set(from, queued);
+              }
             }
+          } catch (e) {
+            console.warn(`Error procesando señal de ${from}:`, e);
           }
         }
-      } catch {}
-    }, 800);
+      } catch (e) {
+        console.warn('Error leyendo señalización:', e);
+      } finally {
+        polling = false;
+      }
+    };
 
+    processSignals();
+    const signalInterval = setInterval(processSignals, 700);
     return () => {
+      active = false;
       clearInterval(signalInterval);
-      pc.close();
-      pcRef.current = null;
     };
   }, [localStream, roomId, localPeerId]);
 
-  // Si hay pares remotos y somos el Líder, crear una oferta de conexión WebRTC
   useEffect(() => {
-    if (remotePeers.length > 0 && pcRef.current && pcRef.current.signalingState === 'stable') {
-      const targetPeer = remotePeers[0].peerId;
-      pcRef.current.createOffer().then((offer) => {
-        return pcRef.current?.setLocalDescription(offer).then(() => {
-          return fetch(`${API_BASE}/api/room/signal`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              roomId,
-              from: localPeerId,
-              to: targetPeer,
-              signal: { type: 'offer', sdp: offer },
-            }),
-          });
-        });
-      }).catch(() => {});
+    if (!localStream) return;
+    for (const pc of peerConnectionsRef.current.values()) {
+      const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+      const videoTrack = (isScreenSharing ? screenStreamRef.current?.getVideoTracks()[0] : cameraStreamRef.current?.getVideoTracks()[0]);
+      if (sender && videoTrack && sender.track?.id !== videoTrack.id) {
+        sender.replaceTrack(videoTrack).catch(() => { });
+      }
     }
-  }, [remotePeers, roomId, localPeerId]);
+  }, [isScreenSharing, localStream]);
+
+  useEffect(() => {
+    return () => {
+      for (const pc of peerConnectionsRef.current.values()) { try { pc.close(); } catch { } }
+      peerConnectionsRef.current.clear();
+    };
+  }, []);
+
+  // Monitor ligero de WebRTC: detecta si la conexión realmente está recibiendo video/audio.
+  useEffect(() => {
+    if (!localStream) return;
+    let cancelled = false;
+
+    const collectStats = async () => {
+      const pcs = Array.from(peerConnectionsRef.current.entries());
+      if (!pcs.length) {
+        setConnectionQuality('Esperando participante');
+        return;
+      }
+
+      let connected = 0;
+      let inboundVideo = 0;
+      let inboundAudio = 0;
+      for (const [, pc] of pcs) {
+        if (pc.connectionState === 'connected') connected++;
+        try {
+          const stats = await pc.getStats();
+          stats.forEach((report) => {
+            if (report.type === 'inbound-rtp' && !report.isRemote) {
+              if (report.kind === 'video' || report.mediaType === 'video') inboundVideo += report.bytesReceived || 0;
+              if (report.kind === 'audio' || report.mediaType === 'audio') inboundAudio += report.bytesReceived || 0;
+            }
+          });
+        } catch { }
+      }
+
+      if (!cancelled && connected > 0) {
+        if (inboundVideo > 0 && inboundAudio > 0) setConnectionQuality('Conexión estable');
+        else if (inboundVideo > 0) setConnectionQuality('Video conectado · Audio pendiente');
+        else setConnectionQuality('Conectado · Recibiendo...');
+      }
+    };
+
+    collectStats();
+    statsTimerRef.current = setInterval(collectStats, 3000);
+    return () => {
+      cancelled = true;
+      if (statsTimerRef.current) clearInterval(statsTimerRef.current);
+      statsTimerRef.current = null;
+    };
+  }, [localStream]);
 
   // ── 3. SINCRONIZACIÓN CON EL BACKEND EXPRESS DE SALA ──
   useEffect(() => {
@@ -671,8 +983,8 @@ export default function ReunionPage() {
             isVideoOn: cameraActive,
             isAudioOn: micActive,
             isScreenSharing,
-            frameData: cameraActive ? localFrameRef.current : null,
-            screenFrameData: isScreenSharing ? screenFrameRef.current : null,
+            frameData: localFrameData,
+            screenFrameData: localScreenFrameData,
           }),
         });
 
@@ -697,15 +1009,6 @@ export default function ReunionPage() {
             }));
           setRemotePeers(remotes);
 
-          const newFrames: Record<string, string> = {};
-          remotes.forEach((r) => {
-            if (r.frameData) {
-              newFrames[r.peerId] = r.frameData;
-            }
-          });
-          if (Object.keys(newFrames).length > 0) {
-            setRemotePeerFrames((prev) => ({ ...prev, ...newFrames }));
-          }
         }
 
         if (data.messages && data.messages.length > 0) setChatMessages(data.messages);
@@ -716,13 +1019,12 @@ export default function ReunionPage() {
     }
 
     syncWithServer();
-    const interval = setInterval(syncWithServer, 1000);
+    const interval = setInterval(syncWithServer, 2000);
 
     const handleUnload = () => {
       try {
         navigator.sendBeacon(`${API_BASE}/api/room/leave`, JSON.stringify({ roomId, peerId: localPeerId }));
-      } catch {}
-      stopAllHardwareMedia();
+      } catch { }
     };
 
     window.addEventListener('beforeunload', handleUnload);
@@ -735,15 +1037,14 @@ export default function ReunionPage() {
       window.removeEventListener('beforeunload', handleUnload);
       window.removeEventListener('pagehide', handleUnload);
       window.removeEventListener('unload', handleUnload);
-      stopAllHardwareMedia();
     };
-  }, [roomId, localPeerId, localName, localRole, cameraActive, micActive]);
+  }, [roomId, localPeerId, localName, localRole, cameraActive, micActive, isScreenSharing, localFrameData, localScreenFrameData]);
 
   // Transcripción en directo (Web Speech API)
   useEffect(() => {
     if (!isTranscribing) {
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch {}
+        try { recognitionRef.current.stop(); } catch { }
         recognitionRef.current = null;
       }
       return;
@@ -800,7 +1101,7 @@ export default function ReunionPage() {
 
       return () => clearInterval(interval);
     }
-  }, [isTranscribing, callDuration, localName]);
+  }, [isTranscribing, localName]);
 
   // Scroll automático del chat
   useEffect(() => {
@@ -831,14 +1132,117 @@ export default function ReunionPage() {
     }
   };
 
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.warn('No se pudo cambiar el modo pantalla completa:', err);
+    }
+  };
+
+  useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  const ensureLocalMedia = async (wantAudio = true, wantVideo = true) => {
+    if (!navigator.mediaDevices?.getUserMedia) return null;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: wantVideo ? { width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 } } : false,
+        audio: wantAudio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } : false,
+      });
+      if (wantVideo && stream.getVideoTracks()[0]) cameraStreamRef.current = stream;
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      setLocalDisplayStream(stream);
+      stream.getVideoTracks().forEach(t => { try { t.contentHint = 'motion'; } catch { } });
+      stream.getAudioTracks().forEach(t => { try { t.contentHint = 'speech'; } catch { } });
+      return stream;
+    } catch (err) {
+      console.warn('No se pudieron obtener permisos de cámara/micrófono:', err);
+      return null;
+    }
+  };
+
   const handleCopyLink = () => {
     try {
       const guestUrl = `${window.location.origin}/X7mP2-9KqW4-8vR1t-5YzB3-6FnL0-4JdH8-2XcK9-1WpQ5/${roomId}`;
       navigator.clipboard.writeText(guestUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
-    } catch {}
+    } catch { }
   };
+
+  const unlockRemoteAudio = async () => {
+    // Esta función se ejecuta desde un CLICK del usuario, por lo que
+    // el navegador permite iniciar la reproducción del audio remoto.
+    const audioElements = Array.from(
+      document.querySelectorAll<HTMLAudioElement>('audio[data-remote-audio="true"]')
+    );
+
+    setIsMutedVolume(false);
+    setAudioUnlocked(true);
+
+    // Si todavía no existe un audio remoto, el estado queda desbloqueado
+    // y el siguiente participante podrá reproducirse al llegar.
+    if (audioElements.length === 0) {
+      console.log('[WebRTC] Audio desbloqueado; esperando participante remoto.');
+      return;
+    }
+
+    for (const audio of audioElements) {
+      audio.muted = false;
+      audio.volume = Math.max(0, Math.min(1, volume / 100));
+
+      try {
+        await audio.play();
+        console.log('[WebRTC] Reproducción de audio remoto iniciada.');
+      } catch (error) {
+        console.warn('[WebRTC] El navegador todavía bloquea el audio:', error);
+      }
+    }
+  };
+
+  // Cualquier interacción real con la página puede desbloquear el audio.
+  // Esto evita depender exclusivamente del botón "Activar Audio".
+  useEffect(() => {
+    const unlockFromInteraction = () => {
+      const audioElements = Array.from(
+        document.querySelectorAll<HTMLAudioElement>('audio[data-remote-audio="true"]')
+      );
+
+      if (audioElements.length === 0) return;
+
+      let started = false;
+      audioElements.forEach((audio) => {
+        audio.muted = false;
+        audio.volume = isMutedVolume ? 0 : Math.max(0, Math.min(1, volume / 100));
+        void audio.play()
+          .then(() => { started = true; })
+          .catch(() => { });
+      });
+
+      if (started) setAudioUnlocked(true);
+    };
+
+    document.addEventListener('click', unlockFromInteraction, { passive: true });
+    document.addEventListener('pointerdown', unlockFromInteraction, { passive: true });
+    document.addEventListener('keydown', unlockFromInteraction, { passive: true });
+
+    return () => {
+      document.removeEventListener('click', unlockFromInteraction);
+      document.removeEventListener('pointerdown', unlockFromInteraction);
+      document.removeEventListener('keydown', unlockFromInteraction);
+    };
+  }, [volume, isMutedVolume]);
 
   const handleLeaveCall = async () => {
     if (isRecording || (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive')) {
@@ -851,7 +1255,7 @@ export default function ReunionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId, peerId: localPeerId }),
       });
-    } catch {}
+    } catch { }
     navigate('/');
   };
 
@@ -866,30 +1270,13 @@ export default function ReunionPage() {
       isVideoOn: cameraActive,
       isAudioOn: micActive,
       color: '#C9A96E',
-      stream: localStream,
+      stream: localDisplayStream || localStream,
     },
-    ...remotePeers.map((p, idx) => ({
+    ...remotePeers.map((p) => ({
       ...p,
-      stream: idx === 0 ? remoteStream : null,
+      stream: remoteStreams[p.peerId] || null,
     })),
   ];
-
-  // Cálculo de clases de cuadrícula responsiva (50%-50% si son 2 personas)
-  const getGridClasses = (count: number) => {
-    switch (count) {
-      case 1:
-        return 'grid-cols-1 grid-rows-1';
-      case 2:
-        return 'grid-cols-1 md:grid-cols-2 grid-rows-1';
-      case 3:
-        return 'grid-cols-1 md:grid-cols-3 grid-rows-1';
-      case 4:
-        return 'grid-cols-2 grid-rows-2';
-      case 5:
-      default:
-        return 'grid-cols-2 md:grid-cols-3 grid-rows-2';
-    }
-  };
 
   // Verificación de Acceso del Administrador
   const [isAdminVerified, setIsAdminVerified] = useState(false);
@@ -902,23 +1289,33 @@ export default function ReunionPage() {
     const nameToUse = adminNameInput.trim() || 'Administrador de la Sala';
     const code = adminCodeInput.trim();
 
-    if (code === '669933' || code.length >= 4 || !code) {
+    if (code === '669933') {
       setLocalName(nameToUse);
       setIsAdminVerified(true);
       setAdminCodeError('');
-      
+
       // Solicitar permisos directamente al hacer clic para garantizar diálogo del navegador
-      if (navigator?.mediaDevices?.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      if (!localStream && navigator?.mediaDevices?.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 } },
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+        })
           .then((stream) => {
+            cameraStreamRef.current = stream;
+            localStreamRef.current = stream;
             setLocalStream(stream);
-            setHasRealWebcam(true);
+            setLocalDisplayStream(stream);
           })
           .catch(() => {
-            navigator.mediaDevices.getUserMedia({ video: true })
+            navigator.mediaDevices.getUserMedia({
+              video: { width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 } },
+            })
               .then((vStream) => {
+                cameraStreamRef.current = vStream;
+                vStream.getVideoTracks().forEach((track) => { try { track.contentHint = 'motion'; } catch { } });
+                localStreamRef.current = vStream;
                 setLocalStream(vStream);
-                setHasRealWebcam(true);
+                setLocalDisplayStream(vStream);
               })
               .catch((e) => console.warn('Cámara no permitida o denegada:', e));
           });
@@ -932,15 +1329,23 @@ export default function ReunionPage() {
 
   return (
     <div className="h-screen bg-[#030712] text-white flex flex-col font-sans select-none overflow-hidden">
-      
+
       {/* Elemento de video oculto para captura de fotogramas */}
-      <video ref={localVideoRef} autoPlay playsInline muted className="hidden" />
+      <video ref={localVideoRef} autoPlay playsInline muted className="absolute top-0 left-0 w-1 h-1 opacity-0 pointer-events-none -z-50" />
+      {Object.entries(remoteStreams).map(([peerId, stream]) => (
+        <RemoteAudio
+          key={`audio-${peerId}`}
+          stream={stream}
+          volume={volume}
+          muted={isMutedVolume}
+        />
+      ))}
 
       {/* ── BARRA SUPERIOR (HEADER) ── */}
       <header className="h-16 bg-[#060D1A] border-b border-[#1E3A5F]/70 px-6 flex items-center justify-between shrink-0 backdrop-blur-xl relative z-30 shadow-md">
         <div className="flex items-center gap-4">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="p-2 rounded-xl bg-[#09182E] border border-[#1E3A5F] text-[#94A3B8] hover:text-[#C9A96E] hover:border-[#C9A96E]/50 transition-all cursor-pointer"
             title="Volver a Inicio"
           >
@@ -954,7 +1359,7 @@ export default function ReunionPage() {
                 ANFITRIÓN DE LA SALA
               </span>
             </div>
-            
+
             <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#94A3B8]">
               <span>ID de Sala:</span>
               <span className="text-[#C9A96E] font-bold bg-[#081528] px-2 py-0.5 rounded border border-[#1E3A5F] tracking-wider">
@@ -998,25 +1403,25 @@ export default function ReunionPage() {
       </header>
 
       {/* ── CUERPO PRINCIPAL: VIDEO NATIVO (IZQ) + CHAT/TRANSCRIPCIÓN/ACCESOS (DER) ── */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-3 md:p-4 pb-16 overflow-hidden relative max-h-[calc(100vh-85px)]">
-        
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3 md:p-4 pb-24 overflow-hidden relative min-h-0">
+
         {/* 👈 IZQUIERDA: ESCENARIO PRINCIPAL DE VIDEO (MÁS COMPACTO Y ESTILIZADO) */}
-        <div ref={videoContainerRef} className="lg:col-span-8 h-full flex flex-col justify-center items-center relative overflow-hidden max-h-[72vh]">
-          
+        <div ref={videoContainerRef} className={`${isSidebarOpen ? 'lg:col-span-8' : 'lg:col-span-12'} h-full min-h-0 flex flex-col justify-center items-center relative overflow-hidden transition-all duration-300`}>
+
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(30,58,95,0.25),transparent_70%)] pointer-events-none" />
 
           {(isScreenSharing || remotePeers.some((p) => p.isScreenSharing || p.screenFrameData)) ? (
             /* 🖥️ MODO PANTALLA COMPARTIDA */
             <div className="w-full h-full flex flex-col gap-2.5 relative z-10">
-              
+
               {/* CUADRO PRINCIPAL EN GRANDE DE PANTALLA COMPARTIDA */}
               <div className="flex-1 bg-[#060E1B] border border-emerald-500/50 rounded-2xl overflow-hidden relative shadow-[0_0_35px_rgba(16,185,129,0.2)] flex items-center justify-center min-h-[260px]">
                 {screenStreamRef.current ? (
-                  <VideoPlayer stream={screenStreamRef.current} isLocal={false} />
+                  <VideoPlayer stream={screenStreamRef.current} isLocal={true} isScreenShare={true} />
                 ) : remoteStream ? (
-                  <VideoPlayer stream={remoteStream} isLocal={false} />
-                ) : remotePeers.find((p) => p.screenFrameData)?.screenFrameData ? (
-                  <img src={remotePeers.find((p) => p.screenFrameData)?.screenFrameData!} alt="Pantalla Compartida Remota" className="w-full h-full object-contain" />
+                  <VideoPlayer stream={remoteStream} isLocal={false} isScreenShare={true} />
+                ) : (remotePeers.find((p) => p.isScreenSharing && remoteStreams[p.peerId])?.stream || remoteStream) ? (
+                  <VideoPlayer stream={remotePeers.find((p) => p.isScreenSharing && remoteStreams[p.peerId])?.stream || remoteStream} isLocal={false} isScreenShare={true} />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center p-4 space-y-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
@@ -1042,14 +1447,14 @@ export default function ReunionPage() {
                     className="w-36 h-full rounded-lg bg-[#030712] border border-[#1E3A5F] relative overflow-hidden shrink-0 flex flex-col items-center justify-center shadow-sm"
                   >
                     {p.isVideoOn ? (
-                      p.stream ? (
-                        <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                      (p.isLocal && localStream) ? (
+                        <VideoPlayer stream={localStream} isLocal={true} />
                       ) : p.isLocal ? (
                         <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
                           {p.avatar}
                         </div>
-                      ) : (remotePeerFrames[p.peerId] || p.frameData) ? (
-                        <img src={remotePeerFrames[p.peerId] || p.frameData!} alt={p.name} className="w-full h-full object-cover" />
+                      ) : p.stream ? (
+                        <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
                           {p.avatar}
@@ -1071,122 +1476,161 @@ export default function ReunionPage() {
               </div>
             </div>
           ) : (
-            /* 🎥 MODO CUADRÍCULA MULTI-CÁMARA ESTÁNDAR (MÁS COMPACTO Y DECORATIVO) */
-            <div className={`w-full h-full rounded-2xl bg-[#060E1B] border border-[#1E3A5F]/80 shadow-[0_15px_45px_rgba(0,0,0,0.8)] p-2.5 md:p-3 grid gap-2.5 ${getGridClasses(allActiveParticipants.length)} select-none relative overflow-hidden`}>
-              {allActiveParticipants.map((p, index) => {
-                const remoteFrame = p.isLocal ? null : (remotePeerFrames[p.peerId] || p.frameData || null);
+            /* 🎥 MODO CUADRÍCULA ADAPTATIVA (1 A 4 EN PANTALLA PRINCIPAL, 5+ EN TIRA INFERIOR) */
+            (() => {
+              // Ordenar para mostrar primero los que tienen cámara activa o son participantes remotos
+              const sortedParticipants = [...allActiveParticipants].sort((a, b) => {
+                if (a.isVideoOn && !b.isVideoOn) return -1;
+                if (!a.isVideoOn && b.isVideoOn) return 1;
+                if (!a.isLocal && b.isLocal) return -1;
+                if (a.isLocal && !b.isLocal) return 1;
+                return 0;
+              });
 
-                return (
-                  <div
-                    key={p.peerId || `peer-${index}`}
-                    className="w-full h-full rounded-xl bg-[#081628] border border-[#1E3A5F]/80 shadow-md relative overflow-hidden flex flex-col items-center justify-center min-h-[170px] md:min-h-[200px]"
-                  >
-                    {/* SI TIENE CÁMARA ENCENDIDA */}
-                    {p.isVideoOn ? (
-                      (p.isLocal && localStream) ? (
-                        <VideoPlayer stream={localStream} isLocal={true} />
-                      ) : p.stream ? (
-                        <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
-                      ) : remoteFrame ? (
-                        <img src={remoteFrame} alt={p.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-[#0A1A30] via-[#071325] to-[#040A14] overflow-hidden p-4">
-                          <div className="absolute w-28 h-28 rounded-full border border-[#C9A96E]/20 animate-ping pointer-events-none" />
-                          <div className="absolute w-22 h-22 rounded-full border border-[#38BDF8]/30 animate-pulse pointer-events-none" />
+              const mainParticipants = sortedParticipants.slice(0, 4);
+              const overflowParticipants = sortedParticipants.slice(4);
 
-                          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-[#C9A96E] bg-[#0E2747] flex items-center justify-center text-white font-serif font-bold text-xl md:text-2xl shadow-xl relative z-10">
-                            {p.avatar}
-                          </div>
+              const getAdaptiveGridClass = (count: number) => {
+                switch (count) {
+                  case 1:
+                    return 'grid-cols-1 grid-rows-1';
+                  case 2:
+                    return 'grid-cols-1 md:grid-cols-2 grid-rows-1';
+                  case 3:
+                    return 'grid-cols-1 md:grid-cols-3 grid-rows-1';
+                  case 4:
+                  default:
+                    return 'grid-cols-2 grid-rows-2';
+                }
+              };
 
-                          {p.isLocal ? (
-                            <div className="flex flex-col items-center gap-1.5 mt-2 relative z-20">
-                              {!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
-                                <p className="font-mono text-[9px] text-amber-300 max-w-[200px] text-center bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/30">
-                                  ⚠️ Navegador requiere <strong>HTTPS</strong> o <strong>localhost</strong> para activar la cámara en IP ({window.location.hostname}).
+              return (
+                <div className="w-full h-full flex flex-col gap-2.5 relative z-10 select-none overflow-hidden">
+                  {/* CUADRÍCULA PRINCIPAL (HASTA 4 PERSONAS ACOMODADAS PERFECTAMENTE) */}
+                  <div className={`flex-1 w-full rounded-2xl bg-[#060E1B] border border-[#1E3A5F]/80 shadow-[0_15px_45px_rgba(0,0,0,0.8)] p-2.5 md:p-3 grid gap-2.5 ${getAdaptiveGridClass(mainParticipants.length)} relative overflow-hidden min-h-[260px]`}>
+                    {mainParticipants.map((p, index) => {
+
+                      return (
+                        <div
+                          key={p.peerId || `peer-${index}`}
+                          className={`w-full h-full rounded-xl bg-[#081628] border ${p.isVideoOn ? 'border-[#C9A96E]/50 shadow-[0_0_15px_rgba(201,169,110,0.15)]' : 'border-[#1E3A5F]/80'} shadow-md relative overflow-hidden flex flex-col items-center justify-center min-h-[170px]`}
+                        >
+                          {/* CÁMARA ENCENDIDA O APAGADA */}
+                          {p.isVideoOn ? (
+                            (p.isLocal && (localDisplayStream || localStream)) ? (
+                              <VideoPlayer stream={localDisplayStream || localStream} isLocal={true} />
+                            ) : (p.stream && p.stream.getVideoTracks().length > 0) ? (
+                              <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                            ) : p.frameData ? (
+                              <img src={p.frameData} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-[#0A1A30] via-[#071325] to-[#040A14] overflow-hidden p-4">
+                                <div className="absolute w-24 h-24 rounded-full border border-[#C9A96E]/20 animate-ping pointer-events-none" />
+                                <div className="w-16 h-16 rounded-full border-2 border-[#C9A96E] bg-[#0E2747] flex items-center justify-center text-white font-serif font-bold text-xl shadow-xl z-10">
+                                  {p.avatar}
+                                </div>
+                                <p className="font-mono text-[10px] text-[#C9A96E] mt-2 font-bold uppercase tracking-wider z-10">
+                                  Conectando Video...
                                 </p>
-                              )}
-                              <button
-                                onClick={() => {
-                                  if (!navigator?.mediaDevices?.getUserMedia) {
-                                    alert(`Los navegadores bloquean la cámara en IP HTTP (http://${window.location.hostname}). Usa http://localhost:5173 o activa HTTPS.`);
-                                    return;
-                                  }
-                                  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                                    .then((s) => { setLocalStream(s); setCameraActive(true); })
-                                    .catch((e) => alert('No se pudo acceder a la cámara. Permiso denegado o conexión no segura HTTP.'));
-                                }}
-                                className="px-3 py-1.5 rounded-xl bg-[#C9A96E] hover:bg-[#e2c799] text-[#030712] font-mono text-[10px] font-bold uppercase tracking-wider transition shadow-md cursor-pointer flex items-center gap-1"
-                              >
-                                <Video size={12} />
-                                <span>Activar Cámara Local</span>
-                              </button>
-                            </div>
+                              </div>
+                            )
                           ) : (
-                            <div className="mt-2.5 flex items-center gap-1.5 bg-[#030712]/80 backdrop-blur-md border border-emerald-500/40 px-2.5 py-0.5 rounded-full relative z-10 shadow-sm">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              <span className="font-mono text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
-                                Conectando Video...
-                              </span>
+                            <div className="flex flex-col items-center justify-center p-4 text-center space-y-2 bg-[#050B14] w-full h-full">
+                              <div className="w-14 h-14 rounded-full bg-[#081628] border border-[#C9A96E]/40 flex items-center justify-center text-white font-serif font-bold text-xl shadow-md">
+                                {p.avatar}
+                              </div>
+                              <div>
+                                <p className="font-serif font-bold text-xs text-white">{p.name} {p.isLocal ? '(Tú)' : ''}</p>
+                                <span className="font-mono text-[9px] text-[#C9A96E] uppercase tracking-wider block mt-0.5">{p.role}</span>
+                              </div>
                             </div>
                           )}
-                        </div>
-                      )
-                    ) : (
-                      /* SI LA CÁMARA ESTÁ APAGADA */
-                      <div className="flex flex-col items-center justify-center p-4 text-center space-y-2 bg-[#050B14] w-full h-full">
-                        <div className="w-14 h-14 rounded-full bg-[#081628] border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-sm">
-                          <VideoOff size={24} />
-                        </div>
-                        <div>
-                          <p className="font-serif font-bold text-xs text-white">{p.name}</p>
-                          <span className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block mt-0.5">En Pausa</span>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Badge Overlay Superior Izquierdo (Nombre) */}
-                    <div className="absolute top-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] flex items-center gap-1.5 shadow-md z-20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="font-mono text-[10px] font-bold text-white tracking-wider">
-                        {p.name} {p.isLocal ? '(Tú)' : ''}
-                      </span>
-                    </div>
+                          {/* Overlay Nombre */}
+                          <div className="absolute top-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] flex items-center gap-1.5 shadow-md z-20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="font-mono text-[10px] font-bold text-white tracking-wider">
+                              {selectedPeerId === p.peerId && <LayoutGrid size={10} className="inline mr-1 text-[#C9A96E]" />}
+                              {p.name} {p.isLocal ? '(Tú)' : ''}
+                            </span>
+                          </div>
 
-                    {/* Badge Overlay Inferior Izquierdo (Rol) */}
-                    <div className="absolute bottom-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] shadow-md z-20">
-                      <p className="font-mono text-[9px] text-[#C9A96E] uppercase tracking-wider font-semibold">
-                        {p.role}
-                      </p>
-                    </div>
+                          {/* Overlay Rol */}
+                          <div className="absolute bottom-2.5 left-2.5 bg-[#030712]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1E3A5F] shadow-md z-20">
+                            <p className="font-mono text-[9px] text-[#C9A96E] uppercase tracking-wider font-semibold">
+                              {p.role}
+                            </p>
+                          </div>
 
-                    {/* Badge Overlay Inferior Derecho (Micrófono) */}
-                    <div className="absolute bottom-2.5 right-2.5 bg-[#030712]/90 backdrop-blur-md p-1.5 rounded-lg border border-[#1E3A5F] shadow-md z-20">
-                      {p.isAudioOn ? (
-                        <Mic size={13} className="text-emerald-400" />
-                      ) : (
-                        <MicOff size={13} className="text-rose-400" />
-                      )}
-                    </div>
+                          {/* Overlay Micrófono */}
+                          <div className="absolute bottom-2.5 right-2.5 bg-[#030712]/90 backdrop-blur-md p-1.5 rounded-lg border border-[#1E3A5F] shadow-md z-20">
+                            {p.isAudioOn ? (
+                              <Mic size={13} className="text-emerald-400" />
+                            ) : (
+                              <MicOff size={13} className="text-rose-400" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* 👥 TIRA INFERIOR SI HAY MÁS DE 4 PARTICIPANTES */}
+                  {overflowParticipants.length > 0 && (
+                    <div className="h-24 bg-[#081528] border border-[#1E3A5F] rounded-xl p-1.5 flex items-center gap-2 overflow-x-auto shrink-0 shadow-md">
+                      {overflowParticipants.map((p) => {
+                        return (
+                          <div
+                            key={p.peerId}
+                            className="w-36 h-full rounded-lg bg-[#030712] border border-[#1E3A5F] relative overflow-hidden shrink-0 flex flex-col items-center justify-center shadow-sm"
+                          >
+                            {p.isVideoOn ? (
+                              (p.isLocal && (localDisplayStream || localStream)) ? (
+                                <VideoPlayer stream={localDisplayStream || localStream} isLocal={true} />
+                              ) : (p.stream && p.stream.getVideoTracks().length > 0) ? (
+                                <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
+                              ) : p.frameData ? (
+                                <img src={p.frameData} alt={p.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
+                                  {p.avatar}
+                                </div>
+                              )
+                            ) : (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#1E3A5F] text-slate-300 font-serif font-bold text-xs flex items-center justify-center">
+                                  {p.avatar}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="absolute bottom-1 left-1 bg-[#030712]/90 px-1.5 py-0.5 rounded border border-[#1E3A5F] text-[8px] font-mono text-slate-200 font-bold truncate max-w-[120px] flex items-center gap-1">
+                              {!p.isAudioOn && <MicOff size={9} className="text-rose-400" />}
+                              <span>{p.name} {p.isLocal ? '(Tú)' : ''}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
 
         {/* 👉 DERECHA: PANEL DE CHAT Y TRANCRIPCIÓN (COMPACTO) */}
-        <div className="lg:col-span-4 h-full overflow-hidden max-h-[72vh]">
+        <div className={`${isSidebarOpen ? 'lg:col-span-4' : 'hidden'} h-full min-h-0 overflow-hidden transition-all duration-300`}>
           <div className="bg-[#060D1A]/95 border border-[#1E3A5F]/80 rounded-2xl flex flex-col h-full overflow-hidden shadow-xl backdrop-blur-xl">
-            
+
             {/* Pestañas Chat / Transcripción / Auditoría de accesos / Participantes */}
             <div className="p-1 bg-[#081528] border-b border-[#1E3A5F]/70 grid grid-cols-4 gap-1 shrink-0">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${
-                  activeTab === 'chat'
-                    ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
-                    : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
-                }`}
+                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'chat'
+                  ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
+                  : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
+                  }`}
               >
                 <MessageSquare size={11} />
                 <span className="truncate">Chat ({chatMessages.length})</span>
@@ -1194,11 +1638,10 @@ export default function ReunionPage() {
 
               <button
                 onClick={() => setActiveTab('transcript')}
-                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${
-                  activeTab === 'transcript'
-                    ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
-                    : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
-                }`}
+                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'transcript'
+                  ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
+                  : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
+                  }`}
               >
                 <FileText size={11} />
                 <span className="truncate">IA Vox</span>
@@ -1206,11 +1649,10 @@ export default function ReunionPage() {
 
               <button
                 onClick={() => setActiveTab('activity')}
-                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${
-                  activeTab === 'activity'
-                    ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
-                    : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
-                }`}
+                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'activity'
+                  ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
+                  : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
+                  }`}
               >
                 <Info size={11} />
                 <span className="truncate">Accesos ({activityLogs.length})</span>
@@ -1218,11 +1660,10 @@ export default function ReunionPage() {
 
               <button
                 onClick={() => setActiveTab('participants')}
-                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${
-                  activeTab === 'participants'
-                    ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
-                    : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
-                }`}
+                className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'participants'
+                  ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
+                  : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
+                  }`}
               >
                 <Users size={11} />
                 <span className="truncate">Part. ({allActiveParticipants.length})</span>
@@ -1233,6 +1674,13 @@ export default function ReunionPage() {
             {activeTab === 'chat' && (
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 p-5 overflow-y-auto space-y-4 font-sans">
+                  {chatMessages.length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                      <MessageSquare size={30} className="text-[#C9A96E]/50 mb-3" />
+                      <p className="text-sm font-semibold text-slate-300">Chat de la reunión</p>
+                      <p className="text-xs text-slate-500 mt-1">Los mensajes enviados aparecerán aquí.</p>
+                    </div>
+                  )}
                   {chatMessages.map((msg) => {
                     const isHost = msg.role === 'host';
                     const isSystem = msg.role === 'system';
@@ -1258,11 +1706,10 @@ export default function ReunionPage() {
                         </div>
 
                         <div
-                          className={`p-3.5 rounded-2xl max-w-[88%] text-xs leading-relaxed ${
-                            isHost
-                              ? 'bg-[#1E3A5F] text-white border border-[#C9A96E]/40 rounded-tr-none shadow-md'
-                              : 'bg-[#081528] text-slate-200 border border-[#1E3A5F]/80 rounded-tl-none shadow-md'
-                          }`}
+                          className={`p-3.5 rounded-2xl max-w-[88%] text-xs leading-relaxed ${isHost
+                            ? 'bg-[#1E3A5F] text-white border border-[#C9A96E]/40 rounded-tr-none shadow-md'
+                            : 'bg-[#081528] text-slate-200 border border-[#1E3A5F]/80 rounded-tl-none shadow-md'
+                            }`}
                         >
                           {msg.text}
                         </div>
@@ -1332,13 +1779,12 @@ export default function ReunionPage() {
 
                 <div className="flex-1 overflow-y-auto space-y-2.5 bg-[#030712] p-3 rounded-2xl border border-[#1E3A5F]/70">
                   {activityLogs.map((log) => (
-                    <div 
-                      key={log.id} 
-                      className={`p-2.5 rounded-xl border flex items-center justify-between font-mono text-xs ${
-                        log.type === 'join' 
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
-                          : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                      }`}
+                    <div
+                      key={log.id}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between font-mono text-xs ${log.type === 'join'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                        : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         {log.type === 'join' ? <LogIn size={14} /> : <LogOut size={14} />}
@@ -1369,7 +1815,7 @@ export default function ReunionPage() {
 
                 <div className="flex-1 overflow-y-auto space-y-2 bg-[#030712] p-3 rounded-xl border border-[#1E3A5F]/70">
                   {allActiveParticipants.map((p) => (
-                    <div 
+                    <div
                       key={p.peerId}
                       className="p-2.5 rounded-xl bg-[#081528] border border-[#1E3A5F]/80 flex items-center justify-between transition hover:border-[#C9A96E]/50"
                     >
@@ -1421,7 +1867,7 @@ export default function ReunionPage() {
       {/* ── BARRA DE CONTROLES INFERIOR (90% ANCHO SLIM & ALARGADO APPLE IPHONE LIQUID GLASS DOCK) ── */}
       <footer className="fixed bottom-3 left-0 right-0 z-50 px-2 md:px-4 pointer-events-none">
         <div className="w-[92%] max-w-[95%] mx-auto pointer-events-auto bg-[#071325]/50 backdrop-blur-2xl border border-white/20 rounded-full px-6 py-1.5 shadow-[0_15px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-between gap-2 transition-all duration-300 relative overflow-hidden">
-          
+
           {/* Top Specular Light Highlight */}
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
 
@@ -1439,15 +1885,23 @@ export default function ReunionPage() {
 
           {/* Centro: BOTONES PRINCIPALES DE CONTROL CON ICONOS Y TEXTOS REFINADOS */}
           <div className="flex items-center justify-center gap-1 md:gap-1.5 mx-auto lg:mx-0">
-            
+
             {/* 1. BOTÓN CÁMARA */}
             <button
-              onClick={() => setCameraActive(!cameraActive)}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                cameraActive
-                  ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
-                  : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
-              }`}
+              onClick={async () => {
+                if (!cameraActive) {
+                  if (!localStreamRef.current?.getVideoTracks().length) await ensureLocalMedia(true, true);
+                  localStreamRef.current?.getVideoTracks().forEach(t => t.enabled = true);
+                  setCameraActive(true);
+                } else {
+                  localStreamRef.current?.getVideoTracks().forEach(t => t.enabled = false);
+                  setCameraActive(false);
+                }
+              }}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${cameraActive
+                ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
+                : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
+                }`}
               title={cameraActive ? 'Desactivar Cámara' : 'Activar Cámara'}
             >
               {cameraActive ? <Video size={13} className="text-[#C9A96E]" /> : <VideoOff size={13} />}
@@ -1456,12 +1910,20 @@ export default function ReunionPage() {
 
             {/* 2. BOTÓN MICRÓFONO */}
             <button
-              onClick={() => setMicActive(!micActive)}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                micActive
-                  ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
-                  : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
-              }`}
+              onClick={async () => {
+                if (!micActive) {
+                  if (!localStreamRef.current?.getAudioTracks().length) await ensureLocalMedia(true, cameraActive);
+                  localStreamRef.current?.getAudioTracks().forEach(t => t.enabled = true);
+                  setMicActive(true);
+                } else {
+                  localStreamRef.current?.getAudioTracks().forEach(t => t.enabled = false);
+                  setMicActive(false);
+                }
+              }}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${micActive
+                ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
+                : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
+                }`}
               title={micActive ? 'Desactivar Micrófono' : 'Activar Micrófono'}
             >
               {micActive ? <Mic size={13} className="text-[#C9A96E]" /> : <MicOff size={13} />}
@@ -1471,11 +1933,10 @@ export default function ReunionPage() {
             {/* 2.5 BOTÓN COMPARTIR PANTALLA */}
             <button
               onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                isScreenSharing
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-400 text-white animate-pulse'
-                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
-              }`}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${isScreenSharing
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-400 text-white animate-pulse'
+                : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
+                }`}
               title={isScreenSharing ? 'Detener Compartir Pantalla' : 'Compartir Pantalla'}
             >
               <Monitor size={13} className={isScreenSharing ? 'text-white' : 'text-[#38BDF8]'} />
@@ -1505,17 +1966,25 @@ export default function ReunionPage() {
               />
             </div>
 
+            <button
+              onClick={unlockRemoteAudio}
+              className={`py-1 px-2.5 rounded-full border transition-all cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium ${audioUnlocked ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300' : 'bg-rose-500/20 border-rose-400/50 text-rose-200'}`}
+              title="Activar audio de participantes"
+            >
+              <Volume2 size={13} />
+              <span className="hidden md:inline">{audioUnlocked ? 'Audio OK' : 'Activar Audio'}</span>
+            </button>
+
             {/* 4. BOTÓN TRANSCRIBIR */}
             <button
               onClick={() => {
                 setIsTranscribing(!isTranscribing);
                 setActiveTab('transcript');
               }}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                isTranscribing
-                  ? 'bg-gradient-to-b from-[#D4B579] to-[#C9A96E] text-[#030712] border-white/40 animate-pulse'
-                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
-              }`}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${isTranscribing
+                ? 'bg-gradient-to-b from-[#D4B579] to-[#C9A96E] text-[#030712] border-white/40 animate-pulse'
+                : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
+                }`}
               title="Activar Transcripción en tiempo real"
             >
               <Sparkles size={13} className={isTranscribing ? 'text-[#030712]' : 'text-[#C9A96E]'} />
@@ -1525,11 +1994,10 @@ export default function ReunionPage() {
             {/* 4.5. BOTÓN GRABAR REUNIÓN */}
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                isRecording
-                  ? 'bg-gradient-to-r from-rose-600 to-red-500 border-rose-400 text-white animate-pulse'
-                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
-              }`}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${isRecording
+                ? 'bg-gradient-to-r from-rose-600 to-red-500 border-rose-400 text-white animate-pulse'
+                : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
+                }`}
               title={isRecording ? 'Detener y Guardar Grabación' : 'Grabar Reunión'}
             >
               <Circle size={12} className={isRecording ? 'text-white fill-white' : 'text-rose-500 fill-rose-500'} />
@@ -1550,7 +2018,7 @@ export default function ReunionPage() {
           {/* Lado Derecho: Estado de Conexión */}
           <div className="hidden xl:flex items-center gap-1.5 font-mono text-[10px] text-slate-300/90 bg-white/5 border border-white/15 px-3 py-1 rounded-full backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            <span>WebRTC Activo</span>
+            <span>{connectionQuality} · WebRTC</span>
           </div>
         </div>
       </footer>

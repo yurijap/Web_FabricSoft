@@ -356,7 +356,9 @@ export const ErpModernizationPage: React.FC = () => {
             ].map((scenario, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-[#123254] border border-[#C9A96E]/30 hover:border-[#C9A96E]/60 transition-all flex items-start gap-4"
+                className={`p-6 rounded-2xl bg-[#123254] border border-[#C9A96E]/30 hover:border-[#C9A96E]/60 transition-all flex items-start gap-4 ${
+                  idx === 9 ? 'lg:col-start-2' : ''
+                }`}
               >
                 <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center shrink-0 mt-0.5 font-mono text-xs font-bold">
                   !

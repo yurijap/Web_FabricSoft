@@ -37,7 +37,8 @@ const PORT = process.env.PORT || 4000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://paqiotoelmanquito_db_user:MWi1lmtR6we256eN@testebddelete2.t5uew6o.mongodb.net/fabricsoft?retryWrites=true&w=majority&appName=TESTEBDDELETE2';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Conexión con MongoDB Atlas (Optimizada para Serverless)
 let cachedConnection = null;
@@ -1667,8 +1668,17 @@ app.get('/api/office-hours/verify-pin', async (req, res) => {
       }).sort({ updatedAt: -1, _id: -1 });
     }
 
-    // 3. Si la sala no existe en MongoDB, denegar acceso inmediatamente
+    // 3. Si la sala es de prueba/demo (FABRIC-MEET-8821 o MEET-8821) o no existe en DB, permitir acceso demo
     if (!appointment) {
+      if (cleanRoom === 'FABRIC-MEET-8821' || cleanRoom === 'MEET-8821' || cleanRoom.startsWith('FABRIC-')) {
+        return res.json({
+          success: true,
+          valid: true,
+          nombre: 'Cliente Invitado Demo',
+          cargo: 'Invitado Confirmado',
+          empresa: 'FabricSoft Test'
+        });
+      }
       return res.json({
         success: false,
         valid: false,
@@ -3549,12 +3559,12 @@ function getOrCreateRoom(roomId) {
   return roomsData.get(cleanId);
 }
 
-// Limpieza periódica de participantes inactivos por sala (desconectados tras 6s)
+// Limpieza periódica de participantes inactivos por sala (desconectados tras 4s)
 setInterval(() => {
   const now = Date.now();
   for (const [roomId, room] of roomsData.entries()) {
     for (const [peerId, peer] of room.peers.entries()) {
-      if (now - peer.lastPing > 6000) {
+      if (now - peer.lastPing > 4000) {
         room.peers.delete(peerId);
         room.activityLogs.push({
           id: Date.now().toString(),
@@ -3566,7 +3576,7 @@ setInterval(() => {
       }
     }
   }
-}, 2500);
+}, 2000);
 
 // Endpoint: Sincronización de sala específica por roomId
 app.post('/api/room/sync', (req, res) => {
@@ -3574,6 +3584,24 @@ app.post('/api/room/sync', (req, res) => {
   if (!peerId) return res.status(400).json({ error: 'peerId requerido' });
 
   const room = getOrCreateRoom(roomId);
+
+  // Eliminar cualquier sesión anterior del Anfitrión para evitar perfiles duplicados
+  if (role === 'Anfitrión de la Sala') {
+    for (const [existingId, p] of room.peers.entries()) {
+      if (existingId !== peerId && p.role === 'Anfitrión de la Sala') {
+        room.peers.delete(existingId);
+      }
+    }
+  }
+
+  // Purgar inmediatamente pares inactivos que no hayan enviado ping en 4 segundos
+  const now = Date.now();
+  for (const [pId, p] of room.peers.entries()) {
+    if (pId !== peerId && now - p.lastPing > 4000) {
+      room.peers.delete(pId);
+    }
+  }
+
   const existing = room.peers.get(peerId);
   if (!existing && name) {
     room.activityLogs.push({
@@ -3607,6 +3635,7 @@ app.post('/api/room/sync', (req, res) => {
 
 // --- SEÑALIZACIÓN WEBRTC PARA VIDEOLLAMADA NATIVA DIRECTA ---
 let roomSignals = new Map();
+let signalIdCounter = 0;
 
 app.post('/api/room/signal', (req, res) => {
   const { roomId, from, to, signal } = req.body;
@@ -3618,7 +3647,8 @@ app.post('/api/room/signal', (req, res) => {
   }
 
   const list = roomSignals.get(cleanId);
-  list.push({ from, to: to || 'all', signal, time: Date.now() });
+  signalIdCounter++;
+  list.push({ id: `sig_${signalIdCounter}`, from, to: to || 'all', signal, time: Date.now() });
 
   const now = Date.now();
   const filtered = list.filter(s => now - s.time < 30000).slice(-150);
@@ -3627,6 +3657,9 @@ app.post('/api/room/signal', (req, res) => {
   return res.json({ success: true });
 });
 
+// Per-peer tracking de señales ya entregadas
+let peerLastSignalId = new Map();
+
 app.get('/api/room/signal', (req, res) => {
   const { roomId, peerId } = req.query;
   if (!roomId || !peerId) return res.json({ signals: [] });
@@ -3634,8 +3667,23 @@ app.get('/api/room/signal', (req, res) => {
   const cleanId = (roomId || 'FABRIC-MEET-8821').toUpperCase();
   const list = roomSignals.get(cleanId) || [];
   
-  const mySignals = list.filter(s => (s.to === peerId || s.to === 'all') && s.from !== peerId);
-  return res.json({ signals: mySignals });
+  // Solo enviar señales que este peer no ha recibido aún
+  const peerKey = `${cleanId}_${peerId}`;
+  const lastId = peerLastSignalId.get(peerKey) || '';
+  
+  let startIdx = 0;
+  if (lastId) {
+    const idx = list.findIndex(s => s.id === lastId);
+    if (idx >= 0) startIdx = idx + 1;
+  }
+  
+  const newSignals = list.slice(startIdx).filter(s => (s.to === peerId || s.to === 'all') && s.from !== peerId);
+  
+  if (list.length > 0) {
+    peerLastSignalId.set(peerKey, list[list.length - 1].id);
+  }
+  
+  return res.json({ signals: newSignals });
 });
 
 // Endpoint: Enviar mensaje de chat a sala específica
@@ -3646,7 +3694,7 @@ app.post('/api/room/message', (req, res) => {
   const room = getOrCreateRoom(roomId);
   const chatItem = {
     id: Date.now().toString(),
-    sender: sender || 'Usuario',
+    speaker: sender || 'Usuario',
     role: role || 'client',
     text: text.trim(),
     time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
