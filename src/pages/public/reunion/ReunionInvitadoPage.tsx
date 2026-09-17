@@ -3,7 +3,8 @@ import {
   Video, VideoOff, Mic, MicOff, Volume2, VolumeX,
   FileText, PhoneOff, Send, MessageSquare, Users,
   ShieldCheck, ArrowLeft, Copy, CheckCircle2, Sparkles,
-  Info, UserCheck, LogIn, LogOut, Check, Key, Lock, Monitor, Circle
+  Info, UserCheck, LogIn, LogOut, Check, Key, Lock, Monitor, Circle,
+  Power
 } from 'lucide-react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -262,6 +263,7 @@ export default function ReunionInvitadoPage() {
   const [activeTab, setActiveTab] = useState<'chat' | 'transcript' | 'participants'>('chat');
   const [transcripts, setTranscripts] = useState<any[]>([]);
   const [interimText, setInterimText] = useState('');
+  const [isTranscribing, setIsTranscribing] = useState(true);
   const recognitionRef = useRef<any>(null);
 
   // Reloj de la sesión
@@ -936,7 +938,7 @@ export default function ReunionInvitadoPage() {
 
   // Transcripción en vivo del micrófono del invitado para enviar al IA Box de la junta
   useEffect(() => {
-    if (!isIdentified || !micActive) {
+    if (!isIdentified || !micActive || !isTranscribing) {
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch { }
         recognitionRef.current = null;
@@ -953,7 +955,7 @@ export default function ReunionInvitadoPage() {
     let isMounted = true;
 
     const startRecognition = () => {
-      if (!isMounted || !micActive) return;
+      if (!isMounted || !micActive || !isTranscribing) return;
 
       try {
         if (recognitionRef.current) {
@@ -1001,10 +1003,10 @@ export default function ReunionInvitadoPage() {
         };
 
         recognition.onend = () => {
-          if (isMounted && micActive) {
+          if (isMounted && micActive && isTranscribing) {
             clearTimeout(restartTimer);
             restartTimer = setTimeout(() => {
-              if (isMounted && micActive) {
+              if (isMounted && micActive && isTranscribing) {
                 startRecognition();
               }
             }, 200);
@@ -1028,7 +1030,142 @@ export default function ReunionInvitadoPage() {
       }
       recognitionRef.current = null;
     };
-  }, [isIdentified, micActive, roomId, userName, callDuration]);
+  }, [isIdentified, micActive, isTranscribing, roomId, userName, callDuration]);
+
+  // Transcripción continua por IA Groq Whisper V3 Turbo mediante segmentos limpios y VAD
+  useEffect(() => {
+    if (!isIdentified || !isTranscribing || !micActive || !localStream) return;
+
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (!audioTrack || !audioTrack.enabled) return;
+
+    let isMounted = true;
+    let currentRecorder: MediaRecorder | null = null;
+    let sliceTimeout: any = null;
+
+    // Conectar Analizador de Audio para detectar si el invitado habla
+    let audioCtx: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let micSource: MediaStreamAudioSourceNode | null = null;
+    let hasSpokenInChunk = false;
+    let checkEnergyInterval: any = null;
+
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        const tempStream = new MediaStream([audioTrack]);
+        micSource = audioCtx.createMediaStreamSource(tempStream);
+        micSource.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        checkEnergyInterval = setInterval(() => {
+          if (!analyser) return;
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const avg = sum / dataArray.length;
+          if (avg > 10) {
+            hasSpokenInChunk = true;
+          }
+        }, 120);
+      }
+    } catch { }
+
+    const recordNextSegment = () => {
+      if (!isMounted) return;
+
+      try {
+        const audioStream = new MediaStream([audioTrack]);
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : undefined;
+
+        const chunks: Blob[] = [];
+        hasSpokenInChunk = false;
+
+        const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined);
+        currentRecorder = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          if (!isMounted) return;
+          const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
+          
+          if (blob.size > 3500 && hasSpokenInChunk) {
+            try {
+              const formData = new FormData();
+              formData.append('audio', blob, 'speech.webm');
+              formData.append('roomId', roomId);
+              formData.append('speaker', userName || 'Invitado');
+              formData.append('time', formatDuration(callDuration));
+
+              const res = await fetch(`${API_BASE}/api/room/transcribe-audio`, {
+                method: 'POST',
+                body: formData,
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.item) {
+                  setTranscripts((prev) => {
+                    const isDupe = prev.slice(-3).some(
+                      (p) => p.speaker === data.item.speaker && p.text.toLowerCase() === data.item.text.toLowerCase()
+                    );
+                    return isDupe ? prev : [...prev, data.item];
+                  });
+                }
+              }
+            } catch (err) {
+              console.warn('Error enviando trozo de audio a Groq Whisper:', err);
+            }
+          }
+
+          if (isMounted) {
+            recordNextSegment();
+          }
+        };
+
+        recorder.start();
+
+        sliceTimeout = setTimeout(() => {
+          if (recorder.state === 'recording') {
+            try { recorder.stop(); } catch { }
+          }
+        }, 3500);
+
+      } catch (err) {
+        console.warn('Error iniciando segmento para Groq AI:', err);
+        if (isMounted) {
+          sliceTimeout = setTimeout(recordNextSegment, 2500);
+        }
+      }
+    };
+
+    recordNextSegment();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(sliceTimeout);
+      clearInterval(checkEnergyInterval);
+      if (currentRecorder && currentRecorder.state !== 'inactive') {
+        try { currentRecorder.stop(); } catch { }
+      }
+      if (audioCtx && audioCtx.state !== 'closed') {
+        try { audioCtx.close(); } catch { }
+      }
+    };
+  }, [isIdentified, isTranscribing, micActive, localStream, roomId, userName, callDuration]);
 
   // Scroll automático en el chat y auditoría
   useEffect(() => {
@@ -1615,25 +1752,73 @@ export default function ReunionInvitadoPage() {
               <div className="flex-1 flex flex-col overflow-hidden p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles size={14} className="text-[#C9A96E]" />
-                    <span className="font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-wider">
-                      IA BOX · En Vivo
-                    </span>
+                    <Sparkles size={14} className={isTranscribing ? 'text-[#C9A96E] animate-pulse' : 'text-slate-500'} />
+                    <div>
+                      <span className="font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-wider block leading-tight">
+                        IA BOX
+                      </span>
+                      <span className="font-mono text-[9px] text-slate-400 block">
+                        {isTranscribing ? 'En Vivo · Transcribiendo' : 'Desactivada · En Pausa'}
+                      </span>
+                    </div>
                   </div>
-                  <span className="font-mono text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Transcribiendo
-                  </span>
+                  {/* Botón Activar / Apagar IA Box */}
+                  <button
+                    onClick={() => setIsTranscribing(!isTranscribing)}
+                    className={`px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${isTranscribing
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25'
+                      }`}
+                    title={isTranscribing ? 'Apagar función IA Box' : 'Activar función IA Box'}
+                  >
+                    <Power size={11} className={isTranscribing ? 'text-emerald-400' : 'text-rose-400'} />
+                    <span>{isTranscribing ? 'Apagar' : 'Activar'}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isTranscribing ? 'bg-emerald-400 animate-ping' : 'bg-rose-400'}`} />
+                  </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-3 bg-[#030712] p-3 rounded-2xl border border-[#1E3A5F]/70 font-sans">
+                  {/* Banner de aviso cuando está apagado */}
+                  {!isTranscribing && (transcripts.length > 0 || interimText) && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-200 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <Power size={13} className="text-amber-400 shrink-0" />
+                        <span className="font-mono text-[10px]">IA Box en pausa</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsTranscribing(true)}
+                        className="px-2 py-0.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#030712] font-mono text-[9px] font-bold uppercase tracking-wider transition cursor-pointer shrink-0 flex items-center gap-1"
+                      >
+                        <Power size={10} />
+                        <span>Activar</span>
+                      </button>
+                    </div>
+                  )}
+
                   {transcripts.length === 0 && !interimText && (
                     <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                      <Sparkles size={24} className="text-[#C9A96E] mb-2" />
-                      <p className="text-xs font-bold text-white">Transcripción de la sala activa</p>
-                      <p className="text-[11px] text-slate-400 mt-1">
-                        Lo que se hable en la llamada aparecerá aquí en tiempo real.
+                      <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center mb-3 shadow-lg transition-all ${isTranscribing ? 'bg-[#09182E] border-[#C9A96E]/40 text-[#C9A96E]' : 'bg-[#09182E]/60 border-slate-700 text-slate-500'}`}>
+                        <Sparkles size={22} className={isTranscribing ? 'animate-pulse text-[#C9A96E]' : 'text-slate-500'} />
+                      </div>
+                      <p className="text-xs font-bold text-white">
+                        {isTranscribing ? 'Transcripción de la sala activa' : 'IA Box actualmente apagada'}
                       </p>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-xs leading-relaxed">
+                        {isTranscribing
+                          ? 'Lo que se hable en la llamada aparecerá aquí en tiempo real.'
+                          : 'La transcripción de la sesión está desactivada. Puedes activarla cuando lo desees.'}
+                      </p>
+                      {!isTranscribing && (
+                        <button
+                          type="button"
+                          onClick={() => setIsTranscribing(true)}
+                          className="mt-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#e2c799] text-[#030712] font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 hover:shadow-lg transition cursor-pointer"
+                        >
+                          <Power size={11} />
+                          <span>Activar IA Box</span>
+                        </button>
+                      )}
                     </div>
                   )}
 

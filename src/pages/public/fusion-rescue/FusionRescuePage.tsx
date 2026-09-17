@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { 
-  ShieldCheck, 
-  ArrowRight, 
-  CheckCircle2, 
-  Layers, 
-  DollarSign, 
-  Database, 
-  Cpu, 
-  Users, 
-  LifeBuoy, 
-  AlertCircle, 
-  Sparkles, 
-  Building2, 
+import {
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
+  Layers,
+  DollarSign,
+  Database,
+  Cpu,
+  Users,
+  LifeBuoy,
+  AlertCircle,
+  Sparkles,
+  Building2,
   FileCheck2,
   ChevronRight,
   Activity
@@ -38,7 +38,7 @@ export const FusionRescuePage: React.FC = () => {
         event_type: 'landing_visit',
         path: '/fusion-rescue',
         ...utmParams
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, []);
 
@@ -51,7 +51,7 @@ export const FusionRescuePage: React.FC = () => {
   }, [location.pathname, location.search]);
 
   const handleStartAssessment = () => {
-    api.post('/fusion-rescue/track', { event_type: 'assessment_start', path: '/fusion-rescue' }).catch(() => {});
+    api.post('/fusion-rescue/track', { event_type: 'assessment_start', path: '/fusion-rescue' }).catch(() => { });
     setShowAssessment(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -145,7 +145,7 @@ export const FusionRescuePage: React.FC = () => {
                   'Existe dependencia excesiva del partner o del equipo de TI.',
                   'No está claro si los problemas vienen de configuración, procesos, datos, integraciones o adopción.'
                 ].map((scenario, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="p-6 sm:p-8 rounded-2xl bg-[#123254] border border-[#C9A96E]/30 hover:border-[#C9A96E]/60 transition-all flex items-start gap-4"
                   >
@@ -368,121 +368,14 @@ export const FusionRescuePage: React.FC = () => {
                 className="btn-primary cursor-pointer"
               >
                 <span>Evaluar mi implementación</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-[#050203]" />
+
               </button>
-            </div>
-          </section>
-
-          {/* Grid de Enlaces a la Página Principal */}
-          <section className="py-16 bg-[#08182B] border-t border-[#C9A96E]/20 w-full">
-            <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
-                {/* DOCTRINA */}
-                <div>
-                  <h4 className="text-[#C9A96E] font-mono text-sm font-bold tracking-[0.2em] uppercase mb-5">
-                    DOCTRINA
-                  </h4>
-                  <ul className="space-y-3 font-sans text-sm">
-                    <li>
-                      <Link to="/#doctrina-operativa" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Doctrina Operativa
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/#founder-manifesto-section" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Manifiesto del Fundador
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/doctrina/no-alineacion" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Modelo de No-Alineación
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* SIMULADORES */}
-                <div>
-                  <h4 className="text-[#C9A96E] font-mono text-sm font-bold tracking-[0.2em] uppercase mb-5">
-                    SIMULADORES
-                  </h4>
-                  <ul className="space-y-3 font-sans text-sm">
-                    <li>
-                      <Link to="/#erp-tco-calculator" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        ERP TCO Calculator
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/#infra-cost-simulator" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Cloud Cost Comparator
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/optimizador-oci" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Optimizador de Nube OCI
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* EVIDENCIA */}
-                <div>
-                  <h4 className="text-[#C9A96E] font-mono text-sm font-bold tracking-[0.2em] uppercase mb-5">
-                    EVIDENCIA
-                  </h4>
-                  <ul className="space-y-3 font-sans text-sm">
-                    <li>
-                      <Link to="/#referencias" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Referencias Auditadas
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/transparencia" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Transparencia Radical
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/#investigacion-section" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Investigación &amp; Papers
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* ADMISIÓN */}
-                <div>
-                  <h4 className="text-[#C9A96E] font-mono text-sm font-bold tracking-[0.2em] uppercase mb-5">
-                    ADMISIÓN
-                  </h4>
-                  <ul className="space-y-3 font-sans text-sm">
-                    <li>
-                      <Link to="/aplicar" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Aplicar a Admisión
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/#radar-admision" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Mesa Técnica 1-on-1
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/#waitlist-section" className="text-slate-300 hover:text-[#C9A96E] transition-colors block">
-                        Lugar en Wait List
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </div>
             </div>
           </section>
 
           {/* Footer institucional */}
           <footer className="py-12 text-center font-mono text-xs text-slate-400 border-t border-[#C9A96E]/20">
-            <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 space-y-3">
-              <p className="text-[#C9A96E] font-bold">FABRIC FUSION RESCUE HEALTH CHECK™</p>
-              <p>Oracle Fusion Cloud ERP es una marca registrada de Oracle Corporation.</p>
-              <p>© {new Date().getFullYear()} FABRIC SOFT MÉXICO. Todos los derechos reservados.</p>
-            </div>
+
           </footer>
         </>
       )}

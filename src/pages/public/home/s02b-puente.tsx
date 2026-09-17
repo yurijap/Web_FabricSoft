@@ -1551,7 +1551,7 @@ function RescueAssessmentInteractiveWidget() {
   const questions = [
     {
       id: 'q1',
-      text: '¿Cuántos días tarda hoy el cierre contable mensual en Fusion?',
+      text: '¿Cuántos días hábiles toma actualmente completar el cierre contable mensual?',
       options: [
         { label: '1-5 días', score: 0 },
         { label: '6-10 días', score: 1 },
@@ -1561,7 +1561,7 @@ function RescueAssessmentInteractiveWidget() {
     },
     {
       id: 'q2',
-      text: '¿Qué parte del cierre sigue ocurriendo fuera de Fusion?',
+      text: '¿Qué parte del proceso de cierre sigue ocurriendo fuera del sistema principal?',
       options: [
         { label: 'Nada relevante', score: 0 },
         { label: 'Solo conciliaciones menores', score: 1 },
@@ -1571,7 +1571,7 @@ function RescueAssessmentInteractiveWidget() {
     },
     {
       id: 'q3',
-      text: '¿Cuántos reportes ejecutivos o financieros se generan fuera del ERP?',
+      text: '¿Cuántos reportes ejecutivos o financieros clave se siguen generando fuera del sistema principal?',
       options: [
         { label: 'Ninguno', score: 0 },
         { label: '1-3 reportes', score: 1 },
@@ -1591,7 +1591,7 @@ function RescueAssessmentInteractiveWidget() {
     },
     {
       id: 'q5',
-      text: '¿Qué porcentaje de usuarios clave usa Fusion como sistema principal?',
+      text: '¿Qué porcentaje de usuarios clave utiliza el sistema principal (ERP/plataforma central) para sus tareas diarias?',
       options: [
         { label: 'Más del 80%', score: 0 },
         { label: '60-80%', score: 1 },
@@ -1601,7 +1601,7 @@ function RescueAssessmentInteractiveWidget() {
     },
     {
       id: 'q6',
-      text: '¿Qué tan frecuente es que los usuarios evadan Fusion con Excel, correo o sistemas paralelos?',
+      text: '¿Qué tan frecuente es que los usuarios evadan la plataforma principal utilizando Excel, correos u otros sistemas paralelos?',
       options: [
         { label: 'Casi nunca', score: 0 },
         { label: 'En casos puntuales', score: 1 },

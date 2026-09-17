@@ -86,26 +86,58 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // Load from cache on mount
-  useEffect(() => {
+  // Reset assessment state and clear cache helper
+  const handleResetAssessment = () => {
     try {
-      const cachedEnv = localStorage.getItem(CACHE_ENV_KEY);
-      if (cachedEnv) {
-        setEnvironment(JSON.parse(cachedEnv));
-      }
-      const cachedUser = localStorage.getItem(CACHE_USER_KEY);
-      if (cachedUser) {
-        const parsed = JSON.parse(cachedUser);
-        setContact(parsed);
-      }
+      localStorage.removeItem(CACHE_ENV_KEY);
+      localStorage.removeItem(CACHE_USER_KEY);
+      sessionStorage.removeItem('fusion_rescue_session_id');
     } catch (e) {
-      console.error('Error loading cached user data:', e);
+      console.error('Error clearing cache:', e);
     }
+    setCurrentStep(0);
+    setEnvironment({
+      company: '',
+      country: 'México',
+      industry: 'Manufactura / SCM',
+      solution: 'Oracle Fusion Cloud ERP + SCM',
+      goLiveAge: '1–2 años',
+      role: 'CFO / VP Finanzas / Director Financiero',
+      revenue: '$10M – $50M USD'
+    });
+    setContact({
+      firstName: '',
+      lastName: '',
+      company: '',
+      jobTitle: '',
+      email: '',
+      phone: '',
+      privacyAccepted: false
+    });
+    setAnswers({});
+    setMainProblem('Cierre financiero');
+    setProblemDescription('');
+    setTiming('Queremos resolverlo durante los próximos 3 meses.');
+    setResult(null);
+    setSubmissionId(undefined);
+    setErrorMessage('');
+  };
 
-    // Load submission data if URL contains resumeId
+  // Clear cache on mount so user can enter fresh data every time (unless URL contains resumeId)
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const resumeIdParam = params.get('resumeId');
-    if (resumeIdParam) {
+
+    if (!resumeIdParam) {
+      try {
+        localStorage.removeItem(CACHE_ENV_KEY);
+        localStorage.removeItem(CACHE_USER_KEY);
+        sessionStorage.removeItem('fusion_rescue_session_id');
+      } catch (e) {
+        console.error('Error clearing cached user data on mount:', e);
+      }
+    } else {
+      // Load submission data if URL contains resumeId
       api.get(`/fusion-rescue/submission/${resumeIdParam}`)
         .then((res) => res.data)
         .then((json) => {
@@ -1050,7 +1082,7 @@ export const FusionRescueAssessmentModal: React.FC<FusionRescueAssessmentModalPr
             environment={environment}
             contact={contact}
             submissionId={submissionId}
-            onRestart={() => setCurrentStep(0)}
+            onRestart={handleResetAssessment}
           />
         )}
       </div>
