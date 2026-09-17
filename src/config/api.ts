@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.PROD 
+const envApi = import.meta.env.VITE_API_URL;
+const isDeadVercel = typeof envApi === 'string' && envApi.includes('back-fabric-soft.vercel.app');
+const baseURL = (import.meta.env.PROD || isDeadVercel || !envApi) 
   ? '/api' 
-  : (import.meta.env.VITE_API_URL || 'http://localhost:4000/api');
+  : envApi;
 
 const headersConfig: Record<string, string> = {
   'Content-Type': 'application/json',

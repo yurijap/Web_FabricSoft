@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Video, VideoOff, Mic, MicOff, Volume2, VolumeX, 
-  FileText, PhoneOff, Send, MessageSquare, Users, 
+import {
+  Video, VideoOff, Mic, MicOff, Volume2, VolumeX,
+  FileText, PhoneOff, Send, MessageSquare, Users,
   ShieldCheck, ArrowLeft, Copy, CheckCircle2, Sparkles,
   Info, UserCheck, LogIn, LogOut, Check, Key, Lock, Monitor, Circle
 } from 'lucide-react';
@@ -72,10 +72,21 @@ function VideoPlayer({
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !stream) return;
-    if (el.srcObject !== stream) {
-      el.srcObject = stream;
-    }
-    el.play().catch(() => { });
+    el.srcObject = stream;
+    const playVideo = () => {
+      el.play().catch(() => { });
+    };
+    playVideo();
+
+    stream.getVideoTracks().forEach((track) => {
+      track.onunmute = playVideo;
+    });
+
+    return () => {
+      stream.getVideoTracks().forEach((track) => {
+        if (track.onunmute === playVideo) track.onunmute = null;
+      });
+    };
   }, [stream]);
 
   if (!stream) return null;
@@ -107,24 +118,52 @@ function RemoteAudio({
 
   useEffect(() => {
     const el = audioRef.current;
-    if (!el || !stream) return;
+    if (!el) return;
 
-    if (el.srcObject !== stream) {
+    if (stream && el.srcObject !== stream) {
       el.srcObject = stream;
     }
     el.volume = muted ? 0 : Math.max(0, Math.min(1, volume / 100));
+    el.muted = muted;
 
-    if (muted) {
-      el.muted = true;
-    } else {
-      el.muted = false;
+    const tryPlay = () => {
+      if (el.muted || el.volume === 0 || !el.srcObject) return;
       void el.play().catch((err) => {
-        console.debug('Autoplay de audio remoto bloqueado:', err);
+        console.debug('Autoplay de audio remoto en espera de interacción:', err);
+      });
+    };
+
+    if (stream) {
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+        track.onunmute = tryPlay;
       });
     }
-  }, [stream, volume, muted]);
 
-  if (!stream || stream.getAudioTracks().length === 0) return null;
+    el.addEventListener('loadedmetadata', tryPlay);
+    el.addEventListener('canplay', tryPlay);
+    tryPlay();
+    const timer = window.setTimeout(tryPlay, 150);
+
+    const unlockAudio = () => {
+      tryPlay();
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      el.removeEventListener('loadedmetadata', tryPlay);
+      el.removeEventListener('canplay', tryPlay);
+      if (stream) {
+        stream.getAudioTracks().forEach((track) => {
+          if (track.onunmute === tryPlay) track.onunmute = null;
+        });
+      }
+    };
+  }, [stream, volume, muted]);
 
   return (
     <audio
@@ -144,10 +183,10 @@ export default function ReunionInvitadoPage() {
 
   // ID de la Sala
   const [inputRoomId, setInputRoomId] = useState<string>(() => {
-    return (urlParamRoomId || searchParams.get('room') || 'MEET-8821').toUpperCase();
+    return (urlParamRoomId || searchParams.get('room') || 'FABRIC-MEET-8821').toUpperCase();
   });
   const [roomId, setRoomId] = useState<string>(() => {
-    return (urlParamRoomId || searchParams.get('room') || 'MEET-8821').toUpperCase();
+    return (urlParamRoomId || searchParams.get('room') || 'FABRIC-MEET-8821').toUpperCase();
   });
 
   useEffect(() => {
@@ -187,7 +226,7 @@ export default function ReunionInvitadoPage() {
 
   // Cargar automáticamente el nombre completo del cliente asignado a este enlace
   useEffect(() => {
-    const targetRoom = (urlParamRoomId || inputRoomId || 'MEET-8821').toUpperCase();
+    const targetRoom = (urlParamRoomId || inputRoomId || 'FABRIC-MEET-8821').toUpperCase();
     fetch(`${API_BASE}/api/office-hours/room-info?roomId=${encodeURIComponent(targetRoom)}`)
       .then(res => res.json())
       .then(data => {
@@ -220,7 +259,10 @@ export default function ReunionInvitadoPage() {
   const [volume, setVolume] = useState(85);
   const [isMutedVolume, setIsMutedVolume] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'participants'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'transcript' | 'participants'>('chat');
+  const [transcripts, setTranscripts] = useState<any[]>([]);
+  const [interimText, setInterimText] = useState('');
+  const recognitionRef = useRef<any>(null);
 
   // Reloj de la sesión
   const [callDuration, setCallDuration] = useState(0);
@@ -228,6 +270,40 @@ export default function ReunionInvitadoPage() {
   // ── ESTADOS Y FUNCIONES DE COMPARTIR PANTALLA ──
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+
+  const toggleCamera = () => {
+    const nextState = !cameraActive;
+    if (localStream) {
+      localStream.getVideoTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getVideoTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (!nextState) {
+      localFrameRef.current = null;
+    }
+    setCameraActive(nextState);
+  };
+
+  const toggleMic = () => {
+    const nextState = !micActive;
+    if (localStream) {
+      localStream.getAudioTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getAudioTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    setMicActive(nextState);
+  };
 
   const startScreenShare = async () => {
     try {
@@ -238,6 +314,14 @@ export default function ReunionInvitadoPage() {
       screenStreamRef.current = screenStream;
       setLocalStream(screenStream);
       setIsScreenSharing(true);
+
+      if (pcRef.current) {
+        const sender = pcRef.current.getSenders().find((s) => s.track?.kind === 'video');
+        const screenTrack = screenStream.getVideoTracks()[0];
+        if (sender && screenTrack) {
+          sender.replaceTrack(screenTrack).catch(() => { });
+        }
+      }
 
       if (screenStream.getVideoTracks()[0]) {
         screenStream.getVideoTracks()[0].onended = () => {
@@ -255,9 +339,25 @@ export default function ReunionInvitadoPage() {
       screenStreamRef.current = null;
     }
     setIsScreenSharing(false);
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then((camStream) => setLocalStream(camStream))
-      .catch(() => {});
+
+    const camStream = cameraStreamRef.current;
+    if (camStream) {
+      setLocalStream(camStream);
+      if (pcRef.current) {
+        const sender = pcRef.current.getSenders().find((s) => s.track?.kind === 'video');
+        const camTrack = camStream.getVideoTracks()[0];
+        if (sender && camTrack) {
+          sender.replaceTrack(camTrack).catch(() => { });
+        }
+      }
+    } else {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then((s) => {
+          cameraStreamRef.current = s;
+          setLocalStream(s);
+        })
+        .catch(() => { });
+    }
   };
 
   const screenFrameRef = useRef<string | null>(null);
@@ -286,7 +386,7 @@ export default function ReunionInvitadoPage() {
         try {
           ctx.drawImage(videoEl, 0, 0, 960, 540);
           screenFrameRef.current = canvas.toDataURL('image/jpeg', 0.45);
-        } catch {}
+        } catch { }
       }
     }, 100);
 
@@ -345,7 +445,7 @@ export default function ReunionInvitadoPage() {
     setPinError('');
 
     const cleanRoom = (inputRoomId.trim() || urlParamRoomId || 'FABRIC-MEET-8821').toUpperCase();
-    const cleanPin = pinInput.trim();
+    const cleanPin = pinInput.trim().toUpperCase();
     const cleanName = guestNameInput.trim();
 
     if (!cleanName) {
@@ -364,6 +464,12 @@ export default function ReunionInvitadoPage() {
       const res = await fetch(`${API_BASE}/api/office-hours/verify-pin?roomId=${encodeURIComponent(cleanRoom)}&pin=${encodeURIComponent(cleanPin)}`);
       const data = await res.json();
 
+      if (!data.success || !data.valid) {
+        setPinError(data.error || 'PIN de acceso incorrecto. Verifica la clave proporcionada.');
+        setVerifyingPin(false);
+        return;
+      }
+
       const finalName = cleanName || data?.nombre || 'Cliente Invitado';
       const finalRole = data?.cargo || 'Invitado Confirmado';
       const avatar = finalName.slice(0, 2).toUpperCase();
@@ -373,34 +479,26 @@ export default function ReunionInvitadoPage() {
       setUserRole(finalRole);
       setUserAvatar(avatar);
       setIsIdentified(true);
-      
+
       // Solicitar permisos directamente al hacer clic para garantizar diálogo del navegador
       if (navigator?.mediaDevices?.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then((stream) => setLocalStream(stream))
+          .then((stream) => {
+            cameraStreamRef.current = stream;
+            setLocalStream(stream);
+          })
           .catch(() => {
             navigator.mediaDevices.getUserMedia({ video: true })
-              .then((vStream) => setLocalStream(vStream))
+              .then((vStream) => {
+                cameraStreamRef.current = vStream;
+                setLocalStream(vStream);
+              })
               .catch((e) => console.warn('Cámara no permitida o denegada por invitado:', e));
           });
       }
-    } catch {
-      const finalName = cleanName || 'Cliente Invitado';
-      setRoomId(cleanRoom);
-      setUserName(finalName);
-      setUserRole('Invitado Confirmado');
-      setUserAvatar(finalName.slice(0, 2).toUpperCase());
-      setIsIdentified(true);
-
-      if (navigator?.mediaDevices?.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then((stream) => setLocalStream(stream))
-          .catch(() => {
-            navigator.mediaDevices.getUserMedia({ video: true })
-              .then((vStream) => setLocalStream(vStream))
-              .catch((e) => console.warn('Cámara no permitida o denegada por invitado:', e));
-          });
-      }
+    } catch (err) {
+      console.warn('Error verificando PIN en servidor:', err);
+      setPinError('Error al conectar con el servidor para verificar el PIN.');
     } finally {
       setVerifyingPin(false);
     }
@@ -438,6 +536,7 @@ export default function ReunionInvitadoPage() {
 
         if (!isMounted) return;
 
+        cameraStreamRef.current = stream;
         setLocalStream(stream);
 
         if (localVideoRef.current) {
@@ -447,6 +546,7 @@ export default function ReunionInvitadoPage() {
         try {
           const videoOnlyStream = await navigator.mediaDevices.getUserMedia({ video: true });
           if (!isMounted) return;
+          cameraStreamRef.current = videoOnlyStream;
           setLocalStream(videoOnlyStream);
           if (localVideoRef.current) {
             localVideoRef.current.srcObject = videoOnlyStream;
@@ -466,14 +566,6 @@ export default function ReunionInvitadoPage() {
     };
   }, [isIdentified]);
 
-  // Limpieza al salir de la llamada
-  useEffect(() => {
-    return () => {
-      if (localStream) {
-        localStream.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, [localStream]);
 
   // Asignar stream al video oculto de captura
   useEffect(() => {
@@ -497,32 +589,37 @@ export default function ReunionInvitadoPage() {
 
   // Captura periódica de frames para streaming de respaldo
   useEffect(() => {
-    if (!isIdentified || !cameraActive || !localStream) return;
+    if (!isIdentified || !cameraActive || !localStream) {
+      localFrameRef.current = null;
+      return;
+    }
 
-    const videoEl = localVideoRef.current || document.createElement('video');
+    const videoEl = document.createElement('video');
     videoEl.autoplay = true;
     videoEl.playsInline = true;
     videoEl.muted = true;
-    if (!videoEl.srcObject) {
-      videoEl.srcObject = localStream;
-    }
+    videoEl.srcObject = localStream;
+    videoEl.play().catch(() => { });
 
-    const canvas = hiddenCanvasRef.current || document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 240;
-    hiddenCanvasRef.current = canvas;
+    const canvas = document.createElement('canvas');
+    canvas.width = 480;
+    canvas.height = 270;
     const ctx = canvas.getContext('2d');
 
     const frameInterval = setInterval(() => {
       if (ctx && videoEl.readyState >= 2) {
         try {
-          ctx.drawImage(videoEl, 0, 0, 320, 240);
+          ctx.drawImage(videoEl, 0, 0, 480, 270);
           localFrameRef.current = canvas.toDataURL('image/jpeg', 0.35);
-        } catch {}
+        } catch { }
       }
     }, 120);
 
-    return () => clearInterval(frameInterval);
+    return () => {
+      clearInterval(frameInterval);
+      videoEl.pause();
+      videoEl.srcObject = null;
+    };
   }, [isIdentified, cameraActive, localStream]);
 
   // ── 2. WEBRTC P2P SIGNALING CON SEÑALIZACIÓN CONTINUA ──
@@ -574,7 +671,7 @@ export default function ReunionInvitadoPage() {
         if (browserStream) {
           browserStream.getTracks().forEach((track) => {
             if (!stableStream.getTracks().some((t) => t.id === track.id)) {
-              try { stableStream.addTrack(track); } catch {}
+              try { stableStream.addTrack(track); } catch { }
             }
           });
         }
@@ -599,7 +696,7 @@ export default function ReunionInvitadoPage() {
               to: 'all',
               signal: { type: 'candidate', candidate: event.candidate },
             }),
-          }).catch(() => {});
+          }).catch(() => { });
         }
       };
 
@@ -610,7 +707,7 @@ export default function ReunionInvitadoPage() {
       pc.oniceconnectionstatechange = () => {
         console.log(`[WebRTC Guest] iceConnectionState: ${pc.iceConnectionState}`);
         if (pc.iceConnectionState === 'failed') {
-          try { pc.restartIce(); } catch {}
+          try { pc.restartIce(); } catch { }
         }
       };
 
@@ -619,7 +716,7 @@ export default function ReunionInvitadoPage() {
           const res = await fetch(`${API_BASE}/api/room/signal?roomId=${roomId}&peerId=${localPeerId}`);
           if (!res.ok) return;
           const data = await res.json();
-          
+
           if (data.signals) {
             for (const item of data.signals) {
               const sigId = `${item.from}_${JSON.stringify(item.signal).slice(0, 50)}`;
@@ -631,14 +728,14 @@ export default function ReunionInvitadoPage() {
               try {
                 if (signal.type === 'offer') {
                   if (pc.signalingState !== 'stable') {
-                    try { await pc.setLocalDescription({ type: 'rollback' }); } catch {}
+                    try { await pc.setLocalDescription({ type: 'rollback' }); } catch { }
                   }
 
                   await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
 
                   // Aplicar candidatos pendientes
                   for (const candidate of pendingCandidatesRef.current) {
-                    try { await pc.addIceCandidate(candidate); } catch {}
+                    try { await pc.addIceCandidate(candidate); } catch { }
                   }
                   pendingCandidatesRef.current = [];
 
@@ -659,7 +756,7 @@ export default function ReunionInvitadoPage() {
                   if (pc.signalingState === 'have-local-offer') {
                     await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
                     for (const candidate of pendingCandidatesRef.current) {
-                      try { await pc.addIceCandidate(candidate); } catch {}
+                      try { await pc.addIceCandidate(candidate); } catch { }
                     }
                     pendingCandidatesRef.current = [];
                   }
@@ -667,7 +764,7 @@ export default function ReunionInvitadoPage() {
                   if (pc.remoteDescription) {
                     try {
                       await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-                    } catch {}
+                    } catch { }
                   } else {
                     // Encolar si aún no tenemos remoteDescription
                     pendingCandidatesRef.current.push(new RTCIceCandidate(signal.candidate));
@@ -678,12 +775,12 @@ export default function ReunionInvitadoPage() {
               }
             }
           }
-        } catch {}
+        } catch { }
       }, 800);
 
       return () => {
         clearInterval(signalInterval);
-        try { pc.close(); } catch {}
+        try { pc.close(); } catch { }
         pcRef.current = null;
       };
     } catch (err) {
@@ -699,7 +796,7 @@ export default function ReunionInvitadoPage() {
           try {
             track.stop();
             track.enabled = false;
-          } catch {}
+          } catch { }
         });
         setLocalStream(null);
       }
@@ -708,7 +805,7 @@ export default function ReunionInvitadoPage() {
           try {
             track.stop();
             track.enabled = false;
-          } catch {}
+          } catch { }
         });
         screenStreamRef.current = null;
       }
@@ -716,11 +813,11 @@ export default function ReunionInvitadoPage() {
         try {
           pcRef.current.getSenders().forEach((sender) => {
             if (sender.track) {
-              try { sender.track.stop(); } catch {}
+              try { sender.track.stop(); } catch { }
             }
           });
           pcRef.current.close();
-        } catch {}
+        } catch { }
         pcRef.current = null;
       }
       localFrameRef.current = null;
@@ -778,7 +875,7 @@ export default function ReunionInvitadoPage() {
               screenFrameData: p.screenFrameData || null,
               color: '#38BDF8',
             }));
-          
+
           setRemotePeers(remotes);
 
           const screenSharingPeer = remotes.find((r) => r.isScreenSharing || r.screenFrameData);
@@ -801,6 +898,14 @@ export default function ReunionInvitadoPage() {
 
         if (data.messages && data.messages.length > 0) setChatMessages(data.messages);
         if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
+        if (data.transcripts && Array.isArray(data.transcripts)) {
+          setTranscripts((prev) => {
+            const map = new Map();
+            prev.forEach((t: any) => map.set(t.id, t));
+            data.transcripts.forEach((t: any) => map.set(t.id, t));
+            return Array.from(map.values());
+          });
+        }
       } catch (err) {
         console.warn('Error syncing guest room:', err);
       }
@@ -812,7 +917,7 @@ export default function ReunionInvitadoPage() {
     const handleUnload = () => {
       try {
         navigator.sendBeacon(`${API_BASE}/api/room/leave`, JSON.stringify({ roomId, peerId: localPeerId }));
-      } catch {}
+      } catch { }
       stopAllHardwareMedia();
     };
 
@@ -826,14 +931,109 @@ export default function ReunionInvitadoPage() {
       window.removeEventListener('beforeunload', handleUnload);
       window.removeEventListener('pagehide', handleUnload);
       window.removeEventListener('unload', handleUnload);
-      stopAllHardwareMedia();
     };
   }, [isIdentified, roomId, localPeerId, userName, userRole, cameraActive, micActive]);
+
+  // Transcripción en vivo del micrófono del invitado para enviar al IA Box de la junta
+  useEffect(() => {
+    if (!isIdentified || !micActive) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch { }
+        recognitionRef.current = null;
+      }
+      setInterimText('');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    let recognition: any = null;
+    let restartTimer: any = null;
+    let isMounted = true;
+
+    const startRecognition = () => {
+      if (!isMounted || !micActive) return;
+
+      try {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort(); } catch { }
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'es-MX';
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event: any) => {
+          let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const res = event.results[i];
+            const text = res[0]?.transcript || '';
+            if (res.isFinal) {
+              const finalText = text.trim();
+              if (finalText) {
+                fetch(`${API_BASE}/api/room/transcript`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    roomId,
+                    speaker: userName || 'Invitado',
+                    text: finalText,
+                    time: formatDuration(callDuration),
+                  }),
+                }).catch(() => { });
+              }
+            } else {
+              interim += text;
+            }
+          }
+          if (interim) {
+            setInterimText(interim);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            console.warn('Guest SpeechRecognition error:', event.error);
+          }
+        };
+
+        recognition.onend = () => {
+          if (isMounted && micActive) {
+            clearTimeout(restartTimer);
+            restartTimer = setTimeout(() => {
+              if (isMounted && micActive) {
+                startRecognition();
+              }
+            }, 200);
+          }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (err) {
+        console.warn('No se pudo iniciar SpeechRecognition en invitado:', err);
+      }
+    };
+
+    startRecognition();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(restartTimer);
+      if (recognition) {
+        try { recognition.stop(); } catch { }
+      }
+      recognitionRef.current = null;
+    };
+  }, [isIdentified, micActive, roomId, userName, callDuration]);
 
   // Scroll automático en el chat y auditoría
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages, activityLogs]);
+  }, [chatMessages, transcripts, activityLogs]);
 
   // Enviar mensaje en el chat
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -865,7 +1065,7 @@ export default function ReunionInvitadoPage() {
       navigator.clipboard.writeText(shareUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
-    } catch {}
+    } catch { }
   };
 
   const handleLeaveCall = async () => {
@@ -876,7 +1076,7 @@ export default function ReunionInvitadoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId, peerId: localPeerId }),
       });
-    } catch {}
+    } catch { }
     navigate('/');
   };
 
@@ -923,7 +1123,7 @@ export default function ReunionInvitadoPage() {
     return (
       <div className="min-h-screen bg-[#030712] text-white flex flex-col items-center justify-center p-4 font-sans select-none overflow-y-auto">
         <div className="w-full max-w-xl bg-[#060D1A]/95 border border-[#1E3A5F] rounded-3xl p-6 md:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.8)] backdrop-blur-xl space-y-6">
-          
+
           {/* Header del Modal */}
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-full bg-[#081528] border-2 border-[#C9A96E] flex items-center justify-center text-[#C9A96E] mx-auto shadow-lg">
@@ -938,7 +1138,7 @@ export default function ReunionInvitadoPage() {
           </div>
 
           <form onSubmit={handleConfirmIdentity} className="space-y-5">
-            
+
             {/* Input ID de la Sala (Fijo y Protegido - No Modificable) */}
             <div className="space-y-1.5 bg-[#081528] p-4 rounded-2xl border border-[#1E3A5F]">
               <label className="block font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-wider flex items-center justify-between">
@@ -951,7 +1151,7 @@ export default function ReunionInvitadoPage() {
                 type="text"
                 readOnly
                 disabled
-                value={inputRoomId || urlParamRoomId || 'MEET-8821'}
+                value={inputRoomId || urlParamRoomId || 'FABRIC-MEET-8821'}
                 className="w-full bg-[#030712]/70 border border-[#1E3A5F] text-[#C9A96E] font-mono font-bold text-sm px-4 py-2.5 rounded-xl outline-none tracking-widest text-center cursor-not-allowed opacity-85 select-none"
               />
             </div>
@@ -1011,7 +1211,7 @@ export default function ReunionInvitadoPage() {
               className="w-full py-3.5 rounded-2xl bg-[#C9A96E] hover:bg-[#e2c799] text-[#030712] font-mono text-xs font-bold uppercase tracking-wider transition shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <LogIn size={18} />
-              <span>{verifyingPin ? 'Verificando PIN...' : `Unirse a la Sala [${inputRoomId || 'MEET-8821'}]`}</span>
+              <span>{verifyingPin ? 'Verificando PIN...' : `Unirse a la Sala [${inputRoomId || 'FABRIC-MEET-8821'}]`}</span>
             </button>
           </form>
         </div>
@@ -1022,7 +1222,7 @@ export default function ReunionInvitadoPage() {
   // ── SINTESIS DE SALA ACTIVA TRAS IDENTIFICACIÓN ──
   return (
     <div className="h-screen bg-[#030712] text-white flex flex-col font-sans select-none overflow-hidden">
-      
+
       {/* Elemento de video oculto para captura de fotogramas */}
       <video ref={localVideoRef} autoPlay playsInline muted className="absolute top-0 left-0 w-1 h-1 opacity-0 pointer-events-none -z-50" />
 
@@ -1038,7 +1238,7 @@ export default function ReunionInvitadoPage() {
       {/* ── BARRA SUPERIOR (HEADER) ── */}
       <header className="h-16 bg-[#060D1A] border-b border-[#1E3A5F]/70 px-6 flex items-center justify-between shrink-0 backdrop-blur-xl relative z-30 shadow-md">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={handleLeaveCall}
             className="p-2 rounded-xl bg-[#09182E] border border-[#1E3A5F] text-[#94A3B8] hover:text-[#C9A96E] hover:border-[#C9A96E]/50 transition-all cursor-pointer"
             title="Salir de la Sala"
@@ -1096,17 +1296,17 @@ export default function ReunionInvitadoPage() {
       </header>
 
       {/* ── CUERPO PRINCIPAL: VIDEO (IZQ) + CHAT/REGISTRO AUDITORÍA (DER) ── */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-3 md:p-4 pb-16 overflow-hidden relative max-h-[calc(100vh-85px)]">
-        
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3 md:p-4 pb-24 md:pb-28 overflow-hidden relative min-h-0">
+
         {/* 👈 IZQUIERDA: ESCENARIO PRINCIPAL DE VIDEO (MÁS COMPACTO Y ESTILIZADO) */}
-        <div className="lg:col-span-8 h-full flex flex-col justify-center items-center relative overflow-hidden max-h-[72vh]">
-          
+        <div className="lg:col-span-8 h-full min-h-0 flex flex-col justify-center items-center relative overflow-hidden">
+
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(30,58,95,0.25),transparent_70%)] pointer-events-none" />
 
           {(isScreenSharing || remoteScreenFrame || remotePeers.some((p) => p.isScreenSharing || p.screenFrameData)) ? (
             /* 🖥️ MODO PANTALLA COMPARTIDA */
             <div className="w-full h-full flex flex-col gap-2.5 relative z-10">
-              
+
               {/* CUADRO PRINCIPAL EN GRANDE DE PANTALLA COMPARTIDA */}
               <div className="flex-1 bg-[#060E1B] border border-emerald-500/50 rounded-2xl overflow-hidden relative shadow-[0_0_35px_rgba(16,185,129,0.2)] flex items-center justify-center min-h-[260px]">
                 {screenStreamRef.current ? (
@@ -1318,31 +1518,40 @@ export default function ReunionInvitadoPage() {
         {/* 👉 DERECHA: PANEL DE CHAT Y REGISTRO DE AUDITORÍA (COMPACTO) */}
         <div className="lg:col-span-4 h-full overflow-hidden max-h-[72vh]">
           <div className="bg-[#060D1A]/95 border border-[#1E3A5F]/80 rounded-2xl flex flex-col h-full overflow-hidden shadow-xl backdrop-blur-xl">
-            
-            {/* Pestañas Chat y Participantes (Solo estas 2 para el invitado) */}
-            <div className="p-1.5 bg-[#081528] border-b border-[#1E3A5F]/70 grid grid-cols-2 gap-1 shrink-0">
+
+            {/* Pestañas Chat, IA Box y Participantes */}
+            <div className="p-1.5 bg-[#081528] border-b border-[#1E3A5F]/70 grid grid-cols-3 gap-1 shrink-0">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`py-1.5 px-2 rounded-xl font-mono text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition cursor-pointer ${
-                  activeTab === 'chat'
-                    ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
-                    : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
-                }`}
+                className={`py-1.5 px-1 rounded-xl font-mono text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'chat'
+                  ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
+                  : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
+                  }`}
               >
                 <MessageSquare size={12} />
-                <span>Chat ({chatMessages.length})</span>
+                <span className="truncate">Chat ({chatMessages.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('transcript')}
+                className={`py-1.5 px-1 rounded-xl font-mono text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'transcript'
+                  ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
+                  : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
+                  }`}
+              >
+                <Sparkles size={12} />
+                <span className="truncate">IA Box</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('participants')}
-                className={`py-1.5 px-2 rounded-xl font-mono text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition cursor-pointer ${
-                  activeTab === 'participants'
-                    ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
-                    : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
-                }`}
+                className={`py-1.5 px-1 rounded-xl font-mono text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'participants'
+                  ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
+                  : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
+                  }`}
               >
                 <Users size={12} />
-                <span>Participantes ({visibleParticipants.length})</span>
+                <span className="truncate">Part. ({visibleParticipants.length})</span>
               </button>
             </div>
 
@@ -1401,6 +1610,58 @@ export default function ReunionInvitadoPage() {
               </div>
             )}
 
+            {/* CONTENIDO PESTAÑA: IA BOX TRANCRIPCIÓN */}
+            {activeTab === 'transcript' && (
+              <div className="flex-1 flex flex-col overflow-hidden p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={14} className="text-[#C9A96E]" />
+                    <span className="font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-wider">
+                      IA BOX · En Vivo
+                    </span>
+                  </div>
+                  <span className="font-mono text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Transcribiendo
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 bg-[#030712] p-3 rounded-2xl border border-[#1E3A5F]/70 font-sans">
+                  {transcripts.length === 0 && !interimText && (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                      <Sparkles size={24} className="text-[#C9A96E] mb-2" />
+                      <p className="text-xs font-bold text-white">Transcripción de la sala activa</p>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Lo que se hable en la llamada aparecerá aquí en tiempo real.
+                      </p>
+                    </div>
+                  )}
+
+                  {transcripts.map((t) => (
+                    <div key={t.id} className="p-2.5 rounded-xl bg-[#08162B] border border-[#1E3A5F]/60 space-y-1">
+                      <div className="flex items-center justify-between font-mono text-[10px]">
+                        <span className="text-[#C9A96E] font-bold">{t.speaker}</span>
+                        <span className="text-slate-500">{t.time}</span>
+                      </div>
+                      <p className="text-xs text-slate-200 leading-relaxed">{t.text}</p>
+                    </div>
+                  ))}
+
+                  {interimText && (
+                    <div className="p-2.5 rounded-xl bg-[#0E2747] border border-[#C9A96E] space-y-1 animate-pulse">
+                      <div className="flex items-center justify-between font-mono text-[10px]">
+                        <span className="text-[#C9A96E] font-bold">{userName || 'Tú'} (Hablando...)</span>
+                        <span className="text-emerald-400 text-[9px]">● En vivo</span>
+                      </div>
+                      <p className="text-xs text-white italic">{interimText}</p>
+                    </div>
+                  )}
+
+                  <div ref={chatEndRef} />
+                </div>
+              </div>
+            )}
+
             {/* CONTENIDO PESTAÑA: PARTICIPANTES ACTIVOS */}
             {activeTab === 'participants' && (
               <div className="flex-1 flex flex-col overflow-hidden p-4 space-y-3">
@@ -1415,7 +1676,7 @@ export default function ReunionInvitadoPage() {
 
                 <div className="flex-1 overflow-y-auto space-y-2 bg-[#030712] p-3 rounded-xl border border-[#1E3A5F]/70">
                   {visibleParticipants.map((p) => (
-                    <div 
+                    <div
                       key={p.peerId}
                       className="p-2.5 rounded-xl bg-[#081528] border border-[#1E3A5F]/80 flex items-center justify-between transition hover:border-[#C9A96E]/50"
                     >
@@ -1467,7 +1728,7 @@ export default function ReunionInvitadoPage() {
       {/* ── BARRA DE CONTROLES INFERIOR (90% ANCHO SLIM & ALARGADO APPLE IPHONE LIQUID GLASS DOCK) ── */}
       <footer className="fixed bottom-3 left-0 right-0 z-50 px-2 md:px-4 pointer-events-none">
         <div className="w-[92%] max-w-[95%] mx-auto pointer-events-auto bg-[#071325]/50 backdrop-blur-2xl border border-white/20 rounded-full px-6 py-1.5 shadow-[0_15px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-between gap-2 transition-all duration-300 relative overflow-hidden">
-          
+
           {/* Top Specular Light Highlight */}
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
 
@@ -1485,15 +1746,14 @@ export default function ReunionInvitadoPage() {
 
           {/* Centro: BOTONES PRINCIPALES DE CONTROL CON ICONOS Y TEXTOS REFINADOS */}
           <div className="flex items-center justify-center gap-1 md:gap-1.5 mx-auto lg:mx-0">
-            
+
             {/* 1. BOTÓN CÁMARA */}
             <button
-              onClick={() => setCameraActive(!cameraActive)}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                cameraActive
-                  ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
-                  : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
-              }`}
+              onClick={toggleCamera}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${cameraActive
+                ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
+                : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
+                }`}
               title={cameraActive ? 'Desactivar Cámara' : 'Activar Cámara'}
             >
               {cameraActive ? <Video size={13} className="text-[#C9A96E]" /> : <VideoOff size={13} />}
@@ -1502,12 +1762,11 @@ export default function ReunionInvitadoPage() {
 
             {/* 2. BOTÓN MICRÓFONO */}
             <button
-              onClick={() => setMicActive(!micActive)}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                micActive
-                  ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
-                  : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
-              }`}
+              onClick={toggleMic}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${micActive
+                ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
+                : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
+                }`}
               title={micActive ? 'Desactivar Micrófono' : 'Activar Micrófono'}
             >
               {micActive ? <Mic size={13} className="text-[#C9A96E]" /> : <MicOff size={13} />}
@@ -1517,11 +1776,10 @@ export default function ReunionInvitadoPage() {
             {/* 2.5 BOTÓN COMPARTIR PANTALLA */}
             <button
               onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${
-                isScreenSharing
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-400 text-white animate-pulse'
-                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
-              }`}
+              className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${isScreenSharing
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-400 text-white animate-pulse'
+                : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
+                }`}
               title={isScreenSharing ? 'Detener Compartir Pantalla' : 'Compartir Pantalla'}
             >
               <Monitor size={13} className={isScreenSharing ? 'text-white' : 'text-[#38BDF8]'} />

@@ -3,7 +3,7 @@ import {
   Video, VideoOff, Mic, MicOff, Volume2, VolumeX,
   FileText, PhoneOff, Send, MessageSquare, Users,
   ShieldCheck, ArrowLeft, Copy, CheckCircle2, Sparkles,
-  Info, LogIn, LogOut, Circle, Monitor, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, LayoutGrid
+  Info, LogIn, LogOut, Circle, Monitor, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, LayoutGrid, Trash2
 } from 'lucide-react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -74,7 +74,27 @@ function VideoPlayer({
     if (el.srcObject !== stream) {
       el.srcObject = stream;
     }
-    el.play().catch(() => { });
+    const playVideo = () => {
+      if (el && el.srcObject) {
+        el.play().catch(() => { });
+      }
+    };
+    playVideo();
+
+    el.addEventListener('loadedmetadata', playVideo);
+    el.addEventListener('canplay', playVideo);
+
+    stream.getVideoTracks().forEach((track) => {
+      track.onunmute = playVideo;
+    });
+
+    return () => {
+      el.removeEventListener('loadedmetadata', playVideo);
+      el.removeEventListener('canplay', playVideo);
+      stream.getVideoTracks().forEach((track) => {
+        if (track.onunmute === playVideo) track.onunmute = null;
+      });
+    };
   }, [stream]);
 
   if (!stream) return null;
@@ -138,8 +158,16 @@ function RemoteAudio({
     tryPlay();
     const timer = window.setTimeout(tryPlay, 100);
 
+    const unlockAudio = () => {
+      tryPlay();
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+
     return () => {
       window.clearTimeout(timer);
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
       el.removeEventListener('loadedmetadata', tryPlay);
       el.removeEventListener('canplay', tryPlay);
       el.removeEventListener('canplaythrough', tryPlay);
@@ -150,8 +178,6 @@ function RemoteAudio({
       el.srcObject = null;
     };
   }, [stream, volume, muted]);
-
-  if (!stream || stream.getAudioTracks().length === 0) return null;
 
   return (
     <audio
@@ -192,6 +218,10 @@ export default function ReunionPage() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [connectionQuality, setConnectionQuality] = useState('Conectando...');
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const isTranscribingRef = useRef(false);
+  const [interimText, setInterimText] = useState('');
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const [manualTranscriptInput, setManualTranscriptInput] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'transcript' | 'activity' | 'participants'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -208,8 +238,12 @@ export default function ReunionPage() {
   const remoteStreamsRef = useRef<Record<string, MediaStream>>({});
   const localStreamRef = useRef<MediaStream | null>(null);
   const [localDisplayStream, setLocalDisplayStream] = useState<MediaStream | null>(null);
+  const localFrameRef = useRef<string | null>(null);
+  const screenFrameRef = useRef<string | null>(null);
   const [localFrameData, setLocalFrameData] = useState<string | null>(null);
   const [localScreenFrameData, setLocalScreenFrameData] = useState<string | null>(null);
+  const [remotePeerFrames, setRemotePeerFrames] = useState<Record<string, string>>({});
+  const [remoteScreenFrame, setRemoteScreenFrame] = useState<string | null>(null);
 
   // Captura de frames base64 para streaming respaldado por servidor
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -223,8 +257,50 @@ export default function ReunionPage() {
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const statsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Participantes remotos del servidor
   const [remotePeers, setRemotePeers] = useState<PeerParticipant[]>([]);
+
+  const toggleCamera = () => {
+    const nextState = !cameraActive;
+    if (localStream) {
+      localStream.getVideoTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getVideoTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (!nextState) {
+      localFrameRef.current = null;
+    }
+    setCameraActive(nextState);
+  };
+
+  const toggleMic = () => {
+    const nextState = !micActive;
+    if (localStream) {
+      localStream.getAudioTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getAudioTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    setMicActive(nextState);
+  };
 
   // Historial de eventos de auditoría y chat
   const [activityLogs, setActivityLogs] = useState<ActivityEvent[]>([
@@ -440,8 +516,6 @@ export default function ReunionPage() {
     setIsScreenSharing(false);
   };
 
-  const screenFrameRef = useRef<string | null>(null);
-
   // Captura periódica de cuadros de pantalla compartida a base64
   useEffect(() => {
     if (!isScreenSharing || !screenStreamRef.current) {
@@ -524,6 +598,41 @@ export default function ReunionPage() {
     }
     return `${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
+
+  // Captura periódica de fotogramas de la cámara para envío inmediato al servidor
+  useEffect(() => {
+    if (!cameraActive || !localStream) {
+      localFrameRef.current = null;
+      return;
+    }
+
+    const videoEl = document.createElement('video');
+    videoEl.autoplay = true;
+    videoEl.playsInline = true;
+    videoEl.muted = true;
+    videoEl.srcObject = localStream;
+    videoEl.play().catch(() => { });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 480;
+    canvas.height = 270;
+    const ctx = canvas.getContext('2d');
+
+    const interval = setInterval(() => {
+      if (ctx && videoEl.readyState >= 2) {
+        try {
+          ctx.drawImage(videoEl, 0, 0, 480, 270);
+          localFrameRef.current = canvas.toDataURL('image/jpeg', 0.35);
+        } catch { }
+      }
+    }, 150);
+
+    return () => {
+      clearInterval(interval);
+      videoEl.pause();
+      videoEl.srcObject = null;
+    };
+  }, [cameraActive, localStream]);
 
   // ── 1. ACTIVAR CÁMARA Y MICRÓFONO LOCAL DE FORMA INDEPENDIENTE ──
   useEffect(() => {
@@ -750,9 +859,10 @@ export default function ReunionPage() {
         };
       }
 
-      remoteStreamsRef.current[peerId] = stream;
-      setRemoteStreams((prev) => ({ ...prev, [peerId]: stream! }));
-      setRemoteStream(stream!);
+      const freshStream = new MediaStream(stream.getTracks());
+      remoteStreamsRef.current[peerId] = freshStream;
+      setRemoteStreams((prev) => ({ ...prev, [peerId]: freshStream }));
+      setRemoteStream(freshStream);
     };
 
     pc.onicecandidate = (event) => {
@@ -798,7 +908,7 @@ export default function ReunionPage() {
 
   const sendOfferToPeer = async (peerId: string) => {
     if (!localStream || peerId === localPeerId) return;
-    if (localPeerId > peerId || offeredPeersRef.current.has(peerId)) return;
+    if (offeredPeersRef.current.has(peerId)) return;
 
     const pc = createPeerConnection(peerId);
     if (!pc || pc.signalingState !== 'stable') return;
@@ -983,8 +1093,8 @@ export default function ReunionPage() {
             isVideoOn: cameraActive,
             isAudioOn: micActive,
             isScreenSharing,
-            frameData: localFrameData,
-            screenFrameData: localScreenFrameData,
+            frameData: cameraActive ? localFrameRef.current : null,
+            screenFrameData: isScreenSharing ? screenFrameRef.current : null,
           }),
         });
 
@@ -1009,17 +1119,34 @@ export default function ReunionPage() {
             }));
           setRemotePeers(remotes);
 
+          const newFrames: Record<string, string> = {};
+          remotes.forEach((r) => {
+            if (r.frameData) {
+              newFrames[r.peerId] = r.frameData;
+            }
+          });
+          if (Object.keys(newFrames).length > 0) {
+            setRemotePeerFrames((prev) => ({ ...prev, ...newFrames }));
+          }
         }
 
         if (data.messages && data.messages.length > 0) setChatMessages(data.messages);
         if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
+        if (data.transcripts && Array.isArray(data.transcripts)) {
+          setTranscripts((prev) => {
+            const map = new Map<string, TranscriptItem>();
+            prev.forEach((t) => map.set(t.id, t));
+            data.transcripts.forEach((t: TranscriptItem) => map.set(t.id, t));
+            return Array.from(map.values());
+          });
+        }
       } catch (err) {
         console.warn('Error syncing room:', err);
       }
     }
 
     syncWithServer();
-    const interval = setInterval(syncWithServer, 2000);
+    const interval = setInterval(syncWithServer, 1000);
 
     const handleUnload = () => {
       try {
@@ -1038,49 +1165,171 @@ export default function ReunionPage() {
       window.removeEventListener('pagehide', handleUnload);
       window.removeEventListener('unload', handleUnload);
     };
-  }, [roomId, localPeerId, localName, localRole, cameraActive, micActive, isScreenSharing, localFrameData, localScreenFrameData]);
+  }, [roomId, localPeerId, localName, localRole, cameraActive, micActive, isScreenSharing]);
 
-  // Transcripción en directo (Web Speech API)
+  // Función para enviar y persistir transcripción en la sala
+  const sendTranscript = async (text: string, speakerName?: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const speaker = speakerName || localName || 'Anfitrión';
+    const currentTime = formatDuration(callDuration);
+    const tempId = `t_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    const newItem: TranscriptItem = {
+      id: tempId,
+      speaker,
+      text: trimmed,
+      time: currentTime,
+    };
+
+    setTranscripts((prev) => {
+      const isDupe = prev.slice(-3).some(
+        (p) => p.speaker === speaker && p.text.toLowerCase() === trimmed.toLowerCase()
+      );
+      return isDupe ? prev : [...prev, newItem];
+    });
+
+    setInterimText('');
+
+    try {
+      await fetch(`${API_BASE}/api/room/transcript`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId,
+          speaker,
+          text: trimmed,
+          time: currentTime,
+        }),
+      });
+    } catch (err) {
+      console.warn('Error enviando transcripción a la sala:', err);
+    }
+  };
+
+  const handleSendManualTranscript = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualTranscriptInput.trim()) return;
+    const text = manualTranscriptInput.trim();
+    setManualTranscriptInput('');
+    await sendTranscript(text, `${localName} (Nota)`);
+  };
+
+  const handleCopyTranscript = () => {
+    if (transcripts.length === 0) return;
+    const formatted = transcripts
+      .map((t) => `[${t.time}] ${t.speaker}:\n${t.text}\n`)
+      .join('\n');
+    navigator.clipboard.writeText(formatted);
+    setTranscriptCopied(true);
+    setTimeout(() => setTranscriptCopied(false), 2500);
+  };
+
+  const handleClearTranscripts = async () => {
+    setTranscripts([]);
+    setInterimText('');
+    try {
+      await fetch(`${API_BASE}/api/room/transcript`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId }),
+      });
+    } catch (err) {
+      console.warn('Error limpiando transcripciones:', err);
+    }
+  };
+
+  // Transcripción en directo robusta (Web Speech API) con auto-reinicio continuo
   useEffect(() => {
+    isTranscribingRef.current = isTranscribing;
+
     if (!isTranscribing) {
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch { }
         recognitionRef.current = null;
       }
+      setInterimText('');
       return;
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'es-MX';
+      let recognition: any = null;
+      let restartTimer: any = null;
+      let isMounted = true;
 
-        recognition.onresult = (event: any) => {
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              const text = event.results[i][0].transcript;
-              setTranscripts((prev) => [
-                ...prev,
-                {
-                  id: `t_${Date.now()}`,
-                  speaker: localName,
-                  text,
-                  time: formatDuration(callDuration),
-                },
-              ]);
-            }
+      const initRecognition = () => {
+        if (!isMounted || !isTranscribingRef.current) return;
+
+        try {
+          if (recognitionRef.current) {
+            try { recognitionRef.current.abort(); } catch { }
           }
-        };
 
-        recognition.start();
-        recognitionRef.current = recognition;
-      } catch (err) {
-        console.warn('Speech error:', err);
-      }
+          recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'es-MX';
+          recognition.maxAlternatives = 1;
+
+          recognition.onresult = (event: any) => {
+            let currentInterim = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              const res = event.results[i];
+              const chunk = res[0]?.transcript || '';
+              if (res.isFinal) {
+                const text = chunk.trim();
+                if (text) {
+                  sendTranscript(text, localName);
+                }
+              } else {
+                currentInterim += chunk;
+              }
+            }
+            if (currentInterim) {
+              setInterimText(currentInterim);
+            }
+          };
+
+          recognition.onerror = (event: any) => {
+            if (event.error !== 'no-speech' && event.error !== 'aborted') {
+              console.warn('SpeechRecognition error:', event.error);
+            }
+          };
+
+          recognition.onend = () => {
+            // El navegador finaliza automáticamente la sesión tras silencios breves.
+            // Si la transcripción sigue activa, reiniciamos sin interrupción.
+            if (isMounted && isTranscribingRef.current) {
+              clearTimeout(restartTimer);
+              restartTimer = setTimeout(() => {
+                if (isMounted && isTranscribingRef.current) {
+                  initRecognition();
+                }
+              }, 200);
+            }
+          };
+
+          recognition.start();
+          recognitionRef.current = recognition;
+        } catch (err) {
+          console.warn('No se pudo inicializar SpeechRecognition:', err);
+        }
+      };
+
+      initRecognition();
+
+      return () => {
+        isMounted = false;
+        clearTimeout(restartTimer);
+        if (recognition) {
+          try { recognition.stop(); } catch { }
+        }
+        recognitionRef.current = null;
+      };
     } else {
+      // Si el navegador no soporta Web Speech API nativa, simular notas periódicas
       const interval = setInterval(() => {
         const samplePhrases = [
           'Analizando canal de transmisión y logs de integraciones...',
@@ -1088,20 +1337,12 @@ export default function ReunionPage() {
           'Prueba de concurrencia y latencia ejecutada con éxito.',
         ];
         const randomPhrase = samplePhrases[Math.floor(Math.random() * samplePhrases.length)];
-        setTranscripts((prev) => [
-          ...prev,
-          {
-            id: `t_${Date.now()}`,
-            speaker: 'Sistema IA FabricSoft',
-            text: randomPhrase,
-            time: formatDuration(callDuration),
-          },
-        ]);
+        sendTranscript(randomPhrase, 'Asistente IA FabricSoft');
       }, 7000);
 
       return () => clearInterval(interval);
     }
-  }, [isTranscribing, localName]);
+  }, [isTranscribing, localName, roomId, callDuration]);
 
   // Scroll automático del chat
   useEffect(() => {
@@ -1403,7 +1644,7 @@ export default function ReunionPage() {
       </header>
 
       {/* ── CUERPO PRINCIPAL: VIDEO NATIVO (IZQ) + CHAT/TRANSCRIPCIÓN/ACCESOS (DER) ── */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3 md:p-4 pb-24 overflow-hidden relative min-h-0">
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3 md:p-4 pb-24 md:pb-28 overflow-hidden relative min-h-0">
 
         {/* 👈 IZQUIERDA: ESCENARIO PRINCIPAL DE VIDEO (MÁS COMPACTO Y ESTILIZADO) */}
         <div ref={videoContainerRef} className={`${isSidebarOpen ? 'lg:col-span-8' : 'lg:col-span-12'} h-full min-h-0 flex flex-col justify-center items-center relative overflow-hidden transition-all duration-300`}>
@@ -1453,6 +1694,8 @@ export default function ReunionPage() {
                         <div className="w-8 h-8 rounded-full bg-[#0E2747] border border-[#C9A96E] text-white font-serif font-bold text-xs flex items-center justify-center shadow-sm">
                           {p.avatar}
                         </div>
+                      ) : (remotePeerFrames[p.peerId] || p.frameData) ? (
+                        <img src={remotePeerFrames[p.peerId] || p.frameData!} alt={p.name} className="w-full h-full object-cover" />
                       ) : p.stream ? (
                         <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
                       ) : (
@@ -1521,8 +1764,8 @@ export default function ReunionPage() {
                               <VideoPlayer stream={localDisplayStream || localStream} isLocal={true} />
                             ) : (p.stream && p.stream.getVideoTracks().length > 0) ? (
                               <VideoPlayer stream={p.stream} isLocal={p.isLocal} />
-                            ) : p.frameData ? (
-                              <img src={p.frameData} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (remotePeerFrames[p.peerId] || p.frameData) ? (
+                              <img src={remotePeerFrames[p.peerId] || p.frameData!} alt={p.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-[#0A1A30] via-[#071325] to-[#040A14] overflow-hidden p-4">
                                 <div className="absolute w-24 h-24 rounded-full border border-[#C9A96E]/20 animate-ping pointer-events-none" />
@@ -1637,14 +1880,18 @@ export default function ReunionPage() {
               </button>
 
               <button
-                onClick={() => setActiveTab('transcript')}
+                onClick={() => {
+                  setActiveTab('transcript');
+                  setIsTranscribing(true);
+                  if (!isSidebarOpen) setIsSidebarOpen(true);
+                }}
                 className={`py-1.5 px-1 rounded-lg font-mono text-[9px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 transition cursor-pointer ${activeTab === 'transcript'
                   ? 'bg-[#C9A96E] text-[#030712] shadow-sm'
                   : 'bg-[#09182E] text-[#94A3B8] hover:text-white border border-[#1E3A5F]/60'
                   }`}
               >
-                <FileText size={11} />
-                <span className="truncate">IA Vox</span>
+                <Sparkles size={11} className={isTranscribing ? 'text-[#030712] animate-pulse' : 'text-[#C9A96E]'} />
+                <span className="truncate">IA Box {isTranscribing && '●'}</span>
               </button>
 
               <button
@@ -1719,49 +1966,159 @@ export default function ReunionPage() {
                   <div ref={chatEndRef} />
                 </div>
 
-                <form onSubmit={handleSendMessage} className="p-4 bg-[#081528] border-t border-[#1E3A5F]/70 flex items-center gap-2.5 shrink-0">
+                <form onSubmit={handleSendMessage} className="p-2.5 md:p-3 bg-[#081528] border-t border-[#1E3A5F]/70 flex items-center gap-2 shrink-0">
                   <input
                     type="text"
                     placeholder="Escribe un mensaje como Líder..."
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
-                    className="flex-1 bg-[#030712] border border-[#1E3A5F] text-white px-4 py-3 rounded-2xl outline-none focus:border-[#C9A96E] font-sans text-xs placeholder-slate-500 transition"
+                    className="flex-1 bg-[#030712] border border-[#1E3A5F] text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-[#C9A96E] font-sans text-xs placeholder-slate-500 transition"
                   />
                   <button
                     type="submit"
                     disabled={!inputMessage.trim()}
-                    className="p-3 rounded-2xl bg-[#C9A96E] hover:bg-[#e2c799] text-[#030712] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+                    className="p-2.5 rounded-xl bg-[#C9A96E] hover:bg-[#e2c799] text-[#030712] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
                   >
-                    <Send size={18} />
+                    <Send size={16} />
                   </button>
                 </form>
               </div>
             )}
 
-            {/* CONTENIDO PESTAÑA: TRANCRIPCIÓN IA */}
+            {/* CONTENIDO PESTAÑA: TRANCRIPCIÓN IA (IA BOX) */}
             {activeTab === 'transcript' && (
-              <div className="flex-1 flex flex-col overflow-hidden p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-wider">
-                    Transcripción IA en Vivo
-                  </span>
-                  <span className="font-mono text-[10px] font-bold text-[#94A3B8]">
-                    {isTranscribing ? '🔴 Grabando Audio' : '⚪ Pausado'}
-                  </span>
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Header de la IA Box */}
+                <div className="p-3 bg-[#081528] border-b border-[#1E3A5F]/70 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={14} className="text-[#C9A96E]" />
+                    <span className="font-mono text-xs font-bold text-[#C9A96E] uppercase tracking-wider">
+                      IA BOX · En Vivo
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {/* Botón Escuchando / Pausado */}
+                    <button
+                      onClick={() => setIsTranscribing(!isTranscribing)}
+                      className={`px-2.5 py-1 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${isTranscribing
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'
+                        : 'bg-white/10 text-slate-300 border border-white/20 hover:bg-white/20'
+                        }`}
+                      title={isTranscribing ? 'Pausar transcripción' : 'Activar transcripción continua'}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isTranscribing ? 'bg-rose-400 animate-ping' : 'bg-slate-400'}`} />
+                      <span>{isTranscribing ? 'Escuchando' : 'Pausado'}</span>
+                    </button>
+
+                    {/* Botón Copiar Minuta */}
+                    <button
+                      onClick={handleCopyTranscript}
+                      disabled={transcripts.length === 0}
+                      className="p-1.5 rounded-lg bg-[#09182E] border border-[#1E3A5F] text-[#94A3B8] hover:text-[#C9A96E] hover:border-[#C9A96E]/50 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Copiar toda la transcripción al portapapeles"
+                    >
+                      {transcriptCopied ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                    </button>
+
+                    {/* Botón Limpiar */}
+                    <button
+                      onClick={handleClearTranscripts}
+                      disabled={transcripts.length === 0 && !interimText}
+                      className="p-1.5 rounded-lg bg-[#09182E] border border-[#1E3A5F] text-[#94A3B8] hover:text-rose-400 hover:border-rose-400/50 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Limpiar transcripciones"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-3 bg-[#030712] p-3 rounded-2xl border border-[#1E3A5F]/70">
-                  {transcripts.map((t) => (
-                    <div key={t.id} className="space-y-1 border-b border-[#1E3A5F]/40 pb-2.5 last:border-0">
-                      <div className="flex items-center justify-between font-mono text-[10px]">
-                        <span className="text-[#C9A96E] font-bold">{t.speaker}</span>
-                        <span className="text-slate-500">{t.time}</span>
+                {/* Feed de transcripciones */}
+                <div className="flex-1 p-3.5 overflow-y-auto space-y-3 font-sans bg-[#030712]">
+                  {transcripts.length === 0 && !interimText && (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                      <div className="w-12 h-12 rounded-2xl bg-[#09182E] border border-[#C9A96E]/40 flex items-center justify-center text-[#C9A96E] mb-3 shadow-lg">
+                        <Sparkles size={22} className={isTranscribing ? 'animate-pulse' : ''} />
                       </div>
-                      <p className="text-xs text-slate-300 font-sans leading-relaxed">{t.text}</p>
+                      <p className="text-sm font-semibold text-white">IA Box listo para transcribir</p>
+                      <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
+                        {isTranscribing
+                          ? 'Comienza a hablar en tu micrófono o escucha a los participantes. Lo que digan las personas se transcribirá aquí automáticamente en tiempo real.'
+                          : 'Haz clic en "Escuchando" para activar la transcripción automática de voz de la junta.'}
+                      </p>
                     </div>
-                  ))}
+                  )}
+
+                  {transcripts.map((t) => {
+                    const isLocalSpeaker = t.speaker === localName || t.speaker.includes(localName);
+                    const isSystem = t.speaker.includes('Sistema') || t.speaker.includes('Asistente');
+
+                    return (
+                      <div
+                        key={t.id}
+                        className={`p-3 rounded-xl border transition-all ${isSystem
+                          ? 'bg-[#061528]/80 border-cyan-500/40'
+                          : isLocalSpeaker
+                            ? 'bg-[#08162B] border-[#C9A96E]/40'
+                            : 'bg-[#091C35] border-[#1E3A5F]'
+                          }`}
+                      >
+                        <div className="flex items-center justify-between font-mono text-[10px] mb-1">
+                          <span className={`font-bold flex items-center gap-1.5 ${isSystem
+                            ? 'text-cyan-400'
+                            : isLocalSpeaker
+                              ? 'text-[#C9A96E]'
+                              : 'text-sky-300'
+                            }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isLocalSpeaker ? 'bg-[#C9A96E]' : 'bg-sky-400'}`} />
+                            {t.speaker} {isLocalSpeaker && '(Tú)'}
+                          </span>
+                          <span className="text-slate-500">{t.time}</span>
+                        </div>
+                        <p className="text-xs text-slate-200 font-sans leading-relaxed">
+                          {t.text}
+                        </p>
+                      </div>
+                    );
+                  })}
+
+                  {/* Globo de texto en vivo (Interim/Hablando en este momento) */}
+                  {interimText && (
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-[#0E2747] to-[#0A1A30] border border-[#C9A96E] shadow-xl space-y-1 animate-pulse">
+                      <div className="flex items-center justify-between font-mono text-[10px]">
+                        <span className="text-[#C9A96E] font-bold flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#C9A96E] animate-ping" />
+                          {localName} (Hablando en directo...)
+                        </span>
+                        <span className="text-emerald-400 text-[9px] uppercase tracking-wider font-bold">● Transcribiendo</span>
+                      </div>
+                      <p className="text-xs text-white italic font-sans leading-relaxed">
+                        "{interimText}"
+                      </p>
+                    </div>
+                  )}
+
                   <div ref={chatEndRef} />
                 </div>
+
+                {/* Input manual / Dictado de notas para IA Box */}
+                <form onSubmit={handleSendManualTranscript} className="p-2.5 bg-[#081528] border-t border-[#1E3A5F]/70 flex items-center gap-2 shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Escribir o dictar nota al IA Box..."
+                    value={manualTranscriptInput}
+                    onChange={(e) => setManualTranscriptInput(e.target.value)}
+                    className="flex-1 bg-[#030712] border border-[#1E3A5F] text-white px-3 py-2 rounded-xl outline-none focus:border-[#C9A96E] font-sans text-xs placeholder-slate-500 transition"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!manualTranscriptInput.trim()}
+                    className="p-2 rounded-xl bg-[#C9A96E] hover:bg-[#e2c799] text-[#030712] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+                    title="Añadir nota a la transcripción"
+                  >
+                    <Send size={15} />
+                  </button>
+                </form>
               </div>
             )}
 
@@ -1888,16 +2245,7 @@ export default function ReunionPage() {
 
             {/* 1. BOTÓN CÁMARA */}
             <button
-              onClick={async () => {
-                if (!cameraActive) {
-                  if (!localStreamRef.current?.getVideoTracks().length) await ensureLocalMedia(true, true);
-                  localStreamRef.current?.getVideoTracks().forEach(t => t.enabled = true);
-                  setCameraActive(true);
-                } else {
-                  localStreamRef.current?.getVideoTracks().forEach(t => t.enabled = false);
-                  setCameraActive(false);
-                }
-              }}
+              onClick={toggleCamera}
               className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${cameraActive
                 ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
                 : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
@@ -1910,16 +2258,7 @@ export default function ReunionPage() {
 
             {/* 2. BOTÓN MICRÓFONO */}
             <button
-              onClick={async () => {
-                if (!micActive) {
-                  if (!localStreamRef.current?.getAudioTracks().length) await ensureLocalMedia(true, cameraActive);
-                  localStreamRef.current?.getAudioTracks().forEach(t => t.enabled = true);
-                  setMicActive(true);
-                } else {
-                  localStreamRef.current?.getAudioTracks().forEach(t => t.enabled = false);
-                  setMicActive(false);
-                }
-              }}
+              onClick={toggleMic}
               className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${micActive
                 ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md'
                 : 'bg-rose-500/30 border-rose-500/60 text-rose-200 backdrop-blur-md'
@@ -1975,20 +2314,24 @@ export default function ReunionPage() {
               <span className="hidden md:inline">{audioUnlocked ? 'Audio OK' : 'Activar Audio'}</span>
             </button>
 
-            {/* 4. BOTÓN TRANSCRIBIR */}
+            {/* 4. BOTÓN TRANSCRIBIR (IA BOX) */}
             <button
               onClick={() => {
-                setIsTranscribing(!isTranscribing);
-                setActiveTab('transcript');
+                const nextState = !isTranscribing;
+                setIsTranscribing(nextState);
+                if (nextState) {
+                  setActiveTab('transcript');
+                  setIsSidebarOpen(true);
+                }
               }}
               className={`py-1 px-2.5 rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 font-mono text-[10px] font-medium shadow-sm active:scale-95 ${isTranscribing
                 ? 'bg-gradient-to-b from-[#D4B579] to-[#C9A96E] text-[#030712] border-white/40 animate-pulse'
                 : 'bg-white/10 hover:bg-white/20 border-white/20 text-slate-200 backdrop-blur-md'
                 }`}
-              title="Activar Transcripción en tiempo real"
+              title="Activar / Desactivar IA Box (Transcripción en tiempo real)"
             >
               <Sparkles size={13} className={isTranscribing ? 'text-[#030712]' : 'text-[#C9A96E]'} />
-              <span className="hidden md:inline">{isTranscribing ? 'Transcribiendo' : 'Transcribir'}</span>
+              <span className="hidden md:inline">{isTranscribing ? 'IA Box Activo' : 'IA Box'}</span>
             </button>
 
             {/* 4.5. BOTÓN GRABAR REUNIÓN */}
