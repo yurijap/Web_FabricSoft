@@ -187,6 +187,8 @@ export default function Header() {
             <img 
               src="/Logo_FabricSoft.webp" 
               alt="FABRIC" 
+              width={240}
+              height={60}
               className={`w-auto object-contain transition-all duration-300 ${scrolled ? 'h-[42px] md:h-[52px]' : 'h-[72px] md:h-[86px]'}`}
               style={{ filter: 'drop-shadow(0 1px 10px rgba(var(--accent-rgb),0.22))' }}
             />
@@ -234,6 +236,8 @@ export default function Header() {
             <img 
               src="/Logo_FabricSoft.webp" 
               alt="FABRIC" 
+              width={200}
+              height={50}
               className="h-[50px] w-auto object-contain" 
             />
           </div>

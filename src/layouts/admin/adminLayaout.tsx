@@ -738,6 +738,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             <img
               src="/Logo_FabricSoft.webp"
               alt="FABRIC"
+              width={200}
+              height={50}
               style={{ height: 38, width: 'auto', objectFit: 'contain' }}
             />
             <div
