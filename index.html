@@ -539,6 +539,32 @@
       </section>
 
       <section>
+        <h2>Especificación Matemática &amp; Algorítmica del Simulador Financiero ERP TCO</h2>
+        <article>
+          <h3>Modelado Algorítmico del Costo Total de Propiedad (TCO)</h3>
+          <p>El Simulador Financiero ERP TCO desarrollado por FABRIC aplica un modelo de cálculo determinista para comparar el costo acumulado a 3, 5 y 10 años entre sistemas ERP heredados (On-Premise o hosted) y la suite Oracle Fusion Cloud SaaS.</p>
+          <h4>Fórmulas y Variables Financieras Evaluadas:</h4>
+          <ul>
+            <li><strong>Cálculo de Tarifa SaaS Oracle Fusion Cloud:</strong> <code>Licensing_Annual = Users * $425 USD * 12 meses</code>.</li>
+            <li><strong>Cálculo de Consultoría L3 y Soporte Crítico:</strong> <code>Consulting_Annual = Hours_L3_Monthly * 12 * $180 USD</code>.</li>
+            <li><strong>Cálculo de Mantenimiento Anual ERP Perpetuo (SAP ECC / EBS / JDE):</strong> <code>Support_Annual = Initial_License_Value * 22%</code>.</li>
+            <li><strong>Cálculo de Infraestructura Física &amp; Data Center:</strong> Suma anualizada de costos de hardware, servidores de cómputo, arreglos SAN/NAS, licencias de sistema operativo (Windows Server / Red Hat Enterprise Linux), hipervisores (VMware) y licencias de base de datos relacional (Oracle Database / SAP HANA / MS SQL Server).</li>
+            <li><strong>Cálculo del Retorno de Inversión (ROI) y Punto de Equilibrio (Break-Even Month):</strong> Evaluación mensual acumulada del flujo de caja (Cash Flow) descontando el costo de la migración en la fase de proyecto frente al ahorro operativo mensual recurrente generado.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Desglose Comparativo de Parámetros por Plataforma ERP</h3>
+          <ul>
+            <li><strong>SAP S/4HANA (RISE with SAP):</strong> Tiempo de migración promedio 18 meses, tarifa promedio $450 USD/usuario/mes, tarifa de consultoría L3 $220 USD/hora, costo de migración estimado 1.5x licenciamiento anual.</li>
+            <li><strong>Microsoft Dynamics 365:</strong> Tiempo de migración promedio 18 meses, tarifa promedio $210 USD/usuario/mes, tarifa de consultoría L3 $150 USD/hora, costo de migración estimado 1.2x licenciamiento anual.</li>
+            <li><strong>SAP ECC 6.0 (Legacy On-Premise):</strong> Tiempo de migración promedio 24 meses, costo de mantenimiento anual 22% sobre licenciamiento perpetuo inicial, infraestructura física promedio $350,000 USD/año, tarifa de consultoría L3 $200 USD/hora, costo de migración estimado 1.8x licenciamiento SaaS objetivo.</li>
+            <li><strong>Oracle E-Business Suite (EBS R12):</strong> Tiempo de migración promedio 24 meses, costo de mantenimiento anual 22% sobre licenciamiento perpetuo inicial, infraestructura física promedio $280,000 USD/año, tarifa de consultoría L3 $190 USD/hora, costo de migración estimado 1.7x licenciamiento SaaS objetivo.</li>
+            <li><strong>Oracle JD Edwards EnterpriseOne:</strong> Tiempo de migración promedio 15 meses, costo de mantenimiento anual 20% sobre licenciamiento perpetuo inicial, infraestructura física promedio $150,000 USD/año, tarifa de consultoría L3 $180 USD/hora, costo de migración estimado 1.4x licenciamiento SaaS objetivo.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
