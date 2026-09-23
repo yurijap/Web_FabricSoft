@@ -290,6 +290,101 @@
       </section>
 
       <section>
+        <h2>Glosario Técnico de Arquitectura Oracle Fusion Cloud &amp; Definición de Estándares</h2>
+        <article>
+          <h3>Oracle Integration Cloud (OIC) &amp; Middlewares Empresariales</h3>
+          <p>Plataforma iPaaS líder para orquestar integraciones híbridas entre Oracle ERP Cloud y aplicaciones on-premise, bancos (SWIFT/Host-to-Host), facturadores fiscales (PAC) y soluciones de comercio electrónico mediante adaptadores REST, SOAP, FTP y cargadores masivos FBDI (File-Based Data Import).</p>
+        </article>
+        <article>
+          <h3>OTBI (Oracle Transactional Business Intelligence) &amp; BI Publisher</h3>
+          <p>Motor de analítica operacional en tiempo real basado en modelos dimensionales de objetos de negocio. Permite construir dashboards ejecutivos, estados financieros consolidados, balanzas de comprobación y reportes regulatorios sin impactar el rendimiento transaccional de la base de datos.</p>
+        </article>
+        <article>
+          <h3>Subledger Accounting (SLA) &amp; Central de Reglas Contables</h3>
+          <p>Motor de reglas de contabilización configurable que traduce eventos transaccionales de módulos auxiliares (Facturación, Cobros, Compras, Pagos, Inventarios) en asientos contables detallados para el Libro Mayor (GL), asegurando trazabilidad y cumplimiento bajo IFRS y NIF locales.</p>
+        </article>
+        <article>
+          <h3>Cierre Contable Mensual &amp; Conciliación Auxiliar vs Libro Mayor</h3>
+          <p>Metodología de validación de balances donde cada auxiliar transaccional (Cuentas por Pagar - AP, Cuentas por Cobrar - AR, Activos Fijos - FA, Inventarios - INV) cuadra al 100% con las cuentas de control del Libro Mayor (GL) antes de ejecutar el cierre del periodo fiscal.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Cuestionario Completo de Evaluación del Rescue Health Check (18 Preguntas)</h2>
+        <article>
+          <h3>Dimensión 1: Procesos &amp; Gobernanza</h3>
+          <ol>
+            <li>¿Tu equipo logra ejecutar el cierre contable mensual en producción dentro de los primeros 3 días hábiles del mes?</li>
+            <li>¿Las pólizas manuales de ajuste representan menos del 5% del total de transacciones registradas en el Libro Mayor?</li>
+            <li>¿Los periodos contables de módulos auxiliares (AP, AR, FA) se cierran sin discrepancias pendientes de conciliación?</li>
+          </ol>
+        </article>
+        <article>
+          <h3>Dimensión 2: Finanzas &amp; Reporting</h3>
+          <ol>
+            <li>¿La balanza de comprobación y los estados financieros consolidados se obtienen directamente de OTBI / BI Publisher sin manipulación externa en hojas de cálculo?</li>
+            <li>¿Las conciliaciones bancarias se ejecutan de manera automatizada mediante extractos bancarios electrónicos (MT940 / CAMT.053)?</li>
+            <li>¿Los reportes fiscales de retenciones e impuestos se generan automáticamente desde la plataforma ERP?</li>
+          </ol>
+        </article>
+        <article>
+          <h3>Dimensión 3: Datos &amp; Migración</h3>
+          <ol>
+            <li>¿El catálogo maestro de proveedores y clientes cuenta con validación RFC/SAT activa sin duplicados ni registros incompletos?</li>
+            <li>¿Los saldos iniciales de cartera y cuentas por pagar migrados coinciden al 100% con los auxiliares históricos auditados?</li>
+            <li>¿El catálogo de activos fijos cuenta con depreciation books correctamente configurados y activos asignados a centros de costo válidos?</li>
+          </ol>
+        </article>
+        <article>
+          <h3>Dimensión 4: Integraciones &amp; Arquitectura</h3>
+          <p>Evaluación de la tasa de fallos en llamadas API REST/SOAP, cola de procesamiento de archivos FBDI y monitoreo de errores en Oracle Integration Cloud (OIC).</p>
+        </article>
+        <article>
+          <h3>Dimensión 5: Adopción &amp; Capacitación</h3>
+          <p>Medición del nivel de autonomía de los usuarios operativos en la creación de requisiciones, aprobación de facturas y consultas diarias sin requerir soporte constante.</p>
+        </article>
+        <article>
+          <h3>Dimensión 6: Soporte &amp; SLA</h3>
+          <p>Verificación del cumplimiento de SLA en la atención de incidentes bloqueantes de producción y resolución efectiva en parches trimestrales de Oracle Cloud.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz Comparativa de Arquitectura: Legacy vs Oracle Fusion Cloud</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Criterio de Evaluación</th>
+              <th>ERP Legacy (On-Premise / Hosted)</th>
+              <th>Oracle Fusion Cloud (FABRIC Engineered)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Actualizaciones de Software</td>
+              <td>Proyectos de upgrade costosos cada 3-5 años</td>
+              <td>Actualizaciones automáticas trimestrales sin interrupción del negocio</td>
+            </tr>
+            <tr>
+              <td>Conciliación Bancaria</td>
+              <td>Carga manual de extractos y conciliación en Excel</td>
+              <td>Automatización bancaria con coincidencia inteligente > 95%</td>
+            </tr>
+            <tr>
+              <td>Facturación Fiscal SAT CFDI 4.0</td>
+              <td>Interfaces frágiles propensas a errores de timbrado</td>
+              <td>Conector masivo optimizado con validación previa de esquemas XML</td>
+            </tr>
+            <tr>
+              <td>Garantía de Estabilización</td>
+              <td>Facturación por hora de consultoría sin compromiso de resultado</td>
+              <td>Garantía contractual Fixed-Price hasta el primer cierre contable</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
