@@ -744,6 +744,63 @@
       </section>
 
       <section>
+        <h2>Diccionario Completo de Tablas &amp; Vistas Principales de Oracle Fusion ERP Cloud</h2>
+        <article>
+          <h3>1. Tablas de Contabilidad General (General Ledger - GL)</h3>
+          <ul>
+            <li><code>GL_LEDGERS</code> — Catálogo de libros contables (Primary, Secondary, Reporting currencies) con reglas de calendario fiscal y moneda funcional.</li>
+            <li><code>GL_CODE_COMBINATIONS</code> — Combinaciones contables válidas generadas por el Catálogo de Cuentas (Chart of Accounts - COA).</li>
+            <li><code>GL_JE_BATCHES</code> — Lotes de pólizas contables registradas en el Libro Mayor.</li>
+            <li><code>GL_JE_HEADERS</code> — Encabezados de pólizas contables con estatus de contabilización (P = Posted, U = Unposted).</li>
+            <li><code>GL_JE_LINES</code> — Líneas de pólizas contables con importes al debe (enter_dr), haber (enter_cr) y conversión a moneda nacional.</li>
+            <li><code>GL_BALANCES</code> — Balanzas de comprobación acumuladas por periodo fiscal, combinación contable y tipo de saldo (Actual, Budget, Encumbrance).</li>
+          </ul>
+        </article>
+        <article>
+          <h3>2. Tablas de Cuentas por Pagar (Accounts Payable - AP)</h3>
+          <ul>
+            <li><code>AP_INVOICES_ALL</code> — Encabezados de facturas de proveedores con montos totales, moneda, proveedor (vendor_id) y estatus de aprobación.</li>
+            <li><code>AP_INVOICE_LINES_ALL</code> — Líneas de detalle de facturas con ítems, conceptos de gasto y referencias a órdenes de compra.</li>
+            <li><code>AP_INVOICE_DISTRIBUTIONS_ALL</code> — Distribución contable de facturas de compra asociadas a combinaciones de costo.</li>
+            <li><code>AP_HOLDS_ALL</code> — Registros de retenciones o bloqueos operativos sobre facturas (ej. falta de recepción de mercancía u orden de compra).</li>
+            <li><code>AP_CHECKS_ALL</code> — Registro de pagos masivos emitidos (cheques, transferencias electrónicas SPEI/SWIFT).</li>
+            <li><code>AP_PAYMENT_SCHEDULES_ALL</code> — Calendario de vencimiento de facturas de proveedores para flujo de caja.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>3. Tablas de Cuentas por Cobrar &amp; Facturación (Accounts Receivable - AR &amp; Billing)</h3>
+          <ul>
+            <li><code>RA_CUSTOMER_TRX_ALL</code> — Encabezados de facturas de venta, notas de crédito y notas de débito emitidas a clientes.</li>
+            <li><code>RA_CUSTOMER_TRX_LINES_ALL</code> — Líneas de detalle de transacciones de venta con cantidades, precios unitarios e impuestos.</li>
+            <li><code>AR_PAYMENT_SCHEDULES_ALL</code> — Auxiliar de saldos de clientes y cuentas por cobrar por fecha de vencimiento.</li>
+            <li><code>AR_CASH_RECEIPTS_ALL</code> — Cobros y depósitos recibidos de clientes pendientes de aplicación contable.</li>
+            <li><code>AR_RECEIVABLE_APPLICATIONS_ALL</code> — Registro de aplicaciones de cobros contra facturas de venta.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>4. Tablas del Motor de Reglas Contables (Subledger Accounting - SLA / XLA)</h3>
+          <ul>
+            <li><code>XLA_EVENTS</code> — Eventos transaccionales generados por los módulos auxiliares pendientes de contabilizar.</li>
+            <li><code>XLA_AE_HEADERS</code> — Encabezados de pólizas contables subledger generadas por el motor SLA.</li>
+            <li><code>XLA_AE_LINES</code> — Detalle de líneas de débito y crédito subledger trazables hacia los documentos origen.</li>
+            <li><code>XLA_DISTRIBUTION_LINKS</code> — Matriz de trazabilidad punto a punto entre la transacción auxiliar, la póliza SLA y el asiento final en el Libro Mayor.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section>
+        <h2>Manual de Arquitectura de Integración iPaaS Vía Oracle Integration Cloud (OIC Gen 3)</h2>
+        <article>
+          <h3>1. Patrón de Integración Bulk Data Import (FBDI Asíncrono)</h3>
+          <p>Flujo de orquestación en OIC para importación masiva de datos: generación del archivo ZIP comprimido con plantillas XLSM, carga al servidor UCM (Universal Content Management) mediante el servicio web <code>/erpintegrationws/ErpIntegrationService</code>, invocación de la tarea programada <code>ImportBulkData</code> y monitoreo del job de carga hasta la emisión de reportes de error o éxito.</p>
+        </article>
+        <article>
+          <h3>2. Patrón de Integración Real-Time Event-Driven (Oracle Business Events)</h3>
+          <p>Subscripción a eventos de negocio en tiempo real publicados por Oracle Fusion Cloud ERP (ej. evento de aprobación de factura o creación de cliente). OIC consume la notificación mediante el adaptador nativo Oracle ERP Cloud Adapter, transforma el payload JSON/XML y lo transmite de forma síncrona hacia sistemas bancarios o facturadores fiscales.</p>
+        </article>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
