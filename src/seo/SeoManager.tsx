@@ -16,7 +16,7 @@ type SeoConfig = {
 const defaultSeo: SeoConfig = {
   title: 'FABRIC | Soporte y Oracle Critical Engineering en México',
   description:
-    '¿Problemas en tus sistemas Oracle? Rescatamos y blindamos Oracle Fusion, EBS y OCI para asegurar tus cierres financieros y reportes ejecutivos.usion Cloud. Garantizamos estabilidad y acompañamiento hasta el primer ciclo crítico y cierre contable sin riesgos.',
+    '¿Problemas en tus sistemas Oracle? Rescatamos y blindamos Oracle Fusion, EBS y OCI para asegurar tus cierres financieros y reportes ejecutivos.',
   path: '/',
 };
 
