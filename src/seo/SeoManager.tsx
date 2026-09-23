@@ -14,9 +14,9 @@ type SeoConfig = {
 };
 
 const defaultSeo: SeoConfig = {
-  title: 'FABRIC | Soporte y Oracle Critical Engineering en México',
+  title: 'FABRIC | Oracle Fusion Cloud & Soporte Primer Ciclo Crítico',
   description:
-    '¿Problemas en tus sistemas Oracle? Rescatamos y blindamos Oracle Fusion, EBS y OCI para asegurar tus cierres financieros y reportes ejecutivos.',
+    'Soporte especializado en Oracle Fusion Cloud por FABRIC. Blindamos tu arquitectura para asegurar la entrega en tu primer ciclo crítico y cierre contable.',
   path: '/',
 };
 
