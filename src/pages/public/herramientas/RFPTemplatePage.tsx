@@ -146,7 +146,7 @@ export default function RFPTemplatePage() {
               <div key={s.num} style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', padding: '32px 36px' }}>
                 <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 20 }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: '0.12em', flexShrink: 0, marginTop: 3 }}>{s.num}</span>
-                  <h3 style={{ fontFamily: 'var(--serif)', fontSize: 18, fontWeight: 300, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0 }}>{s.titulo}</h3>
+                  <h2 style={{ fontFamily: 'var(--serif)', fontSize: 18, fontWeight: 300, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0 }}>{s.titulo}</h2>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 29 }}>
                   {s.clausulas.map((c, i) => (
