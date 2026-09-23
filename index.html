@@ -609,6 +609,28 @@
       </section>
 
       <section>
+        <h2>Especificación Extensa de Gobernanza, Seguridad IAM &amp; Arquitectura de Integraciones</h2>
+        <article>
+          <h3>1. Control de Acceso Basado en Roles (RBAC) &amp; Separación de Funciones (SoD)</h3>
+          <p>Implementación del modelo de seguridad con mínimo privilegio para Oracle Fusion Cloud. Configuración de Roles de Trabajo (Job Roles), Roles Abstractos (Abstract Roles) y Roles de Datos (Data Roles) con segregación estricta de funciones entre capturistas de facturas (AP Invoice Entry), aprobadores de pagos (AP Payment Disbursement), contadores de Libro Mayor (GL Accountants) y administradores de seguridad (IT Security Manager) para cumplir con auditorías SOX, CNBV e IFRS.</p>
+        </article>
+        <article>
+          <h3>2. Especificaciones de la API REST / SOAP Oracle Fusion &amp; Manejo de Eventos (Business Events)</h3>
+          <p>Documentación técnica de los endpoints de servicios web utilizados para la integración con sistemas legacy: <code>/fscmRestApi/resources/11.13.18.05/erpintegrationoutbound</code> para descarga de reportes y notificaciones de eventos transaccionales, <code>/fscmRestApi/resources/11.13.18.05/invoices</code> para creación síncrona de facturas de Cuentas por Pagar y <code>/fscmRestApi/resources/11.13.18.05/journalEntries</code> para inyección de pólizas contables automatizadas.</p>
+          <p>Manejo de resiliencia: Implementación de patrones de reintento exponencial (Exponential Backoff), colas de mensajería muerta (Dead Letter Queues - DLQ) en Oracle Integration Cloud (OIC) y conciliación diaria de mensajes procesados vs rechazados.</p>
+        </article>
+        <article>
+          <h3>3. Protocolos de Cifrado, Redes Privadas OCI &amp; Disaster Recovery</h3>
+          <p>Arquitectura de infraestructura blindada en Oracle Cloud Infrastructure (OCI). Cifrado de datos en reposito con llaves administradas por el cliente (Customer-Managed Encryption Keys - CMEK) en OCI Vault mediante algoritmos AES-256. Cifrado de datos en tránsito con TLS 1.3. Conexión dedicada on-premise mediante Oracle FastConnect o túneles VPN IPSec redundantes en alta disponibilidad.</p>
+          <p>Garantía de Continuidad de Negocio: Replicación asíncrona de base de datos Autonomous Database a una segunda región geográfica de OCI con sincronización continua mediante Data Guard, garantizando un tiempo objetivo de recuperación (RTO) de 15 minutos y punto objetivo de recuperación (RPO) igual a 0 segundos.</p>
+        </article>
+        <article>
+          <h3>4. Guía de Preparación de Auditoría Fiscal &amp; Contabilidad Electrónica SAT</h3>
+          <p>Generación automatizada de archivos XML de Contabilidad Electrónica exigidos por el SAT (Anexo 24 de la RMF): Catálogo de Cuentas con código agrupador del SAT, Balanza de Comprobación mensual y Pólizas Contables con folios fiscales CFDI asociados a las transacciones de ingresos y egresos.</p>
+        </article>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
