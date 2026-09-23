@@ -2157,9 +2157,9 @@ function TransparenciaInteractiveWidget() {
                         // {m.badge}
                       </span>
                     </div>
-                    <h4 className="text-zinc-300 group-hover:text-white font-sans text-xs leading-normal font-light transition-colors">
+                    <h3 className="text-zinc-300 group-hover:text-white font-sans text-xs leading-normal font-light transition-colors">
                       {m.label}
-                    </h4>
+                    </h3>
                   </div>
 
                   {/* Column 2: Audited Value & Mini progress indicator */}
@@ -3232,7 +3232,7 @@ export default function S02bPuente() {
                 <div className="flex gap-4 border-b border-[rgba(201,169,110,0.1)] pb-5">
                   <span className="text-[#C9A96E] text-lg font-bold">01</span>
                   <div>
-                    <h4 className="text-white text-sm font-bold">Entrega en primer ciclo crítico</h4>
+                    <h3 className="text-white text-sm font-bold">Entrega en primer ciclo crítico</h3>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed">El proyecto no se entrega en el go-live. Se entrega cuando tu primer cierre contable, primer ciclo operativo o primer ciclo regulatorio crítico opera en producción con estabilidad documentada.</p>
                   </div>
                 </div>
@@ -3240,7 +3240,7 @@ export default function S02bPuente() {
                 <div className="flex gap-4 border-b border-[rgba(201,169,110,0.1)] pb-5">
                   <span className="text-[#C9A96E] text-lg font-bold">02</span>
                   <div>
-                    <h4 className="text-white text-sm font-bold">Solo seniors. Cero juniors facturables.</h4>
+                    <h3 className="text-white text-sm font-bold">Solo seniors. Cero juniors facturables.</h3>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed">Cada consultor de FABRIC tiene mínimo 8 años de experiencia real en Oracle. Sin excepciones.</p>
                   </div>
                 </div>
@@ -3248,7 +3248,7 @@ export default function S02bPuente() {
                 <div className="flex gap-4 border-b border-[rgba(201,169,110,0.1)] pb-5">
                   <span className="text-[#C9A96E] text-lg font-bold">03</span>
                   <div>
-                    <h4 className="text-white text-sm font-bold">Fixed-Price por fase. Cero sorpresas.</h4>
+                    <h3 className="text-white text-sm font-bold">Fixed-Price por fase. Cero sorpresas.</h3>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed">Operamos con presupuestos cerrados. Si nos atrasamos por nuestra causa, no facturamos las semanas adicionales.</p>
                   </div>
                 </div>
@@ -3256,7 +3256,7 @@ export default function S02bPuente() {
                 <div className="flex gap-4 border-b border-[rgba(201,169,110,0.1)] pb-5">
                   <span className="text-[#C9A96E] text-lg font-bold">04</span>
                   <div>
-                    <h4 className="text-white text-sm font-bold">Cero reportes manuales post go-live.</h4>
+                    <h3 className="text-white text-sm font-bold">Cero reportes manuales post go-live.</h3>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed">Al cierre del primer ciclo crítico, ningún reporte ejecutivo, financiero u operativo debe ejecutarse fuera del ERP. Si subsiste un reporte manual paralelo por causa atribuible a FABRIC, se resuelve sin costo adicional hasta su eliminación.</p>
                   </div>
                 </div>
@@ -3264,7 +3264,7 @@ export default function S02bPuente() {
                 <div className="flex gap-4">
                   <span className="text-[#C9A96E] text-lg font-bold">05</span>
                   <div>
-                    <h4 className="text-white text-sm font-bold">Transición formal con documentación viva.</h4>
+                    <h3 className="text-white text-sm font-bold">Transición formal con documentación viva.</h3>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed">El cierre del proyecto se documenta con acta formal firmada por todos los stakeholders del cliente. El acta incluye: tablero de KPIs verificado, incidencias resueltas, adopción de usuarios clave medida, plan de soporte post-transición, y entrega de documentación viva (configuraciones, integraciones, runbooks, procedimientos de cierre, matrices de roles) auditable y actualizable por el cliente sin dependencia de FABRIC.</p>
                   </div>
                 </div>
