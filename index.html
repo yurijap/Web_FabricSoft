@@ -723,6 +723,27 @@
       </section>
 
       <section>
+        <h2>Manuales Técnicos de Desarrollo BI Publisher, BPM Worklist &amp; Modelado de Consultas SQL</h2>
+        <article>
+          <h3>1. Desarrollo de Formatos de Impresión BI Publisher (Layouts RTF / XSL-FO)</h3>
+          <p>Documentación técnica para la construcción de plantillas de alta fidelidad en Oracle BI Publisher: integración de archivos Data Model (.xdm) con consultas SQL optimizadas sobre las vistas del diccionario de datos de Oracle Fusion (ej. <code>RA_CUSTOMER_TRX_ALL</code> para facturas de ventas, <code>AP_INVOICES_ALL</code> para facturas de proveedores, <code>PO_HEADERS_ALL</code> para órdenes de compra), desarrollo de plantillas RTF en Microsoft Word con campos formateados e inyección de código de barras bidimensional QR para validación fiscal SAT.</p>
+        </article>
+        <article>
+          <h3>2. Configuración de Reglas de Aprobación BPM Worklist (Oracle Business Process Management)</h3>
+          <p>Especificación de reglas de aprobación jerárquicas y por límites de monto en Oracle BPM Worklist. Configuración de flujos aprobatorios paralelos y secuenciales para requisiciones de compra, órdenes de pago, asientos contables de diario manuales y facturas de proveedores. Definición de rutas de escalación automática tras 24 horas de inactividad del aprobador y notificaciones electrónicas interactivas (Actionable Emails).</p>
+        </article>
+        <article>
+          <h3>3. Consultas SQL de Diagnóstico para Auditoría de Cierres Contables</h3>
+          <p>Consultas SQL de extracción directa en BI Publisher para detectar transacciones no contabilizadas que bloquean el cierre del periodo:</p>
+          <ul>
+            <li><code>SELECT * FROM AP_INVOICE_DISTRIBUTIONS_ALL WHERE POSTED_FLAG != 'Y'</code> — Identificación de distribuciones de facturas de compra no enviadas al Libro Mayor.</li>
+            <li><code>SELECT * FROM XLA_EVENTS WHERE EVENT_STATUS_CODE != 'P'</code> — Identificación de eventos contables pendientes de procesamiento por el motor Subledger Accounting (SLA).</li>
+            <li><code>SELECT * FROM GL_JE_HEADERS WHERE STATUS != 'P'</code> — Identificación de encabezados de pólizas de diario pendientes de contabilizar en el Libro Mayor.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
