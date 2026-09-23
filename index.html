@@ -801,6 +801,68 @@
       </section>
 
       <section>
+        <h2>Manual Avanzado de Modelado Financiero &amp; Estructuras de Consolidación Multi-Compañía</h2>
+        <article>
+          <h3>1. Consolidación Contable Multi-Moneda &amp; Revaluación Automática</h3>
+          <p>Especificación de reglas de revaluación de activos y pasivos monetarios en moneda extranjera (USD, EUR, CAD, BRL, CLP, COP) según la norma NIF B-15 / IAS 21. Configuración de tipos de cambio diarios (Spot), tipos de cambio promedio (Corporate) y tipos de cambio históricos para la conversión del balance general y estado de resultados hacia la moneda de presentación consolidada.</p>
+        </article>
+        <article>
+          <h3>2. Eliminación de Saldos Intercompañía &amp; Transacciones Globales (AGIS)</h3>
+          <p>Orquestación del módulo Advanced Global Intercompany System (AGIS) en Oracle Fusion Cloud. Definición de reglas de eliminación automática de facturación y cobranza cruzada entre subsidiarias del mismo grupo empresarial, asegurando balances consolidados libres de duplicaciones contables.</p>
+        </article>
+        <article>
+          <h3>3. Gestión de Presupuestos &amp; Control de Compromisos (Encumbrance Accounting)</h3>
+          <p>Configuración de reglas de control presupuestario en tiempo real sobre requisiciones de compra (Pre-Encumbrance), órdenes de compra (Encumbrance) y facturas de proveedor (Actual). Notificación automática de sobregiros presupuestarios y bloqueos aprobatorios para la protección del flujo de caja.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz Completa de Mapeo de Tablas de Integración FBDI &amp; Servicios Web REST</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Objeto de Negocio</th>
+              <th>Nombre de la Plantilla FBDI</th>
+              <th>Tabla de Interfaz (Interface Table)</th>
+              <th>Endpoint API REST Alternativo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Pólizas de Diario GL</td>
+              <td>GlInterface.xlsm</td>
+              <td>GL_INTERFACE</td>
+              <td>/fscmRestApi/resources/11.13.18.05/journalEntries</td>
+            </tr>
+            <tr>
+              <td>Facturas de Compra AP</td>
+              <td>ApInvoicesInterface.xlsm</td>
+              <td>AP_INVOICES_INTERFACE</td>
+              <td>/fscmRestApi/resources/11.13.18.05/invoices</td>
+            </tr>
+            <tr>
+              <td>Facturas de Venta AR</td>
+              <td>ArAutoinvoiceInterface.xlsm</td>
+              <td>RA_INTERFACE_LINES_ALL</td>
+              <td>/fscmRestApi/resources/11.13.18.05/receivablesInvoices</td>
+            </tr>
+            <tr>
+              <td>Proveedores Maestros</td>
+              <td>SupplierImportTemplate.xlsm</td>
+              <td>PO_SUPPLIERS_INT</td>
+              <td>/fscmRestApi/resources/11.13.18.05/suppliers</td>
+            </tr>
+            <tr>
+              <td>Clientes Maestros</td>
+              <td>CustomerImportTemplate.xlsm</td>
+              <td>HZ_IMP_PARTIES_INT</td>
+              <td>/fscmRestApi/resources/11.13.18.05/cashReceipts</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
