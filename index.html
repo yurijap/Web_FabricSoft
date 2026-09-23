@@ -863,6 +863,66 @@
       </section>
 
       <section>
+        <h2>Catálogo Estándar de Eventos de Negocio Oracle Fusion ERP (Business Events)</h2>
+        <article>
+          <h3>1. Eventos del Ciclo Financiero &amp; Tesorería</h3>
+          <ul>
+            <li><code>oracle.apps.financials.payables.invoices.invoiceApproved</code> — Emitido cuando una factura de proveedor completa su flujo de aprobación BPM.</li>
+            <li><code>oracle.apps.financials.payables.payments.paymentCreated</code> — Emitido tras la ejecución exitosa de un lote de pago masivo en AP.</li>
+            <li><code>oracle.apps.financials.generalLedger.journals.journalPosted</code> — Emitido cuando una póliza contable se asienta definitivamente en el Libro Mayor.</li>
+            <li><code>oracle.apps.financials.receivables.receipts.receiptApplied</code> — Emitido al aplicar un cobro de cliente contra una factura en AR.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>2. Eventos de la Cadena de Suministro (SCM &amp; Procurement)</h3>
+          <ul>
+            <li><code>oracle.apps.scm.purchaseOrders.orderApproved</code> — Emitido cuando una orden de compra es autorizada por el área de compras.</li>
+            <li><code>oracle.apps.scm.inventory.receipts.materialReceived</code> — Emitido al confirmar la recepción física de insumos o activos en almacén.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz de Control Interno SOX &amp; Gobierno de Datos Empresariales</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID Control SOX</th>
+              <th>Objetivo de Control</th>
+              <th>Mecanismo Técnico en Oracle Fusion</th>
+              <th>Frecuencia de Auditoría</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SOX-FIN-01</td>
+              <td>Prevenir el registro de pólizas de diario por personal no autorizado.</td>
+              <td>Restricción por Data Roles en GL y flujos obligatorios de aprobación BPM para pólizas > $50,000 USD.</td>
+              <td>Diaria / Automatizada</td>
+            </tr>
+            <tr>
+              <td>SOX-FIN-02</td>
+              <td>Garantizar la segregación de funciones entre capturistas y pagadores.</td>
+              <td>Incompatibilidad de roles RBAC entre AP Invoice Entry y AP Payment Disbursement.</td>
+              <td>Mensual / Monitoreo IDCS</td>
+            </tr>
+            <tr>
+              <td>SOX-FIN-03</td>
+              <td>Impedir la alteración de saldos en periodos contables cerrados.</td>
+              <td>Cierre definitivo de periodos en GL, AP, AR y FA con bloqueo de transacciones retrospectivas.</td>
+              <td>Mensual al cierre</td>
+            </tr>
+            <tr>
+              <td>SOX-IT-01</td>
+              <td>Asegurar la trazabilidad total de cambios en configuraciones del sistema.</td>
+              <td>Auditoría de datos (Oracle Audit Vault / Audit Trail) sobre tablas de configuración de Subledger Accounting (SLA).</td>
+              <td>Trimestral</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
