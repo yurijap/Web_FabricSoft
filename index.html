@@ -965,6 +965,126 @@
       </section>
 
       <section>
+        <h2>Compendio de Módulos Especializados Oracle Cloud (EPM, CX, WMS, EAM, SCM Advanced)</h2>
+        <article>
+          <h3>1. Oracle Enterprise Performance Management Cloud (EPM Cloud)</h3>
+          <p>Plataforma para la consolidación financiera estratégica y planificación presupuestaria (Financial Consolidation and Close - FCCS, Planning and Budgeting - PBCS, Profitability and Cost Management - PCMCS). Permite la consolidación bajo reglas IFRS/US GAAP, eliminación de partidas intercompañía complejas, conversión de moneda con tipos históricos y modelado de escenarios financieros (driver-based forecasting).</p>
+        </article>
+        <article>
+          <h3>2. Oracle Warehouse Management Cloud (WMS Cloud / Logfire)</h3>
+          <p>Gestión avanzada de operaciones de centro de distribución (CD): recepción en muelle, asignación dinámica de bins/localizadores, picking por olas (wave picking), packing, cross-docking, inventario en tiempo real con terminales de radiofrecuencia (RF) e integración nativa con Oracle SCM Cloud y cargadores de fletes.</p>
+        </article>
+        <article>
+          <h3>3. Oracle Enterprise Asset Management Cloud (EAM Cloud / Maintenance)</h3>
+          <p>Mantenimiento preventivo, correctivo y predictivo de activos fijos industriales y flota vehicular. Generación automática de órdenes de trabajo (WO), control de partes y repuestos en inventario, trazabilidad de horas máquina y asignación de costos de mantenimiento hacia la contabilidad analítica en GL.</p>
+        </article>
+        <article>
+          <h3>4. Oracle Sales &amp; B2B Commerce Cloud (CX Cloud)</h3>
+          <p>Gestión del pipeline de ventas empresarial, cotización de configuraciones complejas (CPQ - Configure, Price, Quote), administración de cuentas clave y sincronización en tiempo real de clientes, oportunidades y pedidos con el ERP Oracle Fusion.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz Extensa de Endpoints API REST &amp; SOAP para Integraciones Empresariales (30 Servicios)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Módulo ERP</th>
+              <th>Operación de Negocio</th>
+              <th>Endpoint / Servicio Web Oracle Fusion</th>
+              <th>Método HTTP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Financials AP</td>
+              <td>Crear Factura de Proveedor</td>
+              <td>/fscmRestApi/resources/11.13.18.05/invoices</td>
+              <td>POST</td>
+            </tr>
+            <tr>
+              <td>Financials AP</td>
+              <td>Consultar Estatus de Factura</td>
+              <td>/fscmRestApi/resources/11.13.18.05/invoices/{InvoiceId}</td>
+              <td>GET</td>
+            </tr>
+            <tr>
+              <td>Financials AR</td>
+              <td>Crear Factura de Venta</td>
+              <td>/fscmRestApi/resources/11.13.18.05/receivablesInvoices</td>
+              <td>POST</td>
+            </tr>
+            <tr>
+              <td>Financials AR</td>
+              <td>Aplicar Cobro a Factura</td>
+              <td>/fscmRestApi/resources/11.13.18.05/standardReceipts</td>
+              <td>POST</td>
+            </tr>
+            <tr>
+              <td>General Ledger</td>
+              <td>Inyectar Póliza Contable</td>
+              <td>/fscmRestApi/resources/11.13.18.05/journalEntries</td>
+              <td>POST</td>
+            </tr>
+            <tr>
+              <td>General Ledger</td>
+              <td>Consultar Saldo Contable</td>
+              <td>/fscmRestApi/resources/11.13.18.05/financialBalances</td>
+              <td>GET</td>
+            </tr>
+            <tr>
+              <td>Procurement</td>
+              <td>Crear Requisición de Compra</td>
+              <td>/fscmRestApi/resources/11.13.18.05/purchaseRequisitions</td>
+              <td>POST</td>
+            </tr>
+            <tr>
+              <td>Procurement</td>
+              <td>Consultar Orden de Compra</td>
+              <td>/fscmRestApi/resources/11.13.18.05/purchaseOrders/{POHeaderId}</td>
+              <td>GET</td>
+            </tr>
+            <tr>
+              <td>Inventory SCM</td>
+              <td>Registrar Movimiento de Inventario</td>
+              <td>/fscmRestApi/resources/11.13.18.05/inventoryTransactions</td>
+              <td>POST</td>
+            </tr>
+            <tr>
+              <td>HCM Cloud</td>
+              <td>Consultar Expediente Empleado</td>
+              <td>/hcmRestApi/resources/11.13.18.05/emps</td>
+              <td>GET</td>
+            </tr>
+            <tr>
+              <td>HCM Cloud</td>
+              <td>Registrar Ausencia / Vacación</td>
+              <td>/hcmRestApi/resources/11.13.18.05/personAbsenceRecords</td>
+              <td>POST</td>
+            </tr>
+            <tr>
+              <td>Fixed Assets</td>
+              <td>Crear Activo Fijo</td>
+              <td>/fscmRestApi/resources/11.13.18.05/fixedAssets</td>
+              <td>POST</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Guía de Buenas Prácticas de Ingeniería, Calidad de Código &amp; Gobierno Técnico</h2>
+        <article>
+          <h3>1. Estándares de Nomenclatura para Desarrollos OIC &amp; BI Publisher</h3>
+          <p>Reglas estrictas de codificación para artefactos técnicos: prefijo <code>FAB_</code> para todas las integraciones custom en Oracle Integration Cloud (ej. <code>FAB_OIC_AP_INVOICES_IMP_INT</code>), sufijos estándar <code>_REQ</code> / <code>_RES</code> para payload de solicitud y respuesta, y nomenclatura de paquetes BI Publisher ordenada por módulo financiero (ej. <code>/Custom/Financials/Payables/FAB_AP_INV_PRINT.xdo</code>).</p>
+        </article>
+        <article>
+          <h3>2. Políticas de Seguridad de Datos &amp; Purga de Archivos Temporales</h3>
+          <p>Manejo seguro de datos sensibles en servidores SFTP y UCM: política de retención máxima de 30 días para archivos FBDI procesados, purga automatizada de logs de integración con datos personales (PII) bajo regulación GDPR/LFPDPPP y rotación trimestral obligatoria de certificados SSL/TLS y llaves privadas SSH.</p>
+        </article>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
