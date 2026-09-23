@@ -691,6 +691,38 @@
       </section>
 
       <section>
+        <h2>Compendio de Arquitectura de Datos &amp; Estándar del Catálogo de Cuentas (Chart of Accounts - COA)</h2>
+        <article>
+          <h3>1. Estructura de Segmentos del Catálogo de Cuentas (Chart of Accounts)</h3>
+          <p>Diseño de arquitectura de catálogo de cuentas flexible para empresas medianas y corporativos multinacionales en Oracle Fusion Cloud. Definición de 7 segmentos estándar optimizados para consolidación contable e inteligencia de negocios:</p>
+          <ul>
+            <li><strong>Segmento 1 — Compañía / Entidad Legal (2 dígitos):</strong> Identificador de la entidad legal o sociedad mercantil.</li>
+            <li><strong>Segmento 2 — Centro de Costos / Unidad Operativa (4 dígitos):</strong> Identificador del departamento u órgano generador de gasto.</li>
+            <li><strong>Segmento 3 — Cuenta Contable (6 dígitos):</strong> Clasificación del activo, pasivo, patrimonio, ingreso o gasto bajo normas NIF / IFRS / US GAAP.</li>
+            <li><strong>Segmento 4 — Subcuenta / Clasificador Auxiliar (4 dígitos):</strong> Desglose analítico de cuentas de control de clientes, proveedores o impuestos.</li>
+            <li><strong>Segmento 5 — Proyecto / Iniciativa (5 dígitos):</strong> Asignación de ingresos y gastos a proyectos específicos de inversión o CAPEX.</li>
+            <li><strong>Segmento 6 — Intercompañía (2 dígitos):</strong> Eliminación de saldos y transacciones entre entidades del mismo grupo corporativo.</li>
+            <li><strong>Segmento 7 — Futuro / Reserva de Crecimiento (3 dígitos):</strong> Segmento de reserva reservado para adquisiciones o nuevas unidades de negocio.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>2. Flujos de Cierre Contable Mensual por Módulo (Checklist Operativo)</h3>
+          <p>Manual paso a paso para el cierre de periodos contables en Oracle Financials Cloud:</p>
+          <ol>
+            <li><strong>Cierre de Inventarios &amp; Costos (CML):</strong> Transferencia de transacciones de inventario al auxiliar de costos y generación de pólizas hacia el Libro Mayor.</li>
+            <li><strong>Cierre de Cuentas por Pagar (AP):</strong> Validación de facturas no contabilizadas, corrida de pagos masivos, conciliación de pagos en tránsito y cierre del periodo de compras.</li>
+            <li><strong>Cierre de Cuentas por Cobrar (AR):</strong> Aplicación de cobros pendientes, timbrado de complementos de pago, conciliación de auxiliares de clientes y cierre del periodo de ventas.</li>
+            <li><strong>Cierre de Activos Fijos (FA):</strong> Ejecución del proceso de depreciación mensual, contabilización de bajas/adquisiciones y cierre del libro de activos.</li>
+            <li><strong>Cierre del Libro Mayor (GL):</strong> Ejecución de pólizas de revaluación multi-moneda, eliminación de pólizas intercompañía, conciliación final de auxiliares y bloqueo del periodo contable.</li>
+          </ol>
+        </article>
+        <article>
+          <h3>3. Carga Masiva de Datos Vía FBDI (File-Based Data Import) &amp; Web Services</h3>
+          <p>Especificación de las plantillas XLSM de carga masiva de datos FBDI utilizadas para migraciones iniciales e interfaces de alto volumen en Oracle ERP Cloud: <code>GlDailyRatesImport.xlsm</code> para tipos de cambio diarios, <code>GlInterface.xlsm</code> para pólizas de diario, <code>ApInvoicesInterface.xlsm</code> para facturas de proveedores y <code>ArAutoinvoiceInterface.xlsm</code> para facturación de clientes.</p>
+        </article>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
