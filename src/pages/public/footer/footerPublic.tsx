@@ -90,6 +90,11 @@ const SocialIcons = {
       <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.06-2.89-.53-4.09-1.37-.76-.53-1.39-1.27-1.77-2.11-.07-.15-.12-.3-.17-.46-.01 1.93-.01 3.86-.01 5.79 0 2.22-.38 4.49-1.57 6.36-1.44 2.34-4.11 3.86-6.9 3.82-3.15-.05-6.13-2.13-7.14-5.11-1.16-3.32-.21-7.29 2.45-9.61 2.05-1.84 5.01-2.42 7.64-1.52.01 1.34.01 2.68.01 4.02-1.44-.48-3.08-.22-4.24.71-.97.77-1.4 2.05-1.16 3.27.2 1.15.99 2.14 2.06 2.58 1.25.53 2.76.24 3.73-.67.7-.65 1.07-1.63 1.07-2.58.02-3.52.01-7.05.02-10.57z"/>
     </svg>
   ),
+  LinkedIn: () => (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+    </svg>
+  ),
 };
 
 const titleTranslations: Record<string, string> = {
@@ -119,6 +124,10 @@ export default function Footer() {
             </div>
 
             <div className="flex items-center gap-6 mb-10">
+              <a href="https://www.linkedin.com/company/fabricsoft/" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
+                <span className="sr-only">LinkedIn</span>
+                <SocialIcons.LinkedIn />
+              </a>
               <a href="https://www.facebook.com/profile.php?id=61586919775724" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
                 <span className="sr-only">Facebook</span>
                 <SocialIcons.Facebook />
