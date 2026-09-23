@@ -1085,6 +1085,201 @@
       </section>
 
       <section>
+        <h2>Especificaciones de Base de Datos Oracle Autonomous Transaction Processing (ATP) &amp; Tuning SQL</h2>
+        <article>
+          <h3>1. Arquitectura Autónomas &amp; Auto-Scaling de Cómputo OCPUs</h3>
+          <p>Uso de Oracle Autonomous Transaction Processing (ATP) en OCI para la capa de almacenamiento y procesamiento del ERP. Configuración de Auto-Scaling dinámico para escalar automáticamente hasta 3 veces el número de OCPUs asignadas durante ventanas de alta carga operativa como cierres contables mensuales o corridas de nómina masivas.</p>
+        </article>
+        <article>
+          <h3>2. Monitoreo de Consultas Lentas &amp; Vistas de Diccionario V$ / GV$</h3>
+          <p>Directrices para la optimización de reportes OTBI y BI Publisher: uso de hints SQL para forzar planes de ejecución eficientes (ej. <code>/*+ INDEX(RA_CUSTOMER_TRX_ALL RA_CUSTOMER_TRX_N1) */</code>), prevención de escaneos completos de tabla (Full Table Scans) sobre tablas de transacciones masivas y monitoreo de bloqueos de tabla vía vistas dinámicas del rendimiento (<code>GV$SESSION</code>, <code>GV$SQL_AREA</code>).</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Plan Maestro de Pruebas Integrales UAT &amp; Criterios de Aceptación Contractual (10 Fases)</h2>
+        <ol>
+          <li><strong>Fase 1: Pruebas Unitarias de Configuración de Módulos (AP, AR, GL, FA):</strong> Validación de la captura manual y automática de transacciones simples.</li>
+          <li><strong>Fase 2: Pruebas de Interfaces de Integración Síncronas (REST API):</strong> Verificación de tiempos de respuesta menores a 500ms en la creación de facturas y pólizas contables.</li>
+          <li><strong>Fase 3: Pruebas de Carga Masiva FBDI Asíncrona:</strong> Carga de archivos ZIP de más de 50,000 registros validando la velocidad de procesamiento en UCM.</li>
+          <li><strong>Fase 4: Pruebas de Timbrado Masivo SAT CFDI 4.0:</strong> Simulación de timbrado continuo a máxima capacidad con PACs redundantes.</li>
+          <li><strong>Fase 5: Pruebas de Reglas de Contabilización Subledger (SLA):</strong> Verificación de que cada asiento contable auxiliar cuadra al 100% con la cuenta de control en GL.</li>
+          <li><strong>Fase 6: Pruebas de Reportes de Impresión BI Publisher:</strong> Validación de la fidelidad visual y código QR en formatos PDF imprimibles.</li>
+          <li><strong>Fase 7: Pruebas de Flujos Aprobatorios BPM Worklist:</strong> Simulación de aprobaciones por límites de monto y rutas de escalación por inactividad.</li>
+          <li><strong>Fase 8: Pruebas de Conciliación Bancaria Automática:</strong> Carga de archivos MT940 reales y verificación de la tasa de coincidencia superior al 95%.</li>
+          <li><strong>Fase 9: Simulacro Completo de Cierre Contable en Sandbox:</strong> Ejecución de todas las tareas de cierre de periodo en secuencia estricta.</li>
+          <li><strong>Fase 10: Pruebas de Seguridad RBAC &amp; Segregación de Funciones:</strong> Validación de que los usuarios finales solo acceden a las funciones autorizadas por su rol de trabajo.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Manual Completo de Arquitectura Cloud, Seguridad &amp; Gobierno IT (Enterprise Level)</h2>
+        <article>
+          <h3>1. Arquitectura de Redes Privadas OCI (Virtual Cloud Network - VCN)</h3>
+          <p>Configuración de topología de red Hub-and-Spoke en Oracle Cloud Infrastructure: subnetas privadas aisladas para la base de datos Autonomous Database y servidores de middleware OIC, subnetas públicas restringidas únicamente para puertas de enlace (API Gateway / Load Balancers), tablas de ruteo dinámico (DRG) para conectividad on-premise vía FastConnect a 10 Gbps y listas de seguridad con filtrado estricto por IP y puertos (Security Lists / Network Security Groups NSG).</p>
+        </article>
+        <article>
+          <h3>2. Gobierno de Usuarios &amp; Autenticación SSO / MFA en IDCS</h3>
+          <p>Federación de identidades entre Oracle Identity Cloud Service (IDCS / OCI IAM) y Microsoft Azure Active Directory / Entra ID mediante el protocolo SAML 2.0 / OpenID Connect (OIDC). Configuración de autenticación multifactor obligatoria (MFA) con autenticador FIDO2 / TOTP para usuarios con privilegios administrativos o acceso a módulos contables y bancarios.</p>
+        </article>
+        <article>
+          <h3>3. Protocolo de Resguardo de Datos (Backups &amp; Point-in-Time Recovery)</h3>
+          <p>Política de respaldos automatizados de base de datos en OCI Object Storage: respaldos incrementales diarios automatizados, respaldos acumulados semanales y retención de respaldos mensuales auditables durante 7 años en almacenamiento de bajo costo Object Storage Archive. Capacidad de recuperación a un punto específico en el tiempo (Point-in-Time Recovery - PITR) con precisión de segundos para prevención de corrupción accidental de datos.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz de Coexistencia &amp; Migración de Sistemas Legacy hacia Oracle Fusion SaaS</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Sistema Origen (Legacy)</th>
+              <th>Estrategia de Transición</th>
+              <th>Mecanismo de Conversión de Datos</th>
+              <th>Impacto en Operación Contable</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SAP ECC 6.0 / S4 HANA</td>
+              <td>Migración Limpia (Clean Core SaaS)</td>
+              <td>Extracción vía iDocs / RFC y transformación a plantillas FBDI con OIC</td>
+              <td>Reestructuración completa del catálogo de cuentas al estándar Oracle COA</td>
+            </tr>
+            <tr>
+              <td>Oracle E-Business Suite R12</td>
+              <td>Coexistencia Progresiva / Lift-and-Shift PaaS</td>
+              <td>Scripts PL/SQL de extracción directa sobre base de datos Oracle y carga en UCM</td>
+              <td>Mapeo de reglas de contabilización SLA existentes hacia reglas nativas Fusion</td>
+            </tr>
+            <tr>
+              <td>Oracle JD Edwards World / EnterpriseOne</td>
+              <td>Sustitución Directa SaaS</td>
+              <td>Exportación de tablas Z (Z-tables) hacia archivos CSV comprimidos en ZIP</td>
+              <td>Simplificación de procesos de compras y automatización de cuentas por pagar</td>
+            </tr>
+            <tr>
+              <td>Sistemas Propietarios AS400 / COBOL</td>
+              <td>Integración Middleware iPaaS</td>
+              <td>Conectores SFTP / FTP planos con parseo XML en Oracle Integration Cloud</td>
+              <td>Reemplazo de reportes manuales en Excel por analítica automatizada OTBI</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Guía Extendida de Cumplimiento Regulatorio, Fiscal &amp; Auditoría Externa</h2>
+        <article>
+          <h3>1. Anexo 24 RMF SAT — Contabilidad Electrónica en México</h3>
+          <p>Generación nativa de archivos XML estructurados conforme a los esquemas técnicos vigentes del SAT: Catálogo de cuentas con código agrupador SAT (V1.3), Balanza de comprobación mensual con saldos iniciales, deudores, acreedores y saldos finales (V1.3), Pólizas contables con asociación obligatoria de Folios Fiscales UUID de comprobantes CFDI 4.0 (V1.3) y Auxiliar de Folios de comprobantes fiscales.</p>
+        </article>
+        <article>
+          <h3>2. Cumplimiento Norma Internacional de Información Financiera (IFRS / NIF)</h3>
+          <p>Soporte multi-libro contable para la emisión paralela de estados financieros bajo NIF mexicanas (moneda nacional MXN) e IFRS / US GAAP (moneda de reporte USD) dentro del mismo entorno ERP, eliminando la necesidad de realizar ajustes extracontables al cierre del ejercicio.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Manual Completo de Administración de Entornos Oracle Fusion Cloud (Sandbox, Test, Prod)</h2>
+        <article>
+          <h3>1. Estrategia de Clonación de Entornos (Environment Refresh / P2T)</h3>
+          <p>Procedimiento estandarizado para la clonación de datos desde el ambiente de Producción hacia los ambientes de prueba y desarrollo (Production to Test - P2T): programación periódica de clonaciones tras parches trimestrales, ejecución de scripts de ofuscación de datos sensibles de clientes y empleados (Data Masking) para cumplimiento de normativas de privacidad y reconfiguración automatizada de endpoints de integración OIC y credenciales bancarias para apuntar a servidores de Sandbox.</p>
+        </article>
+        <article>
+          <h3>2. Gestión de Personalizaciones Vía Sandboxes &amp; Flexfields (DFF / KFF)</h3>
+          <p>Gobernanza sobre personalizaciones de la interfaz Fusion UX: uso de Sandboxes para la inclusión de atributos personalizados vía Descriptive Flexfields (DFF) y Key Flexfields (KFF), publicación controlada de Sandboxes aprobados y respaldo previo de configuraciones de página para evitar sobrescrituras durante actualizaciones de software.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Diccionario Completo de Errores Comunes en Integraciones OIC &amp; Guía de Resolución Express</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Código de Error OIC</th>
+              <th>Causa Raíz Identificada</th>
+              <th>Acción Técnica Correctora de Remediación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>CASDK-0004: Unauthorized</td>
+              <td>Expiración de token OAuth 2.0 o credenciales de usuario de integración en IDCS.</td>
+              <td>Actualización de llaves secretas y renovación de credenciales en la conexión OIC.</td>
+            </tr>
+            <tr>
+              <td>ERP-IMP-0012: Invalid Segment Value</td>
+              <td>El valor de la combinación de cuentas no existe en la tabla GL_CODE_COMBINATIONS.</td>
+              <td>Generación automática del segmento faltante o actualización de reglas de validación COA.</td>
+            </tr>
+            <tr>
+              <td>SAT-CFDI-4001: RFC No Encontrado</td>
+              <td>El RFC del receptor no se encuentra registrado en el padrón oficial LCO del SAT.</td>
+              <td>Validación y corrección de la ficha maestra del cliente en el módulo AR antes de reintentar timbrado.</td>
+            </tr>
+            <tr>
+              <td>OIC-JOB-9901: Timeout UCM</td>
+              <td>El archivo FBDI excede el tiempo máximo de espera de respuesta del servidor UCM.</td>
+              <td>División del archivo XLSM comprimido en lotes más pequeños (máximo 25,000 registros por ZIP).</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Marco de Seguridad Cibergrafica, Certificaciones SOC 2 &amp; Compliance ISO 27001</h2>
+        <article>
+          <h3>1. Arquitectura Zero-Trust &amp; Cifrado End-to-End en OCI</h3>
+          <p>Implementación del principio de Zero-Trust para entornos de producción Oracle Fusion Cloud ERP: micro-segmentación de red mediante puertas de enlace de seguridad OCI Web Application Firewall (WAF), inspección de tráfico malicioso contra ataques DDoS de Capa 7, encriptación de bases de datos mediante Transparent Data Encryption (TDE) y resguardo de certificados SSL/TLS en módulos Hardware Security Module (HSM) dedicados con certificación FIPS 140-2 Level 3.</p>
+        </article>
+        <article>
+          <h3>2. Gobierno de Identidades &amp; Auditoría de Sesiones Privilegiadas (PIM / PAM)</h3>
+          <p>Supervisión continua de usuarios administradores mediante soluciones Privileged Access Management (PAM): grabación de sesiones en tiempo real, aprobación por doble factor para elevación de privilegios temporales (Just-In-Time Access) y generación de registros de auditoría inviolables exportados hacia plataformas SIEM (Splunk / Microsoft Sentinel).</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz de Monitoreo de Cuellos de Botella &amp; Diagnóstico de Rendimiento Transaccional</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Componente ERP / PaaS</th>
+              <th>Indicador de Rendimiento (KPI)</th>
+              <th>Umbral Crítico de Alerta</th>
+              <th>Acción Automática de Mitigación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Base de Datos Autonomous ATP</td>
+              <td>Uso de CPU OCPUs</td>
+              <td>&gt; 85% continuo por 15 min</td>
+              <td>Auto-Scaling síncrono de OCPUs hasta 3x capacidad base</td>
+            </tr>
+            <tr>
+              <td>Oracle Integration Cloud (OIC)</td>
+              <td>Tiempo de ejecución de integración REST</td>
+              <td>&gt; 2,000 ms por llamada</td>
+              <td>Enrutamiento a cola de reintentos asíncrona DLQ</td>
+            </tr>
+            <tr>
+              <td>Motor Subledger Accounting (SLA)</td>
+              <td>Eventos pendientes de contabilizar</td>
+              <td>&gt; 5,000 eventos en colas XLA</td>
+              <td>Lanzamiento de procesos multihilo paralelos de contabilización</td>
+            </tr>
+            <tr>
+              <td>Conector CFDI Fiscal SAT</td>
+              <td>Tasa de fallo de timbrado PAC</td>
+              <td>&gt; 2% de error en lote</td>
+              <td>Conmutación por error (Failover) a PAC de respaldo secundario</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
