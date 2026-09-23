@@ -631,6 +631,66 @@
       </section>
 
       <section>
+        <h2>Matriz de SLAs de Soporte Crítico, Niveles de Severidad &amp; Matriz RACI</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nivel de Severidad</th>
+              <th>Definición Operativa del Incidente</th>
+              <th>SLA Tiempo de Respuesta</th>
+              <th>SLA Tiempo de Resolución Objetivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Severidad 1 (P1 - Crítico Bloqueante)</td>
+              <td>Imposibilidad total de operar el Cierre Contable, caída de base de datos OCI, fallo en timbrado CFDI masivo o interrupción del libro mayor.</td>
+              <td>Menos de 15 minutos (24/7)</td>
+              <td>Menos de 2 horas con presencia física/remota de Ingeniero Principal</td>
+            </tr>
+            <tr>
+              <td>Severidad 2 (P2 - Alto Impacto)</td>
+              <td>Módulo auxiliar parcialmente inoperativo sin Workaround inmediato (ej. errores en flujos de aprobación BPM o fallas de BI Publisher).</td>
+              <td>Menos de 1 hora (24/7)</td>
+              <td>Menos de 6 horas laborales</td>
+            </tr>
+            <tr>
+              <td>Severidad 3 (P3 - Moderado)</td>
+              <td>Consultas o inconsistencias menores en reportes OTBI que permiten continuar la operación diaria.</td>
+              <td>Menos de 4 horas hábiles</td>
+              <td>Menos de 24 horas hábiles</td>
+            </tr>
+            <tr>
+              <td>Severidad 4 (P4 - Solicitud de Servicio)</td>
+              <td>Solicitud de configuración de nuevo usuario, asignación de rol RBAC o cambio menor de formato en plantilla BI Publisher.</td>
+              <td>Menos de 8 horas hábiles</td>
+              <td>Según planificación del Sprint semanal</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Protocolo de Gestión de Parches Trimestrales de Oracle (Quarterly Updates 25A, 25B, 25C, 25D)</h2>
+        <article>
+          <h3>1. Recepción y Análisis de Impacto en Ambiente Test (Semana 1)</h3>
+          <p>Revisión detallada del documento de novedades del parche trimestral emitido por Oracle (What's New Documentation). Aplicación automática del parche en la instancia Sandbox / Test el primer viernes del mes de actualización.</p>
+        </article>
+        <article>
+          <h3>2. Ejecución de Pruebas Regresivas Automáticas (Semana 2)</h3>
+          <p>Ejecución de la batería de pruebas de regresión automatizadas sobre los flujos críticos de negocio: captura de facturas, generación de órdenes de pago, timbrado de complementos de pago, contabilización en SLA y corrida del libro mayor.</p>
+        </article>
+        <article>
+          <h3>3. Validación de Integraciones OIC &amp; Reportes BI Publisher (Semana 3)</h3>
+          <p>Verificación de contratos API en Oracle Integration Cloud para asegurar que ningún campo deprecado afecte las interfaces con bancos o facturadores. Validación de compatibilidad de los layouts de impresión de BI Publisher.</p>
+        </article>
+        <article>
+          <h3>4. Pase Limpio a Producción &amp; Monitoreo Post-Update (Semana 4)</h3>
+          <p>Aplicación del parche en el ambiente de Producción durante la ventana de mantenimiento del tercer viernes del mes. Monitoreo intensivo durante las primeras 72 horas posteriores al pase.</p>
+        </article>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
