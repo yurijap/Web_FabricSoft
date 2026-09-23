@@ -1280,6 +1280,254 @@
       </section>
 
       <section>
+        <h2>Manual Avanzado de Conexión Bancaria Host-to-Host (H2H) &amp; Protocolos de Seguridad FinTech</h2>
+        <article>
+          <h3>1. Arquitectura de Conectores Bancarios H2H Directos</h3>
+          <p>Integración directa entre Oracle Cash Management y los núcleos bancarios empresariales (BBVA Net Cash, Banorte Directo, Santander Enlace Operativo, CitiDirect BE, J.P. Morgan Access, HSBC Connect). Configuración de canales de comunicación dedicados SFTP con autenticación de clave pública RSA de 4096 bits y encriptación de payloads en reposito y tránsito mediante PGP Armor.</p>
+        </article>
+        <article>
+          <h3>2. Procesamiento de Mensajería Internacional ISO 20022 (PAIN, CAMT, PACS)</h3>
+          <p>Implementación del estándar global ISO 20022 para la automatización de flujos de pago internacionales y locales: traducción de órdenes de pago enviadas desde Cuentas por Pagar (AP) al formato XML <code>pain.001.001.03</code> (Customer Credit Transfer Initiation), recepción de notificaciones de estatus de pago en formato <code>pain.002.001.03</code> (Payment Status Report) y reconciliación de extractos bancarios diarios en formato <code>camt.053.001.02</code> (Bank-to-Customer Statement).</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz de Trazabilidad Fiscal SAT CFDI 4.0 &amp; Auditoría Electrónica (Anexo 20 / Anexo 24)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Componente Fiscal</th>
+              <th>Documento Origen ERP</th>
+              <th>Complemento SAT Obligatorio</th>
+              <th>Validación en Matriz de Errores</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Factura de Ingreso (I)</td>
+              <td>Facturas de Venta en AR / Billing</td>
+              <td>Versión 4.0 con Régimen Fiscal y CP Receptor</td>
+              <td>Validación de RFC activo en lista LCO y uso de CFDI adecuado</td>
+            </tr>
+            <tr>
+              <td>Complemento de Pago (P)</td>
+              <td>Recibos de Cobro / Depósitos en AR</td>
+              <td>Complemento para Recepción de Pagos 2.0</td>
+              <td>Coincidencia exacta de UUIDs de facturas saldadas e impuestos trasladados</td>
+            </tr>
+            <tr>
+              <td>Nota de Crédito (E)</td>
+              <td>Devoluciones y Descuentos en AR</td>
+              <td>CFDI de Egreso 4.0 con TipoRelacion 01</td>
+              <td>Asociación obligatoria del UUID de la factura de ingreso original</td>
+            </tr>
+            <tr>
+              <td>Carta Porte (T/I)</td>
+              <td>Órdenes de Embarque en SCM / Shipping</td>
+              <td>Complemento Carta Porte 3.0</td>
+              <td>Trazabilidad de bienes, ubicaciones origen/destino y permisos SCT</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Guía de Administración de Retención de Archivos, Logs &amp; Purga en UCM</h2>
+        <article>
+          <h3>1. Políticas de Retención de Datos Fiscales y Financieros (10 Años)</h3>
+          <p>Estrategia de resguardo prolongado para cumplimiento con el Código Fiscal de la Federación (CFF Artículo 30): conservación de archivos XML CFDI 4.0 y sus respectivas representaciones impresas PDF en contenedores de almacenamiento inmutable OCI Object Storage Retention Rules (WORM - Write Once, Read Many), impidiendo la eliminación o modificación accidental durante el periodo legal de auditoría de 10 años.</p>
+        </article>
+        <article>
+          <h3>2. Purga Automatizada de Archivos Temporales e Integraciones (30 Días)</h3>
+          <p>Mecanismo de limpieza programada en el servidor Oracle UCM (Universal Content Management) y colas de Oracle Integration Cloud (OIC): purga semanal automatizada de archivos planos ZIP/XLSM temporales de FBDI procesados exitosamente, minimizando el consumo de almacenamiento y reduciendo la exposición de datos personales conforme a la LFPDPPP.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Compendio de Cumplimiento Fiscal Multi-País LATAM (México, Colombia, Chile, Perú, Costa Rica)</h2>
+        <article>
+          <h3>1. Colombia — Facturación Electrónica DIAN &amp; Nómina Electrónica</h3>
+          <p>Integración con la Dirección de Impuestos y Aduanas Nacionales (DIAN) de Colombia: generación de archivos XML UBL 2.1 con código CUFE (Código Único de Factura Electrónica), firmado digital mediante certificados X.509 V3, timbrado vía proveedores tecnológicos autorizados e integración de documentos equivalentes y nómina electrónica.</p>
+        </article>
+        <article>
+          <h3>2. Chile — Documentos Tributarios Electrónicos (DTE SII)</h3>
+          <p>Cumplimiento con el Servicio de Impuestos Internos (SII) de Chile: generación de DTEs (Factura Electrónica 33, Nota de Crédito 61, Guía de Despacho 52) con Timbre Electrónico DTE (TED) impreso en código PDF417 e integración con Cuentas por Cobrar (AR) y Ventas.</p>
+        </article>
+        <article>
+          <h3>3. Perú — Sistema de Emisión Electrónica (SEE SUNAT)</h3>
+          <p>Integración con la Superintendencia Nacional de Aduanas y de Administración Tributaria (SUNAT) de Perú: emisión de comprobantes de pago electrónicos en formato UBL 2.1 con código CDE (Código Digital de Emisión), retenciones de IGV y detracción bancaria (SPOT) conciliada en Cash Management.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz Completa de Adaptadores Nativos de Oracle Integration Cloud (OIC Gen 3)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre del Adaptador OIC</th>
+              <th>Tipo de Sistema Conectado</th>
+              <th>Protocolo de Comunicación / Autenticación</th>
+              <th>Caso de Uso Frecuente</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Oracle ERP Cloud Adapter</td>
+              <td>Oracle Fusion Cloud ERP / SCM / HCM</td>
+              <td>SOAP / REST API / OAuth 2.0 / Business Events</td>
+              <td>Inyección de facturas, pólizas y subscripción a eventos de negocio</td>
+            </tr>
+            <tr>
+              <td>Oracle Autonomous Database Adapter</td>
+              <td>Base de datos Oracle ATP / ADW</td>
+              <td>JDBC / Wallet OCI / mTLS / PL-SQL Procedures</td>
+              <td>Ejecución de consultas SQL de alto rendimiento y transformaciones complejas</td>
+            </tr>
+            <tr>
+              <td>FTP / SFTP Adapter</td>
+              <td>Servidores de Archivos On-Premise / Cloud</td>
+              <td>SFTP / SSH Public Key / PGP Encryption</td>
+              <td>Carga y descarga de archivos planos FBDI masivos y extractos bancarios</td>
+            </tr>
+            <tr>
+              <td>REST / SOAP Adapter Generic</td>
+              <td>APIs de Terceros, PACs, Bancos, Legacy</td>
+              <td>HTTPS / Basic Auth / Bearer Token / API Key</td>
+              <td>Integración con facturadores fiscales y pasarelas de pago externas</td>
+            </tr>
+            <tr>
+              <td>Salesforce Adapter</td>
+              <td>CRM Salesforce Sales Cloud</td>
+              <td>REST / OAuth 2.0 / Webhooks</td>
+              <td>Sincronización bidireccional de clientes, cotizaciones y pedidos O2C</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Manual Extenso de Arquitectura de Alta Disponibilidad OCI &amp; Disaster Recovery (RPO=0)</h2>
+        <article>
+          <h3>1. Configuración de Regiones Redundantes &amp; OCI Data Guard</h3>
+          <p>Despliegue de arquitectura multiregión en Oracle Cloud Infrastructure: replicación asíncrona de base de datos Autonomous Database entre la región principal (ej. Mexico Central - Querétaro) y la región secundaria de respaldo (ej. US East - Ashburn) mediante OCI Data Guard. Conmutación automática por error (Auto-Failover) con tiempo objetivo de recuperación (RTO) menor a 15 minutos e imposibilidad de pérdida de transacciones contables registradas (RPO = 0).</p>
+        </article>
+        <article>
+          <h3>2. Balanceo de Carga Masivo &amp; Capa de Filtrado Web (OCI Load Balancers &amp; WAF)</h3>
+          <p>Distribución de tráfico transaccional mediante OCI Flexible Load Balancers con algoritmos de balanceo Round-Robin ponderado y persistencia de sesión por galleta (Cookie-based Session Persistence). Protección contra vulnerabilidades OWASP Top 10 e inspección de tráfico TLS 1.3 en tiempo real.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Diccionario de Datos &amp; Estructura de Tablas Auxiliares SCM, PO, INV &amp; FA</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Módulo Auxiliar</th>
+              <th>Nombre de Tabla Principal</th>
+              <th>Propósito de Negocio &amp; Claves Primarias</th>
+              <th>Trazabilidad hacia el Libro Mayor (GL)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Compras (Procurement)</td>
+              <td><code>PO_HEADERS_ALL</code></td>
+              <td>Encabezados de órdenes de compra (PO_HEADER_ID).</td>
+              <td>Liga con AP_INVOICE_LINES_ALL vía PO_HEADER_ID.</td>
+            </tr>
+            <tr>
+              <td>Compras (Procurement)</td>
+              <td><code>PO_LINES_ALL</code></td>
+              <td>Detalle de ítems, cantidades y precios acordados.</td>
+              <td>Asociación con requisiciones PO_REQUISITION_LINES_ALL.</td>
+            </tr>
+            <tr>
+              <td>Inventarios (SCM)</td>
+              <td><code>INV_MATERIAL_TXNS</code></td>
+              <td>Movimientos transaccionales de almacén (TRANSACTION_ID).</td>
+              <td>Contabilización directa en SLA vía XLA_DISTRIBUTION_LINKS.</td>
+            </tr>
+            <tr>
+              <td>Activos Fijos (FA)</td>
+              <td><code>FA_ADDITIONS_B</code></td>
+              <td>Catálogo de bienes de capital y activos (ASSET_ID).</td>
+              <td>Depreciación acumulada transferida mensualmente a GL_JE_LINES.</td>
+            </tr>
+            <tr>
+              <td>Activos Fijos (FA)</td>
+              <td><code>FA_BOOKS</code></td>
+              <td>Parámetros de depreciación fiscal y contable por activo.</td>
+              <td>Definición de vida útil, método de depreciación y valor de salvamento.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Manual Avanzado de Gobernanza SOC 2 Type II &amp; Matriz de Controles de Auditoría</h2>
+        <article>
+          <h3>1. Control de Seguridad Logica (Trust Services Criteria - Security)</h3>
+          <p>Implementación de controles de autenticación fuerte, gestión de cambios de configuración con aprobación previa de comité CAB (Change Advisory Board), aislamiento de entornos Sandbox/Test frente a Producción y registro auditable e inmutable de accesos privilegiados a bases de datos Autonomous ATP.</p>
+        </article>
+        <article>
+          <h3>2. Control de Disponibilidad &amp; Redundancia (Trust Services Criteria - Availability)</h3>
+          <p>Monitoreo continuo de disponibilidad del servicio con compromiso de SLA del 99.95% de uptime anual. Pruebas semestrales obligatorias de conmutación por error (Failover Drill) con OCI Data Guard entre regiones de Querétaro y Ashburn.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Guía de Tuning de Concurrencia de Base de Datos Autonomous ATP &amp; Conexiones JDBC</h2>
+        <article>
+          <h3>1. Gestión de Pools de Conexiones JDBC (UCP / HikariCP)</h3>
+          <p>Configuración de Universal Connection Pool (UCP) para aplicaciones de middleware e integraciones OIC: uso de servicios de base de datos con prioridad diferenciada (<code>HIGH</code> para cierres contables y reportes ejecutivos, <code>MEDIUM</code> para integraciones REST en tiempo real y <code>LOW</code> para cargas masivas de datos FBDI en background).</p>
+        </article>
+        <article>
+          <h3>2. Prevención de Bloqueos de Transacciones (Enqueue Locks / Latches)</h3>
+          <p>Estrategias de diseño para evitar contención de bloqueos en tablas transaccionales de alto volumen (`AP_INVOICE_DISTRIBUTIONS_ALL`, `GL_INTERFACE`): uso de secuencias de base de datos optimizadas con CACHE elevado y procesamiento por lotes paralelos.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Matriz Extensa de SLAs de Soporte &amp; Tiempos de Respuesta Garantizados por Módulo</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Módulo ERP Oracle</th>
+              <th>Operación Crítica</th>
+              <th>SLA Tiempo de Respuesta P1</th>
+              <th>Garantía de Resolución</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Oracle Financials GL</td>
+              <td>Cierre Contable Mensual</td>
+              <td>&lt; 15 Minutos (24/7)</td>
+              <td>Acompañamiento presencial/remoto de Ingeniero Principal hasta cierre exitoso</td>
+            </tr>
+            <tr>
+              <td>Facturación Fiscal SAT</td>
+              <td>Timbrado Masivo CFDI 4.0</td>
+              <td>&lt; 15 Minutos (24/7)</td>
+              <td>Failover inmediato a PAC redundante secundario</td>
+            </tr>
+            <tr>
+              <td>Integraciones OIC</td>
+              <td>Interfaces Bancarias SWIFT/H2H</td>
+              <td>&lt; 30 Minutos (24/7)</td>
+              <td>Reprocesamiento de colas asíncronas DLQ y validación de certificados PGP</td>
+            </tr>
+            <tr>
+              <td>Oracle SCM / Inventory</td>
+              <td>Recepciones de Almacén CD</td>
+              <td>&lt; 1 Hora (24/7)</td>
+              <td>Desbloqueo de interfaces de inventario y resolución de diferencias de costo</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
         <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
