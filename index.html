@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -22,6 +23,7 @@
   <!-- Resource Hints & Preload for Non-Blocking Render -->
   <link rel="preload" href="/fonts/inter-v20-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" as="font" type="font/woff2"
     crossorigin="anonymous" />
+  <link rel="modulepreload" href="/src/main.tsx" />
   <!-- Primary Meta Tags / SEO -->
   <meta name="title" content="FABRIC | Oracle Fusion Cloud &amp; Soporte Primer Ciclo Crítico" />
   <meta name="description"
@@ -31,6 +33,7 @@
   <meta name="robots" content="index, follow" />
 
   <!-- Open Graph / Facebook / WhatsApp -->
+
   <meta property="og:type" content="website" />
   <meta property="og:title" content="FABRIC | Oracle Fusion Cloud &amp; Soporte Primer Ciclo Crítico" />
   <meta property="og:description"
@@ -38,6 +41,7 @@
   <meta property="og:image" content="/Logo.ico" />
 
   <!-- Twitter -->
+
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="FABRIC | Oracle Fusion Cloud &amp; Soporte Primer Ciclo Crítico" />
   <meta name="twitter:description"
@@ -47,6 +51,7 @@
   <!-- Primary Meta Tags / SEO -->
 
   <!-- JSON-LD Structured Data for LLMs and Crawlers -->
+
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -59,33 +64,6 @@
     }
     </script>
 
-  <!-- Semantic shell remains in the initial DOM without being removed or clipped.
-       This avoids the large sr-only accessibility tree while keeping the visual
-       React application independent. -->
-  <style id="semantic-shell-css">
-    #semantic-shell {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: normal;
-    }
-
-    #semantic-shell a {
-      pointer-events: none;
-    }
-  </style>
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "FABRIC — Oracle Critical Engineering",
-    "inLanguage": "es-MX",
-    "description": "Ingeniería crítica, Oracle Fusion Cloud, integraciones, migración, rescate y soporte empresarial."
-  }
-  </script>
 </head>
 
 <body class="bg-[#050505] text-white selection:bg-[#C9A96E] selection:text-black">
@@ -93,16 +71,10 @@
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5V45D24K" height="0" width="0"
       class="hidden invisible"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
-  <!--
-    STATIC SEMANTIC SHELL
-    ---------------------
-    This content is present in the initial HTML so crawlers and LLMs can read
-    FABRIC without requiring JavaScript. React is isolated in #root so it does
-    not replace the semantic document tree during hydration.
-    -->
-  <div id="semantic-shell">
-    <!-- Static semantic content for search engines, LLMs and no-JS clients -->
-    <main id="semantic-content" aria-label="Contenido principal de FABRIC">
+  <div id="root">
+    <!-- Static fallback semantic content for LLMs, Crawlers & SEO (Hydrated by React on load) -->
+    <main class="sr-only"
+      style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;">
       <!-- Navegación Estática Principal -->
       <nav aria-label="Navegación Principal Estática">
         <ul>
@@ -1992,14 +1964,14 @@
           YouTube, Instagram, Twitter / X, TikTok.</p>
       </footer>
     </main>
-  </div>
 
-  <!-- React application layer: interactive UI only -->
-  <div id="root"></div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 
   <!-- Google Tag Manager & Analytics (Diferidos para no bloquear el renderizado) -->
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z56N6JL0QB"></script>
+
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
@@ -2007,6 +1979,7 @@
 
     gtag('config', 'G-Z56N6JL0QB');
   </script>
+
   <script>(function (w, d, s, l, i) {
       w[l] = w[l] || []; w[l].push({
         'gtm.start':
@@ -2015,6 +1988,7 @@
         j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
           'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-5V45D24K');</script>
+
 </body>
 
 </html>
