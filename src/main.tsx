@@ -1,5 +1,5 @@
 import React from 'react'
-import { createRoot, hydrateRoot } from 'react-dom/client'
+import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
 
@@ -13,8 +13,9 @@ function ThemedToaster() {
   return <Toaster theme={theme} position="bottom-right" richColors />
 }
 
-const container = document.getElementById('root')!
-const app = (
+// ClerkProvider ya NO envuelve la app aqui: vive en ClerkBoundary y solo
+// cubre las rutas de auth/admin. Asi la landing publica no carga Clerk.
+createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider>
@@ -24,12 +25,5 @@ const app = (
         </FabricProvider>
       </ThemeProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 )
-
-if (container.hasChildNodes()) {
-  hydrateRoot(container, app)
-} else {
-  createRoot(container).render(app)
-}
-
