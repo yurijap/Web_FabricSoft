@@ -22,7 +22,6 @@
   <!-- Resource Hints & Preload for Non-Blocking Render -->
   <link rel="preload" href="/fonts/inter-v20-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" as="font" type="font/woff2"
     crossorigin="anonymous" />
-  <link rel="modulepreload" href="/src/main.tsx" />
   <!-- Primary Meta Tags / SEO -->
   <meta name="title" content="FABRIC | Oracle Fusion Cloud &amp; Soporte Primer Ciclo Crítico" />
   <meta name="description"
@@ -59,6 +58,34 @@
       "sameAs": []
     }
     </script>
+
+  <!-- Semantic shell remains in the initial DOM without being removed or clipped.
+       This avoids the large sr-only accessibility tree while keeping the visual
+       React application independent. -->
+  <style id="semantic-shell-css">
+    #semantic-shell {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: normal;
+    }
+
+    #semantic-shell a {
+      pointer-events: none;
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "FABRIC — Oracle Critical Engineering",
+    "inLanguage": "es-MX",
+    "description": "Ingeniería crítica, Oracle Fusion Cloud, integraciones, migración, rescate y soporte empresarial."
+  }
+  </script>
 </head>
 
 <body class="bg-[#050505] text-white selection:bg-[#C9A96E] selection:text-black">
@@ -66,10 +93,16 @@
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5V45D24K" height="0" width="0"
       class="hidden invisible"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
-  <div id="root">
-    <!-- Static fallback semantic content for LLMs, Crawlers & SEO (Hydrated by React on load) -->
-    <main class="sr-only"
-      style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;">
+  <!--
+    STATIC SEMANTIC SHELL
+    ---------------------
+    This content is present in the initial HTML so crawlers and LLMs can read
+    FABRIC without requiring JavaScript. React is isolated in #root so it does
+    not replace the semantic document tree during hydration.
+    -->
+  <div id="semantic-shell">
+    <!-- Static semantic content for search engines, LLMs and no-JS clients -->
+    <main id="semantic-content" aria-label="Contenido principal de FABRIC">
       <!-- Navegación Estática Principal -->
       <nav aria-label="Navegación Principal Estática">
         <ul>
@@ -89,12 +122,15 @@
       </nav>
 
       <h1>Migramos tu ERP a Oracle Fusion Cloud. Y no nos vamos hasta que tu primer cierre contable opere.</h1>
-      <p>Soluciones avanzadas de ingeniería crítica, infraestructura y desarrollo de software empresarial por FABRIC — Oracle Critical Engineering.</p>
-      <p>Especialistas en remediación de migraciones inconclusas, estabilización de interfaces de alta velocidad SAT CFDI 4.0, conciliación contable y soporte especializado en el Primer Ciclo Crítico en producción.</p>
+      <p>Soluciones avanzadas de ingeniería crítica, infraestructura y desarrollo de software empresarial por FABRIC —
+        Oracle Critical Engineering.</p>
+      <p>Especialistas en remediación de migraciones inconclusas, estabilización de interfaces de alta velocidad SAT
+        CFDI 4.0, conciliación contable y soporte especializado en el Primer Ciclo Crítico en producción.</p>
 
       <section id="doctrina">
         <h2>La mayoría entrega Oracle. FABRIC se queda cuando empieza el riesgo.</h2>
-        <p>Una implementación no fracasa el día del go-live. Fracasa cuando el negocio intenta cerrar, reportar y operar sin depender de hojas paralelas o tickets urgentes.</p>
+        <p>Una implementación no fracasa el día del go-live. Fracasa cuando el negocio intenta cerrar, reportar y operar
+          sin depender de hojas paralelas o tickets urgentes.</p>
         <ul>
           <li><strong>90 días de estabilización post go-live en sitio</strong></li>
           <li><strong>Primer cierre crítico validado en producción</strong></li>
@@ -105,22 +141,32 @@
       <section>
         <h2>Doctrina Operativa FABRIC</h2>
         <ul>
-          <li><strong>Entrega en primer ciclo crítico:</strong> El proyecto no se entrega en el go-live. Se entrega cuando tu primer cierre contable, operativo o regulatorio opera en producción con estabilidad documentada.</li>
-          <li><strong>Solo seniors. Cero juniors facturables:</strong> Cada consultor de FABRIC tiene mínimo 8 años de experiencia real en Oracle Fusion Cloud, ERP Cloud, Financials, SCM y OCI.</li>
-          <li><strong>Fixed-Price por fase. Cero sorpresas:</strong> Operamos con presupuestos cerrados sin costos adicionales por retrasos del proveedor o desviaciones no autorizadas.</li>
-          <li><strong>Cero reportes manuales post go-live:</strong> Al cierre del primer ciclo crítico, ningún reporte ejecutivo u operativo se ejecuta fuera del ERP en hojas de cálculo externas.</li>
-          <li><strong>Transición formal con documentación viva:</strong> Entregamos documentación auditable, scripts de automatización y guías operativas transferibles sin dependencia continua de FABRIC.</li>
+          <li><strong>Entrega en primer ciclo crítico:</strong> El proyecto no se entrega en el go-live. Se entrega
+            cuando tu primer cierre contable, operativo o regulatorio opera en producción con estabilidad documentada.
+          </li>
+          <li><strong>Solo seniors. Cero juniors facturables:</strong> Cada consultor de FABRIC tiene mínimo 8 años de
+            experiencia real en Oracle Fusion Cloud, ERP Cloud, Financials, SCM y OCI.</li>
+          <li><strong>Fixed-Price por fase. Cero sorpresas:</strong> Operamos con presupuestos cerrados sin costos
+            adicionales por retrasos del proveedor o desviaciones no autorizadas.</li>
+          <li><strong>Cero reportes manuales post go-live:</strong> Al cierre del primer ciclo crítico, ningún reporte
+            ejecutivo u operativo se ejecuta fuera del ERP en hojas de cálculo externas.</li>
+          <li><strong>Transición formal con documentación viva:</strong> Entregamos documentación auditable, scripts de
+            automatización y guías operativas transferibles sin dependencia continua de FABRIC.</li>
         </ul>
       </section>
 
       <section id="garantia">
         <h2>Garantía Contractual Blindada</h2>
-        <p>"Si no logramos estabilizar tu primer cierre contable en producción en la fecha acordada por causas de nuestra ingeniería, no facturamos los servicios de estabilización hasta lograrlo." — Cláusula 7.2 del Contrato de Prestación de Servicios FABRIC SOFT MEXICO SA DE CV.</p>
+        <p>"Si no logramos estabilizar tu primer cierre contable en producción en la fecha acordada por causas de
+          nuestra ingeniería, no facturamos los servicios de estabilización hasta lograrlo." — Cláusula 7.2 del Contrato
+          de Prestación de Servicios FABRIC SOFT MEXICO SA DE CV.</p>
       </section>
 
       <section id="tco-calculator">
         <h2>Calculadora de TCO ERP &amp; Simulación de Ahorro de Nube</h2>
-        <p>Compara los costos actuales de licenciamiento, mantenimiento, infraestructura física y consultores de soporte de tu ERP actual (SAP S/4 HANA, SAP ECC, Oracle EBS R12, JD Edwards, Dynamics 365, NetSuite) frente a la estructura optimizada de Oracle Fusion Cloud.</p>
+        <p>Compara los costos actuales de licenciamiento, mantenimiento, infraestructura física y consultores de soporte
+          de tu ERP actual (SAP S/4 HANA, SAP ECC, Oracle EBS R12, JD Edwards, Dynamics 365, NetSuite) frente a la
+          estructura optimizada de Oracle Fusion Cloud.</p>
         <ul>
           <li>Proyección financiera a 3, 5 y 10 años de costo total de propiedad (TCO)</li>
           <li>Evaluación de costos de base de datos oculta, licencias de terceros y mantenimiento del 22%</li>
@@ -134,12 +180,18 @@
 
       <section>
         <h2>Mesa Técnica 1-on-1 &amp; Radar de Admisión Crítica</h2>
-        <p>Detén los errores ocultos en tu arquitectura antes de que congelen tu operación hoy mismo. Conversa directamente con un ingeniero principal de FABRIC. Evaluamos los riesgos reales, cuellos de botella de integraciones y arquitectura de tu proyecto Oracle Fusion Cloud. Sin rodeos comerciales, sin presentaciones de ventas corporativas.</p>
+        <p>Detén los errores ocultos en tu arquitectura antes de que congelen tu operación hoy mismo. Conversa
+          directamente con un ingeniero principal de FABRIC. Evaluamos los riesgos reales, cuellos de botella de
+          integraciones y arquitectura de tu proyecto Oracle Fusion Cloud. Sin rodeos comerciales, sin presentaciones de
+          ventas corporativas.</p>
         <ul>
-          <li>Disponibilidad Dinámica: Elige un día y horario en tiempo real de los bloques abiertos por administración.</li>
-          <li>Sesión Privada de 30 Minutos: Análisis técnico preliminar, revisión de NDA y asignación de cola de admisión.</li>
+          <li>Disponibilidad Dinámica: Elige un día y horario en tiempo real de los bloques abiertos por administración.
+          </li>
+          <li>Sesión Privada de 30 Minutos: Análisis técnico preliminar, revisión de NDA y asignación de cola de
+            admisión.</li>
           <li>Reserva una sesión técnica privada de 30 minutos con un Ingeniero Principal de FABRIC.</li>
-          <li>Dirección de correo electrónico corporativo requerida para agendar y bloquear el horario seleccionado.</li>
+          <li>Dirección de correo electrónico corporativo requerida para agendar y bloquear el horario seleccionado.
+          </li>
         </ul>
       </section>
 
@@ -147,21 +199,29 @@
         <h2>Casos Ancla y Casos de Éxito Auditables</h2>
         <article>
           <h3>Inmobiliario / Retail — Remediación de facturación masiva</h3>
-          <p>Implementación integral y remediación post-migración del módulo de facturación masiva de arrendamientos y contabilidad general en Oracle Fusion Cloud para el operador líder de centros comerciales. Go-live contractual 06 Abril 2026, primer cierre ejecutado 30 Abril 2026, 0 incidencias críticas. Cierre contable de abril ejecutado sin incidencias con acompañamiento FABRIC en sitio.</p>
+          <p>Implementación integral y remediación post-migración del módulo de facturación masiva de arrendamientos y
+            contabilidad general en Oracle Fusion Cloud para el operador líder de centros comerciales. Go-live
+            contractual 06 Abril 2026, primer cierre ejecutado 30 Abril 2026, 0 incidencias críticas. Cierre contable de
+            abril ejecutado sin incidencias con acompañamiento FABRIC en sitio.</p>
         </article>
         <article>
           <h3>Fintech — Estabilización de interfaces de cobros</h3>
-          <p>Estabilización de interfaces de cobros recurrentes y conciliación automática del auxiliar de Cuentas por Cobrar con el Libro Mayor (GL) en un plazo récord de 8 semanas. Monto transaccionado: $4.2B MXN / mes. Cierres paralelos reducidos de 5 días a 4 horas.</p>
+          <p>Estabilización de interfaces de cobros recurrentes y conciliación automática del auxiliar de Cuentas por
+            Cobrar con el Libro Mayor (GL) en un plazo récord de 8 semanas. Monto transaccionado: $4.2B MXN / mes.
+            Cierres paralelos reducidos de 5 días a 4 horas.</p>
         </article>
         <article>
           <h3>Audit Trail Registrado</h3>
-          <p>Publicamos el registro exacto de hitos de entrega de cada proyecto: fechas de go-live, cierres contables y actas de estabilización. Si estás en proceso de contratación activa, puedes solicitar los documentos originales bajo un NDA mutuo.</p>
+          <p>Publicamos el registro exacto de hitos de entrega de cada proyecto: fechas de go-live, cierres contables y
+            actas de estabilización. Si estás en proceso de contratación activa, puedes solicitar los documentos
+            originales bajo un NDA mutuo.</p>
         </article>
       </section>
 
       <section>
         <h2>Transparencia Radical e Indicadores Auditados</h2>
-        <p>Publicamos de forma proactiva nuestros indicadores clave de éxito. Creemos en la auditoría abierta de procesos y en el respaldo empírico de cada garantía contractual.</p>
+        <p>Publicamos de forma proactiva nuestros indicadores clave de éxito. Creemos en la auditoría abierta de
+          procesos y en el respaldo empírico de cada garantía contractual.</p>
         <ul>
           <li>Proyectos entregados en primer ciclo crítico: 18 proyectos auditados en producción</li>
           <li>Proyectos dentro de presupuesto Fixed-Price: 100% de garantía TCO sin sobrecostos</li>
@@ -176,24 +236,31 @@
         <h2>Preguntas Frecuentes &amp; Diagnóstico de Salud Oracle Fusion</h2>
         <article>
           <h3>¿Qué sucede si el go-live ya ocurrió pero la operación sigue inestable?</h3>
-          <p>FABRIC interviene con un equipo de respuesta rápida para estabilizar los procesos contables, financieros e interfaces de integración, permaneciendo en sitio hasta que el primer cierre contable opere de forma fluida.</p>
+          <p>FABRIC interviene con un equipo de respuesta rápida para estabilizar los procesos contables, financieros e
+            interfaces de integración, permaneciendo en sitio hasta que el primer cierre contable opere de forma fluida.
+          </p>
         </article>
         <article>
           <h3>¿Cuál es el modelo de contratación de FABRIC?</h3>
-          <p>Operamos con esquemas Fixed-Price por fase con entregables claros y garantía de permanencia hasta la estabilización en producción del primer ciclo crítico.</p>
+          <p>Operamos con esquemas Fixed-Price por fase con entregables claros y garantía de permanencia hasta la
+            estabilización en producción del primer ciclo crítico.</p>
         </article>
         <article>
           <h3>¿Qué diferencia a FABRIC de las consultoras tradicionales?</h3>
-          <p>Asignamos exclusivamente consultores senior con más de 8 años de experiencia directa en tecnología Oracle y nos responsabilizamos por contrato hasta el primer cierre contable operado en producción.</p>
+          <p>Asignamos exclusivamente consultores senior con más de 8 años de experiencia directa en tecnología Oracle y
+            nos responsabilizamos por contrato hasta el primer cierre contable operado en producción.</p>
         </article>
       </section>
 
       <section>
         <h2>Industrias Focales</h2>
         <ul>
-          <li><strong>Servicios Financieros:</strong> Bancos, fintech y crédito al consumo. Compliance CNBV / CONDUSEF / Banxico, cierre contable diario regulatorio y auditoría PLD.</li>
-          <li><strong>Inmobiliario y Centros Comerciales:</strong> Multi-entidad, multi-plaza consolidada, revenue management, cobranza automatizada y conciliación de rentas variables.</li>
-          <li><strong>Logística y Distribución:</strong> Multi-CD, multi-país, trazabilidad fiscal SAT/CFDI 4.0, complemento carta portación y conciliación de transportes.</li>
+          <li><strong>Servicios Financieros:</strong> Bancos, fintech y crédito al consumo. Compliance CNBV / CONDUSEF /
+            Banxico, cierre contable diario regulatorio y auditoría PLD.</li>
+          <li><strong>Inmobiliario y Centros Comerciales:</strong> Multi-entidad, multi-plaza consolidada, revenue
+            management, cobranza automatizada y conciliación de rentas variables.</li>
+          <li><strong>Logística y Distribución:</strong> Multi-CD, multi-país, trazabilidad fiscal SAT/CFDI 4.0,
+            complemento carta portación y conciliación de transportes.</li>
         </ul>
       </section>
 
@@ -201,28 +268,47 @@
         <h2>Herramientas Ejecutivas, Diagnósticos &amp; Software de Simulación Enterprise</h2>
         <article id="herramientas/rescue-health-check">
           <h3>FABRIC Fusion Rescue Health Check™ — Evaluador y Diagnóstico de Salud Oracle Fusion ERP Cloud</h3>
-          <p>Evalúa en pocos minutos el estado técnico y operativo de tu implementación de Oracle Fusion Cloud ERP e identifica posibles riesgos en procesos financieros, contabilidad general, datos maestros, integraciones REST/SOAP/FBDI, adopción organizacional y nivel de soporte L1/L2/L3.</p>
-          <p>Instrucciones de uso del test: Responde las 18 preguntas clave divididas en 6 dimensiones críticas de ingeniería para recibir una puntuación ponderada instantánea (0 a 100 pts) indicando el nivel de salud de tu plataforma Oracle ERP Cloud y recomendaciones de remediación inmediata.</p>
+          <p>Evalúa en pocos minutos el estado técnico y operativo de tu implementación de Oracle Fusion Cloud ERP e
+            identifica posibles riesgos en procesos financieros, contabilidad general, datos maestros, integraciones
+            REST/SOAP/FBDI, adopción organizacional y nivel de soporte L1/L2/L3.</p>
+          <p>Instrucciones de uso del test: Responde las 18 preguntas clave divididas en 6 dimensiones críticas de
+            ingeniería para recibir una puntuación ponderada instantánea (0 a 100 pts) indicando el nivel de salud de tu
+            plataforma Oracle ERP Cloud y recomendaciones de remediación inmediata.</p>
           <h4>Dimensiones de Evaluación:</h4>
           <ul>
-            <li><strong>Procesos &amp; Gobernanza:</strong> Evaluación del cierre contable mensual, aprobación de pólizas, cierres de módulos auxiliares (AP, AR, FA, PO) y nivel de automatización del Libro Mayor (GL).</li>
-            <li><strong>Finanzas &amp; Reporting:</strong> Dependencia de reportes en Excel fuera del ERP, uso de Oracle Transactional Business Intelligence (OTBI), BI Publisher y conciliaciones bancarias automáticas.</li>
-            <li><strong>Datos &amp; Migración:</strong> Calidad de catálogos maestros de clientes, proveedores, activos fijos y saldos iniciales tras el go-live.</li>
-            <li><strong>Integraciones &amp; Arquitectura:</strong> Desempeño de integraciones con sistemas legacy, facturación masiva SAT CFDI 4.0, middleware OIC (Oracle Integration Cloud) y conectores bancarios.</li>
-            <li><strong>Adopción &amp; Capacitación:</strong> Autonomía de los usuarios clave (superusers), curva de aprendizaje del personal contable y resistencia al cambio operativo.</li>
-            <li><strong>Soporte &amp; SLA:</strong> Tiempos de respuesta del proveedor de soporte actual, acumulación de tickets críticos sin resolver y calidad de parches periódicos de Oracle (Quarterly Updates).</li>
+            <li><strong>Procesos &amp; Gobernanza:</strong> Evaluación del cierre contable mensual, aprobación de
+              pólizas, cierres de módulos auxiliares (AP, AR, FA, PO) y nivel de automatización del Libro Mayor (GL).
+            </li>
+            <li><strong>Finanzas &amp; Reporting:</strong> Dependencia de reportes en Excel fuera del ERP, uso de Oracle
+              Transactional Business Intelligence (OTBI), BI Publisher y conciliaciones bancarias automáticas.</li>
+            <li><strong>Datos &amp; Migración:</strong> Calidad de catálogos maestros de clientes, proveedores, activos
+              fijos y saldos iniciales tras el go-live.</li>
+            <li><strong>Integraciones &amp; Arquitectura:</strong> Desempeño de integraciones con sistemas legacy,
+              facturación masiva SAT CFDI 4.0, middleware OIC (Oracle Integration Cloud) y conectores bancarios.</li>
+            <li><strong>Adopción &amp; Capacitación:</strong> Autonomía de los usuarios clave (superusers), curva de
+              aprendizaje del personal contable y resistencia al cambio operativo.</li>
+            <li><strong>Soporte &amp; SLA:</strong> Tiempos de respuesta del proveedor de soporte actual, acumulación de
+              tickets críticos sin resolver y calidad de parches periódicos de Oracle (Quarterly Updates).</li>
           </ul>
         </article>
 
         <article id="herramientas/oci-cost-optimizer">
           <h3>Optimizador de Nube OCI — Auditoría y Calculadora de Costos Oracle Cloud Infrastructure</h3>
-          <p>Auditoría de costos OCI con acceso de solo lectura y reporte ejecutivo de ahorros estimados en USD. Descubre oportunidades de optimización en Compute (instancias Ampere A1, E4, E5), almacenamiento OCI Block Volumes, Object Storage S3-compatible, Networking, Egress y licencias traídas (Bring Your Own License - BYOL).</p>
-          <p>Beneficios clave: Identificación de instancias de cómputo sobredimensionadas, volúmenes de disco huérfanos, políticas de auto-scaling y planes de reservación de capacidad a 1 y 3 años con descuentos de hasta el 55% sobre la tarifa pública.</p>
+          <p>Auditoría de costos OCI con acceso de solo lectura y reporte ejecutivo de ahorros estimados en USD.
+            Descubre oportunidades de optimización en Compute (instancias Ampere A1, E4, E5), almacenamiento OCI Block
+            Volumes, Object Storage S3-compatible, Networking, Egress y licencias traídas (Bring Your Own License -
+            BYOL).</p>
+          <p>Beneficios clave: Identificación de instancias de cómputo sobredimensionadas, volúmenes de disco huérfanos,
+            políticas de auto-scaling y planes de reservación de capacidad a 1 y 3 años con descuentos de hasta el 55%
+            sobre la tarifa pública.</p>
         </article>
 
         <article id="herramientas/migration-roadmap">
           <h3>Oracle Migration Roadmap — Plan y Hoja de Ruta de Migración a la Nube</h3>
-          <p>Genera un roadmap ejecutivo estructurado en 5 fases metodológicas para migraciones Oracle EBS R12, SAP ECC o legacy hacia Oracle Fusion Cloud, detallando riesgos críticos, plazos estimados de conversión de datos, ventanas de corte (cutover) y acciones de preparación antes de firmar contratos con proveedores de consultoría.</p>
+          <p>Genera un roadmap ejecutivo estructurado en 5 fases metodológicas para migraciones Oracle EBS R12, SAP ECC
+            o legacy hacia Oracle Fusion Cloud, detallando riesgos críticos, plazos estimados de conversión de datos,
+            ventanas de corte (cutover) y acciones de preparación antes de firmar contratos con proveedores de
+            consultoría.</p>
           <ul>
             <li>Fase 1: Assessment y Limpieza de Datos Históricos (Semanas 1-4)</li>
             <li>Fase 2: Diseño de Arquitectura Objetivo y Mapeo de Procesos Core (Semanas 5-12)</li>
@@ -234,12 +320,16 @@
 
         <article id="herramientas/readiness-score">
           <h3>Oracle Readiness Score — Evaluador de Preparación Organizacional</h3>
-          <p>Evalúa el nivel de preparación técnica, financiera y humana de tu organización antes de iniciar una implementación o migración a Oracle Fusion Cloud para prevenir retrasos en el calendario y sobrecostos no planificados.</p>
+          <p>Evalúa el nivel de preparación técnica, financiera y humana de tu organización antes de iniciar una
+            implementación o migración a Oracle Fusion Cloud para prevenir retrasos en el calendario y sobrecostos no
+            planificados.</p>
         </article>
 
         <article id="herramientas/rfp-template">
           <h3>RFP Template Oracle — Cuestionario Obligatorio de 47 Preguntas para Evaluación de Proveedores</h3>
-          <p>Plantilla técnica y legal para evaluar a cualquier consultora de implementación u homologación Oracle con las 47 preguntas imprescindibles que separan a un socio estratégico de ingeniería de un proveedor que abandona al cliente tras el go-live.</p>
+          <p>Plantilla técnica y legal para evaluar a cualquier consultora de implementación u homologación Oracle con
+            las 47 preguntas imprescindibles que separan a un socio estratégico de ingeniería de un proveedor que
+            abandona al cliente tras el go-live.</p>
           <h4>Secciones de Evaluación Incluidas:</h4>
           <ul>
             <li>Metodología de Acompañamiento en el Primer Cierre Contable en Producción.</li>
@@ -252,40 +342,51 @@
 
         <article id="herramientas/benchmark-index-2026">
           <h3>FABRIC Benchmark Index 2026 — Estado de Implementaciones ERP Oracle en México y LATAM</h3>
-          <p>Índice y estudio anual sobre el estado real de las implementaciones Oracle Fusion Cloud en la región. Análisis empírico con datos consolidados de más de 120 empresas medianas y corporativos empresariales.</p>
+          <p>Índice y estudio anual sobre el estado real de las implementaciones Oracle Fusion Cloud en la región.
+            Análisis empírico con datos consolidados de más de 120 empresas medianas y corporativos empresariales.</p>
           <ul>
             <li>Tasa de fracaso o inestabilidad operativa en el primer ciclo crítico post go-live: 68%.</li>
-            <li>Sobrecosto promedio generado por proyectos inconclusos o extensiones de tiempo: 2.4 veces el presupuesto inicial.</li>
+            <li>Sobrecosto promedio generado por proyectos inconclusos o extensiones de tiempo: 2.4 veces el presupuesto
+              inicial.</li>
             <li>Tiempo promedio real requerido para alcanzar la autonomía y estabilidad en producción: 7.2 meses.</li>
-            <li>Módulo con mayor recurrencia de incidencias críticas: Facturación Masiva e Interfaces Fiscales CFDI 4.0.</li>
+            <li>Módulo con mayor recurrencia de incidencias críticas: Facturación Masiva e Interfaces Fiscales CFDI 4.0.
+            </li>
           </ul>
         </article>
       </section>
 
       <section>
         <h2>Manifiesto del Fundador &amp; Principios de Ingeniería Crítica</h2>
-        <p>No creemos en consultoras que venden presentaciones en PowerPoint y desaparecen el día del go-live. FABRIC nació para asumir la responsabilidad técnica completa de plataformas core empresariales.</p>
-        <p>Operamos con un modelo de No-Alineación e independencia técnica: no revendemos licencias de software, no recibimos comisiones de vendors y trabajamos exclusivamente para los intereses del cliente.</p>
-        <p>Nuestra meta es lograr que cada cliente opere su primer cierre contable en producción con cero incidencias críticas, cero reportes manuales paralelos y total autonomía de su equipo interno.</p>
+        <p>No creemos en consultoras que venden presentaciones en PowerPoint y desaparecen el día del go-live. FABRIC
+          nació para asumir la responsabilidad técnica completa de plataformas core empresariales.</p>
+        <p>Operamos con un modelo de No-Alineación e independencia técnica: no revendemos licencias de software, no
+          recibimos comisiones de vendors y trabajamos exclusivamente para los intereses del cliente.</p>
+        <p>Nuestra meta es lograr que cada cliente opere su primer cierre contable en producción con cero incidencias
+          críticas, cero reportes manuales paralelos y total autonomía de su equipo interno.</p>
       </section>
 
       <section>
         <h2>Desglose Técnico de Capacidades y Modulación ERP</h2>
         <article>
           <h3>Gestión Financiera &amp; Contabilidad General (GL / AP / AR / FA / Cash Management)</h3>
-          <p>Modelado de libro mayor multi-moneda, reglas de contabilización complejas, consolidación contable automatizada, auxiliares de clientes y proveedores blindados con conciliación bancaria directa.</p>
+          <p>Modelado de libro mayor multi-moneda, reglas de contabilización complejas, consolidación contable
+            automatizada, auxiliares de clientes y proveedores blindados con conciliación bancaria directa.</p>
         </article>
         <article>
           <h3>Gestión de Cadena de Suministro (SCM, Procurement &amp; Order Management)</h3>
-          <p>Integración de órdenes de compra, control de inventarios multi-centro de distribución, catálogo de proveedores, requisiciones automáticas y trazabilidad de embarques y fletes.</p>
+          <p>Integración de órdenes de compra, control de inventarios multi-centro de distribución, catálogo de
+            proveedores, requisiciones automáticas y trazabilidad de embarques y fletes.</p>
         </article>
         <article>
           <h3>Facturación Masiva &amp; Cumplimiento Fiscal SAT CFDI 4.0 / Complemento Carta Porte</h3>
-          <p>Timbrado masivo de alta velocidad, generación de complementos de pago, trazabilidad de retenciones, conciliación de retenciones fiscales e integración directa con PACs de facturación autorizados.</p>
+          <p>Timbrado masivo de alta velocidad, generación de complementos de pago, trazabilidad de retenciones,
+            conciliación de retenciones fiscales e integración directa con PACs de facturación autorizados.</p>
         </article>
         <article>
           <h3>Infraestructura, Seguridad &amp; Alta Disponibilidad OCI (Oracle Cloud Infrastructure)</h3>
-          <p>Despliegue de arquitecturas de alta disponibilidad en Oracle Cloud Infrastructure (OCI), configuraciones de Disaster Recovery (RPO=0, RTO &lt; 15 min), encriptación de datos en reposito y tránsito, y monitoreo preventivo de desempeño.</p>
+          <p>Despliegue de arquitecturas de alta disponibilidad en Oracle Cloud Infrastructure (OCI), configuraciones de
+            Disaster Recovery (RPO=0, RTO &lt; 15 min), encriptación de datos en reposito y tránsito, y monitoreo
+            preventivo de desempeño.</p>
         </article>
       </section>
 
@@ -293,19 +394,27 @@
         <h2>Glosario Técnico de Arquitectura Oracle Fusion Cloud &amp; Definición de Estándares</h2>
         <article>
           <h3>Oracle Integration Cloud (OIC) &amp; Middlewares Empresariales</h3>
-          <p>Plataforma iPaaS líder para orquestar integraciones híbridas entre Oracle ERP Cloud y aplicaciones on-premise, bancos (SWIFT/Host-to-Host), facturadores fiscales (PAC) y soluciones de comercio electrónico mediante adaptadores REST, SOAP, FTP y cargadores masivos FBDI (File-Based Data Import).</p>
+          <p>Plataforma iPaaS líder para orquestar integraciones híbridas entre Oracle ERP Cloud y aplicaciones
+            on-premise, bancos (SWIFT/Host-to-Host), facturadores fiscales (PAC) y soluciones de comercio electrónico
+            mediante adaptadores REST, SOAP, FTP y cargadores masivos FBDI (File-Based Data Import).</p>
         </article>
         <article>
           <h3>OTBI (Oracle Transactional Business Intelligence) &amp; BI Publisher</h3>
-          <p>Motor de analítica operacional en tiempo real basado en modelos dimensionales de objetos de negocio. Permite construir dashboards ejecutivos, estados financieros consolidados, balanzas de comprobación y reportes regulatorios sin impactar el rendimiento transaccional de la base de datos.</p>
+          <p>Motor de analítica operacional en tiempo real basado en modelos dimensionales de objetos de negocio.
+            Permite construir dashboards ejecutivos, estados financieros consolidados, balanzas de comprobación y
+            reportes regulatorios sin impactar el rendimiento transaccional de la base de datos.</p>
         </article>
         <article>
           <h3>Subledger Accounting (SLA) &amp; Central de Reglas Contables</h3>
-          <p>Motor de reglas de contabilización configurable que traduce eventos transaccionales de módulos auxiliares (Facturación, Cobros, Compras, Pagos, Inventarios) en asientos contables detallados para el Libro Mayor (GL), asegurando trazabilidad y cumplimiento bajo IFRS y NIF locales.</p>
+          <p>Motor de reglas de contabilización configurable que traduce eventos transaccionales de módulos auxiliares
+            (Facturación, Cobros, Compras, Pagos, Inventarios) en asientos contables detallados para el Libro Mayor
+            (GL), asegurando trazabilidad y cumplimiento bajo IFRS y NIF locales.</p>
         </article>
         <article>
           <h3>Cierre Contable Mensual &amp; Conciliación Auxiliar vs Libro Mayor</h3>
-          <p>Metodología de validación de balances donde cada auxiliar transaccional (Cuentas por Pagar - AP, Cuentas por Cobrar - AR, Activos Fijos - FA, Inventarios - INV) cuadra al 100% con las cuentas de control del Libro Mayor (GL) antes de ejecutar el cierre del periodo fiscal.</p>
+          <p>Metodología de validación de balances donde cada auxiliar transaccional (Cuentas por Pagar - AP, Cuentas
+            por Cobrar - AR, Activos Fijos - FA, Inventarios - INV) cuadra al 100% con las cuentas de control del Libro
+            Mayor (GL) antes de ejecutar el cierre del periodo fiscal.</p>
         </article>
       </section>
 
@@ -314,38 +423,50 @@
         <article>
           <h3>Dimensión 1: Procesos &amp; Gobernanza</h3>
           <ol>
-            <li>¿Tu equipo logra ejecutar el cierre contable mensual en producción dentro de los primeros 3 días hábiles del mes?</li>
-            <li>¿Las pólizas manuales de ajuste representan menos del 5% del total de transacciones registradas en el Libro Mayor?</li>
-            <li>¿Los periodos contables de módulos auxiliares (AP, AR, FA) se cierran sin discrepancias pendientes de conciliación?</li>
+            <li>¿Tu equipo logra ejecutar el cierre contable mensual en producción dentro de los primeros 3 días hábiles
+              del mes?</li>
+            <li>¿Las pólizas manuales de ajuste representan menos del 5% del total de transacciones registradas en el
+              Libro Mayor?</li>
+            <li>¿Los periodos contables de módulos auxiliares (AP, AR, FA) se cierran sin discrepancias pendientes de
+              conciliación?</li>
           </ol>
         </article>
         <article>
           <h3>Dimensión 2: Finanzas &amp; Reporting</h3>
           <ol>
-            <li>¿La balanza de comprobación y los estados financieros consolidados se obtienen directamente de OTBI / BI Publisher sin manipulación externa en hojas de cálculo?</li>
-            <li>¿Las conciliaciones bancarias se ejecutan de manera automatizada mediante extractos bancarios electrónicos (MT940 / CAMT.053)?</li>
-            <li>¿Los reportes fiscales de retenciones e impuestos se generan automáticamente desde la plataforma ERP?</li>
+            <li>¿La balanza de comprobación y los estados financieros consolidados se obtienen directamente de OTBI / BI
+              Publisher sin manipulación externa en hojas de cálculo?</li>
+            <li>¿Las conciliaciones bancarias se ejecutan de manera automatizada mediante extractos bancarios
+              electrónicos (MT940 / CAMT.053)?</li>
+            <li>¿Los reportes fiscales de retenciones e impuestos se generan automáticamente desde la plataforma ERP?
+            </li>
           </ol>
         </article>
         <article>
           <h3>Dimensión 3: Datos &amp; Migración</h3>
           <ol>
-            <li>¿El catálogo maestro de proveedores y clientes cuenta con validación RFC/SAT activa sin duplicados ni registros incompletos?</li>
-            <li>¿Los saldos iniciales de cartera y cuentas por pagar migrados coinciden al 100% con los auxiliares históricos auditados?</li>
-            <li>¿El catálogo de activos fijos cuenta con depreciation books correctamente configurados y activos asignados a centros de costo válidos?</li>
+            <li>¿El catálogo maestro de proveedores y clientes cuenta con validación RFC/SAT activa sin duplicados ni
+              registros incompletos?</li>
+            <li>¿Los saldos iniciales de cartera y cuentas por pagar migrados coinciden al 100% con los auxiliares
+              históricos auditados?</li>
+            <li>¿El catálogo de activos fijos cuenta con depreciation books correctamente configurados y activos
+              asignados a centros de costo válidos?</li>
           </ol>
         </article>
         <article>
           <h3>Dimensión 4: Integraciones &amp; Arquitectura</h3>
-          <p>Evaluación de la tasa de fallos en llamadas API REST/SOAP, cola de procesamiento de archivos FBDI y monitoreo de errores en Oracle Integration Cloud (OIC).</p>
+          <p>Evaluación de la tasa de fallos en llamadas API REST/SOAP, cola de procesamiento de archivos FBDI y
+            monitoreo de errores en Oracle Integration Cloud (OIC).</p>
         </article>
         <article>
           <h3>Dimensión 5: Adopción &amp; Capacitación</h3>
-          <p>Medición del nivel de autonomía de los usuarios operativos en la creación de requisiciones, aprobación de facturas y consultas diarias sin requerir soporte constante.</p>
+          <p>Medición del nivel de autonomía de los usuarios operativos en la creación de requisiciones, aprobación de
+            facturas y consultas diarias sin requerir soporte constante.</p>
         </article>
         <article>
           <h3>Dimensión 6: Soporte &amp; SLA</h3>
-          <p>Verificación del cumplimiento de SLA en la atención de incidentes bloqueantes de producción y resolución efectiva en parches trimestrales de Oracle Cloud.</p>
+          <p>Verificación del cumplimiento de SLA en la atención de incidentes bloqueantes de producción y resolución
+            efectiva en parches trimestrales de Oracle Cloud.</p>
         </article>
       </section>
 
@@ -354,56 +475,90 @@
         <article>
           <h3>Sección A: Metodología y Entregables en Primer Ciclo Crítico (Preguntas 1 - 10)</h3>
           <ul>
-            <li>1. ¿El proveedor garantiza la permanencia física y remota de ingenieros senior durante el primer cierre contable post go-live?</li>
+            <li>1. ¿El proveedor garantiza la permanencia física y remota de ingenieros senior durante el primer cierre
+              contable post go-live?</li>
             <li>2. ¿Cuál es la definición contractual de "Go-Live Exitoso" utilizada por el proveedor?</li>
-            <li>3. ¿El contrato incluye penalizaciones económicas si el primer cierre contable se retrasa por fallos de configuración?</li>
-            <li>4. ¿Qué entregables de documentación técnica viva (runbooks, diagramas de arquitectura, scripts OIC) se transfieren al cliente?</li>
-            <li>5. ¿Cómo se gestionan los incidentes bloqueantes (P1) durante las primeras 12 semanas en producción?</li>
-            <li>6. ¿Qué porcentaje del equipo asignado estará dedicado 100% en exclusiva a la fase de estabilización?</li>
-            <li>7. ¿Existe una garantía escrita de cero reportes paralelos fuera del ERP tras el primer ciclo crítico?</li>
+            <li>3. ¿El contrato incluye penalizaciones económicas si el primer cierre contable se retrasa por fallos de
+              configuración?</li>
+            <li>4. ¿Qué entregables de documentación técnica viva (runbooks, diagramas de arquitectura, scripts OIC) se
+              transfieren al cliente?</li>
+            <li>5. ¿Cómo se gestionan los incidentes bloqueantes (P1) durante las primeras 12 semanas en producción?
+            </li>
+            <li>6. ¿Qué porcentaje del equipo asignado estará dedicado 100% en exclusiva a la fase de estabilización?
+            </li>
+            <li>7. ¿Existe una garantía escrita de cero reportes paralelos fuera del ERP tras el primer ciclo crítico?
+            </li>
             <li>8. ¿Cuál es el proceso formal de firma de acta de acreditación y entrega final del proyecto?</li>
-            <li>9. ¿Cómo se coordinan las actividades de prueba integral UAT con las áreas contables y operativas del cliente?</li>
-            <li>10. ¿Qué mecanismo de gobernanza semanal se establece entre los ejecutivos C-level y la dirección técnica del proyecto?</li>
+            <li>9. ¿Cómo se coordinan las actividades de prueba integral UAT con las áreas contables y operativas del
+              cliente?</li>
+            <li>10. ¿Qué mecanismo de gobernanza semanal se establece entre los ejecutivos C-level y la dirección
+              técnica del proyecto?</li>
           </ul>
         </article>
         <article>
           <h3>Sección B: Experiencia Certificada &amp; Arquitectura OCI / Integraciones (Preguntas 11 - 25)</h3>
           <ul>
-            <li>11. ¿Cuál es la antigüedad promedio y años de experiencia directa en Oracle Fusion Cloud del personal asignado?</li>
-            <li>12. ¿El proveedor cuenta con especialistas en reglas de contabilización Subledger Accounting (SLA) para Financials?</li>
-            <li>13. ¿Cómo se asegura la compatibilidad de timbrado masivo SAT CFDI 4.0 bajo volúmenes superiores a 50,000 comprobantes/hora?</li>
-            <li>14. ¿Qué estrategias de recuperación ante desastres (Disaster Recovery) y RPO/RTO se implementan en OCI?</li>
-            <li>15. ¿Cómo se gestiona el cifrado de datos sensibles en tránsito y reposo dentro de la arquitectura de integración OIC?</li>
-            <li>16. ¿Cuál es la tasa histórica de éxito en migraciones de datos maestros y saldos iniciales en proyectos similares?</li>
+            <li>11. ¿Cuál es la antigüedad promedio y años de experiencia directa en Oracle Fusion Cloud del personal
+              asignado?</li>
+            <li>12. ¿El proveedor cuenta con especialistas en reglas de contabilización Subledger Accounting (SLA) para
+              Financials?</li>
+            <li>13. ¿Cómo se asegura la compatibilidad de timbrado masivo SAT CFDI 4.0 bajo volúmenes superiores a
+              50,000 comprobantes/hora?</li>
+            <li>14. ¿Qué estrategias de recuperación ante desastres (Disaster Recovery) y RPO/RTO se implementan en OCI?
+            </li>
+            <li>15. ¿Cómo se gestiona el cifrado de datos sensibles en tránsito y reposo dentro de la arquitectura de
+              integración OIC?</li>
+            <li>16. ¿Cuál es la tasa histórica de éxito en migraciones de datos maestros y saldos iniciales en proyectos
+              similares?</li>
             <li>17. ¿Se entregan scripts reutilizables de extracción y validación de datos para auditorías futuras?</li>
-            <li>18. ¿Cómo se manejan los parches trimestrales obligatorios de Oracle (Quarterly Updates) durante la fase de proyecto?</li>
+            <li>18. ¿Cómo se manejan los parches trimestrales obligatorios de Oracle (Quarterly Updates) durante la fase
+              de proyecto?</li>
           </ul>
         </article>
         <article>
           <h3>Sección C: Modelo Comercial Fixed-Price &amp; Garantías (Preguntas 26 - 47)</h3>
           <ul>
-            <li>26. ¿El modelo comercial opera bajo esquema de precio cerrado (Fixed-Price) por entregable validado?</li>
-            <li>27. ¿Qué sucede si se requieren horas adicionales de consultoría para alcanzar la estabilización pactada?</li>
-            <li>28. ¿Existen costos adicionales por licencias de middleware o conectores de terceros no especificados inicialmente?</li>
+            <li>26. ¿El modelo comercial opera bajo esquema de precio cerrado (Fixed-Price) por entregable validado?
+            </li>
+            <li>27. ¿Qué sucede si se requieren horas adicionales de consultoría para alcanzar la estabilización
+              pactada?</li>
+            <li>28. ¿Existen costos adicionales por licencias de middleware o conectores de terceros no especificados
+              inicialmente?</li>
             <li>29. ¿Cuál es la estructura de hitos de pago ligada al cumplimiento del primer cierre contable?</li>
-            <li>30. Cláusulas de confidencialidad NDA y propiedad intelectual sobre desarrollos a medida e integraciones.</li>
-            <li>31. ¿El proveedor ofrece garantías escritas de rendimiento de base de datos y tiempo de respuesta en consultas OTBI?</li>
-            <li>32. ¿Cómo se gestionan las migraciones de datos de prueba en ambientes Sandbox y Test antes del pase a Producción?</li>
-            <li>33. ¿Cuáles son los protocolos de seguridad y control de acceso por roles (RBAC) aplicados en el ERP?</li>
-            <li>34. ¿Qué plan de capacitación y transferencia de conocimiento formal se entrega a los usuarios finales?</li>
+            <li>30. Cláusulas de confidencialidad NDA y propiedad intelectual sobre desarrollos a medida e
+              integraciones.</li>
+            <li>31. ¿El proveedor ofrece garantías escritas de rendimiento de base de datos y tiempo de respuesta en
+              consultas OTBI?</li>
+            <li>32. ¿Cómo se gestionan las migraciones de datos de prueba en ambientes Sandbox y Test antes del pase a
+              Producción?</li>
+            <li>33. ¿Cuáles son los protocolos de seguridad y control de acceso por roles (RBAC) aplicados en el ERP?
+            </li>
+            <li>34. ¿Qué plan de capacitación y transferencia de conocimiento formal se entrega a los usuarios finales?
+            </li>
             <li>35. ¿Se incluye soporte continuo para la atención de auditorías externas e inspecciones fiscales?</li>
-            <li>36. ¿El proveedor cuenta con certificaciones oficiales de arquitectura en Oracle Cloud Infrastructure (OCI)?</li>
-            <li>37. ¿Cómo se resuelven los cuellos de botella en la ejecución de procesos de cierre nocturno o masivos?</li>
-            <li>38. ¿Qué herramientas de monitoreo y alertas automatizadas se configuran para detectar fallos en integraciones OIC?</li>
-            <li>39. ¿El contrato especifica la permanencia del mismo equipo técnico durante todo el ciclo del proyecto?</li>
-            <li>40. ¿Cómo se asegura la integridad referencial y conciliación del auxiliar de activos fijos con el libro mayor?</li>
-            <li>41. ¿Se incluye asesoría técnica en la negociación o consumo eficiente de créditos de nube con el vendor?</li>
-            <li>42. ¿Cuál es la política de respuesta y tiempo máximo de resolución para incidentes de severidad media (P2) y baja (P3)?</li>
-            <li>43. ¿Cómo se administran los respaldos de configuración y personalizaciones de BI Publisher ante parches trimestrales?</li>
+            <li>36. ¿El proveedor cuenta con certificaciones oficiales de arquitectura en Oracle Cloud Infrastructure
+              (OCI)?</li>
+            <li>37. ¿Cómo se resuelven los cuellos de botella en la ejecución de procesos de cierre nocturno o masivos?
+            </li>
+            <li>38. ¿Qué herramientas de monitoreo y alertas automatizadas se configuran para detectar fallos en
+              integraciones OIC?</li>
+            <li>39. ¿El contrato especifica la permanencia del mismo equipo técnico durante todo el ciclo del proyecto?
+            </li>
+            <li>40. ¿Cómo se asegura la integridad referencial y conciliación del auxiliar de activos fijos con el libro
+              mayor?</li>
+            <li>41. ¿Se incluye asesoría técnica en la negociación o consumo eficiente de créditos de nube con el
+              vendor?</li>
+            <li>42. ¿Cuál es la política de respuesta y tiempo máximo de resolución para incidentes de severidad media
+              (P2) y baja (P3)?</li>
+            <li>43. ¿Cómo se administran los respaldos de configuración y personalizaciones de BI Publisher ante parches
+              trimestrales?</li>
             <li>44. ¿Qué metodología de pruebas de estrés y carga masiva se realiza antes de autorizar el go-live?</li>
-            <li>45. ¿El proveedor entrega manuales de procedimiento paso a paso para la operación diaria de cada módulo?</li>
-            <li>46. ¿Existe un canal de comunicación directo 24/7 con los Ingenieros Principales para situaciones de emergencia?</li>
-            <li>47. ¿Cuál es el compromiso formal de FABRIC para acompañar a la organización hasta el éxito auditado del primer cierre contable?</li>
+            <li>45. ¿El proveedor entrega manuales de procedimiento paso a paso para la operación diaria de cada módulo?
+            </li>
+            <li>46. ¿Existe un canal de comunicación directo 24/7 con los Ingenieros Principales para situaciones de
+              emergencia?</li>
+            <li>47. ¿Cuál es el compromiso formal de FABRIC para acompañar a la organización hasta el éxito auditado del
+              primer cierre contable?</li>
           </ul>
         </article>
       </section>
@@ -412,16 +567,30 @@
         <h2>Documentación Extensa de las Herramientas Ejecutivas &amp; Rescue Framework</h2>
         <article>
           <h3>Guía Detallada del Evaluador FABRIC Fusion Rescue Health Check™</h3>
-          <p>El FABRIC Fusion Rescue Health Check™ es una herramienta de diagnóstico en tiempo real diseñada para directores de finanzas (CFO), directores de tecnología (CIO) y líderes de proyecto ERP que enfrentan inestabilidad tras el go-live de Oracle Fusion Cloud. A través de un análisis cuantitativo de 18 variables críticas, la herramienta determina de forma automatizada si la implementación se encuentra en zona verde (estable), amarilla (riesgo moderado) o roja (intervención crítica urgente).</p>
-          <p>La herramienta evalúa la salud operacional en seis ejes estratégicos: Gobernanza de cierres contables, independencia de reportes ejecutivos, consistencia de datos maestros migrados, confiabilidad de interfaces de integración OIC y SAT CFDI 4.0, velocidad de adopción de los usuarios operativos y nivel de cumplimiento de SLA del equipo de soporte.</p>
+          <p>El FABRIC Fusion Rescue Health Check™ es una herramienta de diagnóstico en tiempo real diseñada para
+            directores de finanzas (CFO), directores de tecnología (CIO) y líderes de proyecto ERP que enfrentan
+            inestabilidad tras el go-live de Oracle Fusion Cloud. A través de un análisis cuantitativo de 18 variables
+            críticas, la herramienta determina de forma automatizada si la implementación se encuentra en zona verde
+            (estable), amarilla (riesgo moderado) o roja (intervención crítica urgente).</p>
+          <p>La herramienta evalúa la salud operacional en seis ejes estratégicos: Gobernanza de cierres contables,
+            independencia de reportes ejecutivos, consistencia de datos maestros migrados, confiabilidad de interfaces
+            de integración OIC y SAT CFDI 4.0, velocidad de adopción de los usuarios operativos y nivel de cumplimiento
+            de SLA del equipo de soporte.</p>
         </article>
         <article>
           <h3>Manual Técnico del Optimizador de Nube OCI (Oracle Cloud Infrastructure)</h3>
-          <p>El Optimizador OCI analiza la arquitectura de infraestructura alojada en Oracle Cloud Infrastructure para detectar ineficiencias de gasto en instancias Compute, volúmenes de disco Block Volumes, almacenamiento de objetos Object Storage y transferencias de datos salientes (Data Egress). Permite identificar recursos no utilizados, adaptar el dimensionamiento de servidores (rightsizing) y evaluar el impacto financiero del programa BYOL (Bring Your Own License) e instancias reservadas.</p>
+          <p>El Optimizador OCI analiza la arquitectura de infraestructura alojada en Oracle Cloud Infrastructure para
+            detectar ineficiencias de gasto en instancias Compute, volúmenes de disco Block Volumes, almacenamiento de
+            objetos Object Storage y transferencias de datos salientes (Data Egress). Permite identificar recursos no
+            utilizados, adaptar el dimensionamiento de servidores (rightsizing) y evaluar el impacto financiero del
+            programa BYOL (Bring Your Own License) e instancias reservadas.</p>
         </article>
         <article>
           <h3>Metodología del Oracle Migration Roadmap &amp; Readiness Assessment</h3>
-          <p>El Oracle Migration Roadmap establece una guía paso a paso para planificar la transición de sistemas ERP legacy (SAP ECC, SAP S/4HANA, Oracle EBS R12, JD Edwards, AS400) hacia la suite Oracle Fusion Cloud SaaS. Divide la trayectoria en 5 fases secuenciales con hitos de control de calidad, mitigación de riesgos de negocio y criterios de aceptación obligatorios antes de proceder con la puesta en marcha en producción.</p>
+          <p>El Oracle Migration Roadmap establece una guía paso a paso para planificar la transición de sistemas ERP
+            legacy (SAP ECC, SAP S/4HANA, Oracle EBS R12, JD Edwards, AS400) hacia la suite Oracle Fusion Cloud SaaS.
+            Divide la trayectoria en 5 fases secuenciales con hitos de control de calidad, mitigación de riesgos de
+            negocio y criterios de aceptación obligatorios antes de proceder con la puesta en marcha en producción.</p>
         </article>
       </section>
 
@@ -429,11 +598,15 @@
         <h2>Escenarios de Migración a la Nube &amp; Casos de Uso por Industria</h2>
         <article>
           <h3>Escenario 1: Migración desde SAP ECC / S4 HANA a Oracle Fusion Cloud</h3>
-          <p>Mapeo completo de estructuras organizacionales de SAP (Sociedades, Divisiones, Centros de Beneficio) a la Jerarquía de Entidades Legales y Libro Mayor de Oracle (Chart of Accounts &amp; Ledgers). Conversión automatizada de datos maestros de clientes y proveedores con enriquecimiento fiscal SAT.</p>
+          <p>Mapeo completo de estructuras organizacionales de SAP (Sociedades, Divisiones, Centros de Beneficio) a la
+            Jerarquía de Entidades Legales y Libro Mayor de Oracle (Chart of Accounts &amp; Ledgers). Conversión
+            automatizada de datos maestros de clientes y proveedores con enriquecimiento fiscal SAT.</p>
         </article>
         <article>
           <h3>Escenario 2: Modernización de Oracle EBS R12 / JD Edwards a SaaS</h3>
-          <p>Estrategia Co-Existence o Migración Limpia (Clean Core). Evaluación de desarrollos CEMLI heredados en EBS para su sustitución por capacidades nativas de Oracle Fusion Cloud y extensiones en Oracle Visual Builder / PaaS.</p>
+          <p>Estrategia Co-Existence o Migración Limpia (Clean Core). Evaluación de desarrollos CEMLI heredados en EBS
+            para su sustitución por capacidades nativas de Oracle Fusion Cloud y extensiones en Oracle Visual Builder /
+            PaaS.</p>
         </article>
       </section>
 
@@ -476,15 +649,23 @@
         <h2>Manual de Operaciones de Soporte Especializado L1, L2 y L3 Oracle Fusion Cloud</h2>
         <article>
           <h3>Soporte Nivel 1 (L1) — Service Desk &amp; Atención a Usuarios Finales</h3>
-          <p>Atención de incidentes operativos básicos, desbloqueo de usuarios en Oracle Identity Cloud Service (IDCS / IAM), reinicio de credenciales, guía en la captura de requisiciones de compra, registro de facturas de proveedores y navegación general en la interfaz Fusion UX.</p>
+          <p>Atención de incidentes operativos básicos, desbloqueo de usuarios en Oracle Identity Cloud Service (IDCS /
+            IAM), reinicio de credenciales, guía en la captura de requisiciones de compra, registro de facturas de
+            proveedores y navegación general en la interfaz Fusion UX.</p>
         </article>
         <article>
           <h3>Soporte Nivel 2 (L2) — Especialistas de Módulo &amp; Diagnóstico de Procesos</h3>
-          <p>Resolución de errores de contabilización en Subledger Accounting (SLA), corrección de pólizas rechazadas, resolución de excepciones en cierres de periodo de Cuentas por Pagar (AP) y Cuentas por Cobrar (AR), configuración de flujos aprobatorios BPM (Business Process Management) y calibración de reglas de conciliación bancaria.</p>
+          <p>Resolución de errores de contabilización en Subledger Accounting (SLA), corrección de pólizas rechazadas,
+            resolución de excepciones en cierres de periodo de Cuentas por Pagar (AP) y Cuentas por Cobrar (AR),
+            configuración de flujos aprobatorios BPM (Business Process Management) y calibración de reglas de
+            conciliación bancaria.</p>
         </article>
         <article>
           <h3>Soporte Nivel 3 (L3) — Ingeniería Crítica, OIC &amp; Base de Datos</h3>
-          <p>Diagnóstico de fallos en desarrollos OIC, depuración de llamadas API REST/SOAP, corrección de plantillas de impresión BI Publisher, análisis de rendimiento de consultas SQL en base de datos Oracle Database Cloud, atención de parches trimestrales (Quarterly Updates) y remediación de incidentes bloqueantes en el Cierre Contable Mensual.</p>
+          <p>Diagnóstico de fallos en desarrollos OIC, depuración de llamadas API REST/SOAP, corrección de plantillas de
+            impresión BI Publisher, análisis de rendimiento de consultas SQL en base de datos Oracle Database Cloud,
+            atención de parches trimestrales (Quarterly Updates) y remediación de incidentes bloqueantes en el Cierre
+            Contable Mensual.</p>
         </article>
       </section>
 
@@ -492,7 +673,10 @@
         <h2>Especificaciones Técnicas del Conector Fiscal SAT CFDI 4.0 &amp; Carta Porte</h2>
         <article>
           <h3>Arquitectura de Timbrado Masivo de Alta Velocidad</h3>
-          <p>El Conector Fiscal FABRIC para Oracle Fusion Cloud permite la extracción automatizada de transacciones de facturación desde AR (Cuentas por Cobrar) y Billing, validación de esquemas XML contra las matrices de validación del SAT, timbrado masivo mediante PACs redundantes con concurrencia multihilo, adjunción de archivos XML y PDF en el ERP y distribución automática por correo electrónico a clientes finales.</p>
+          <p>El Conector Fiscal FABRIC para Oracle Fusion Cloud permite la extracción automatizada de transacciones de
+            facturación desde AR (Cuentas por Cobrar) y Billing, validación de esquemas XML contra las matrices de
+            validación del SAT, timbrado masivo mediante PACs redundantes con concurrencia multihilo, adjunción de
+            archivos XML y PDF en el ERP y distribución automática por correo electrónico a clientes finales.</p>
           <ul>
             <li>Capacidad de timbrado probada: Hasta 100,000 comprobantes fiscales por hora.</li>
             <li>Generación de Complemento de Pago CFDI 2.0 con conciliación de bancosa auxiliares.</li>
@@ -506,35 +690,64 @@
         <h2>Base de Conocimiento Técnica Extendida — Arquitectura Oracle Fusion Cloud ERP &amp; PaaS</h2>
         <article>
           <h3>Módulo 1: Oracle Financials Cloud (GL, AP, AR, FA, Cash Management, Tax)</h3>
-          <p>La suite financiera de Oracle Fusion Cloud constituye el núcleo contable transaccional. Ofrece soporte para contabilidad multi-libro (Primary, Secondary y Reporting Currency Ledgers), reglas de contabilización complejas configuradas en Subledger Accounting (SLA), catálogo de cuentas flexible (Chart of Accounts) de hasta 30 segmentos con validación de combinaciones en tiempo real (Cross-Validation Rules), y conciliaciones bancarias automatizadas con extractos bancarios MT940 y CAMT.053.</p>
-          <p>Características avanzadas: Control de presupuestos en tiempo real (Encumbrance Accounting &amp; Budgetary Control), gestión automatizada de activos fijos con libros fiscales y contables paralelos, revaluación multi-moneda periódica y consolidación contable multi-compañía automatizada.</p>
+          <p>La suite financiera de Oracle Fusion Cloud constituye el núcleo contable transaccional. Ofrece soporte para
+            contabilidad multi-libro (Primary, Secondary y Reporting Currency Ledgers), reglas de contabilización
+            complejas configuradas en Subledger Accounting (SLA), catálogo de cuentas flexible (Chart of Accounts) de
+            hasta 30 segmentos con validación de combinaciones en tiempo real (Cross-Validation Rules), y conciliaciones
+            bancarias automatizadas con extractos bancarios MT940 y CAMT.053.</p>
+          <p>Características avanzadas: Control de presupuestos en tiempo real (Encumbrance Accounting &amp; Budgetary
+            Control), gestión automatizada de activos fijos con libros fiscales y contables paralelos, revaluación
+            multi-moneda periódica y consolidación contable multi-compañía automatizada.</p>
         </article>
         <article>
           <h3>Módulo 2: Oracle Supply Chain &amp; Order Management (SCM, Procurement, Inventory)</h3>
-          <p>Módulo para la gestión integral del ciclo Procure-to-Pay (P2P) y Order-to-Cash (O2C). Incluye la administración centralizada de requisiciones de compra, órdenes de compra con flujos de aprobación multinivel, recepción de mercancías, control de inventario en múltiples almacenes (Subinventarios y Localizadores), conteos cíclicos y trazabilidad de embarques.</p>
+          <p>Módulo para la gestión integral del ciclo Procure-to-Pay (P2P) y Order-to-Cash (O2C). Incluye la
+            administración centralizada de requisiciones de compra, órdenes de compra con flujos de aprobación
+            multinivel, recepción de mercancías, control de inventario en múltiples almacenes (Subinventarios y
+            Localizadores), conteos cíclicos y trazabilidad de embarques.</p>
         </article>
         <article>
           <h3>Módulo 3: Oracle Integration Cloud (OIC) &amp; Middleware PaaS</h3>
-          <p>Orquestador empresarial que conecta Oracle Fusion Cloud con aplicaciones legacy, bancos, sistemas de punto de venta (POS) y PACs de facturación. Ofrece conectores nativos pre-construidos para sistemas ERP, bases de datos (Oracle, SQL Server, PostgreSQL), almacenamiento en la nube (OCI Object Storage, AWS S3) y servidores SFTP seguros.</p>
+          <p>Orquestador empresarial que conecta Oracle Fusion Cloud con aplicaciones legacy, bancos, sistemas de punto
+            de venta (POS) y PACs de facturación. Ofrece conectores nativos pre-construidos para sistemas ERP, bases de
+            datos (Oracle, SQL Server, PostgreSQL), almacenamiento en la nube (OCI Object Storage, AWS S3) y servidores
+            SFTP seguros.</p>
         </article>
         <article>
           <h3>Módulo 4: Oracle Cloud Infrastructure (OCI) &amp; Alta Disponibilidad</h3>
-          <p>Infraestructura en la nube de segunda generación (Gen 2 OCI) diseñada para cargas de trabajo de misión crítica empresarial. Ofrece arquitectura de red aislada (Virtual Cloud Network - VCN), almacenamiento de alto rendimiento en bloque (Block Volumes con hasta 300,000 IOPS), base de datos autónoma (Autonomous Database / Autonomous Transaction Processing) y esquemas de recuperación ante desastres (Disaster Recovery / Real Application Clusters RAC) con RPO=0 y RTO menor a 15 minutos.</p>
+          <p>Infraestructura en la nube de segunda generación (Gen 2 OCI) diseñada para cargas de trabajo de misión
+            crítica empresarial. Ofrece arquitectura de red aislada (Virtual Cloud Network - VCN), almacenamiento de
+            alto rendimiento en bloque (Block Volumes con hasta 300,000 IOPS), base de datos autónoma (Autonomous
+            Database / Autonomous Transaction Processing) y esquemas de recuperación ante desastres (Disaster Recovery /
+            Real Application Clusters RAC) con RPO=0 y RTO menor a 15 minutos.</p>
         </article>
         <article>
           <h3>Módulo 5: Analítica Operacional OTBI, BI Publisher &amp; Fusion Data Intelligence (FDI)</h3>
-          <p>Plataforma integrada de reportes e inteligencia de negocios. OTBI permite la creación de consultas ad-hoc directas sobre los objetos de negocio transaccionales con actualización inmediata. BI Publisher facilita la generación de formatos imprimibles de alta fidelidad (facturas, órdenes de compra, cheques, estados de cuenta) en formatos PDF, Excel, XML y HTML.</p>
+          <p>Plataforma integrada de reportes e inteligencia de negocios. OTBI permite la creación de consultas ad-hoc
+            directas sobre los objetos de negocio transaccionales con actualización inmediata. BI Publisher facilita la
+            generación de formatos imprimibles de alta fidelidad (facturas, órdenes de compra, cheques, estados de
+            cuenta) en formatos PDF, Excel, XML y HTML.</p>
         </article>
       </section>
 
       <section>
         <h2>Metodología de Remediación y Rescate FABRIC Fusion Rescue™ (5 Pasos)</h2>
         <ol>
-          <li><strong>Paso 1: Auditoría Técnica Express (Días 1 a 5):</strong> Inspección intensiva de la configuración del ERP, reglas contables SLA, catálogo de cuentas, errores en ejecuciones de cierres y logs de integraciones OIC. Identificación inmediata de bloqueos y riesgos en el cierre contable.</li>
-          <li><strong>Paso 2: Plan de Remediación e Intervención Inmediata (Semanas 2 y 3):</strong> Corrección de errores críticos en reglas de contabilización, desbloqueo de pólizas atascadas, estabilización de interfaces de facturación CFDI y ajuste de flujos de aprobación.</li>
-          <li><strong>Paso 3: Simulacro de Cierre Contable en Ambiente Sandbox (Semana 4):</strong> Ejecución de un ensayo general de cierre de periodo en un ambiente de prueba con datos reales, validando la balanza de comprobación y la conciliación de auxiliares.</li>
-          <li><strong>Paso 4: Acompañamiento en Sitio durante el Cierre Contable Real (Semana 5 y 6):</strong> Presencia física y remota dedicada de Ingenieros Principales Senior durante el primer cierre en producción, garantizando cero retrasos y respuesta inmediata ante cualquier excepción.</li>
-          <li><strong>Paso 5: Transferencia de Conocimiento y Entrega de Documentación Viva (Semana 7 y 8):</strong> Capacitación de usuarios superusers, entrega de runbooks operativos y firma del acta formal de acreditación sin dependencia del proveedor.</li>
+          <li><strong>Paso 1: Auditoría Técnica Express (Días 1 a 5):</strong> Inspección intensiva de la configuración
+            del ERP, reglas contables SLA, catálogo de cuentas, errores en ejecuciones de cierres y logs de
+            integraciones OIC. Identificación inmediata de bloqueos y riesgos en el cierre contable.</li>
+          <li><strong>Paso 2: Plan de Remediación e Intervención Inmediata (Semanas 2 y 3):</strong> Corrección de
+            errores críticos en reglas de contabilización, desbloqueo de pólizas atascadas, estabilización de interfaces
+            de facturación CFDI y ajuste de flujos de aprobación.</li>
+          <li><strong>Paso 3: Simulacro de Cierre Contable en Ambiente Sandbox (Semana 4):</strong> Ejecución de un
+            ensayo general de cierre de periodo en un ambiente de prueba con datos reales, validando la balanza de
+            comprobación y la conciliación de auxiliares.</li>
+          <li><strong>Paso 4: Acompañamiento en Sitio durante el Cierre Contable Real (Semana 5 y 6):</strong> Presencia
+            física y remota dedicada de Ingenieros Principales Senior durante el primer cierre en producción,
+            garantizando cero retrasos y respuesta inmediata ante cualquier excepción.</li>
+          <li><strong>Paso 5: Transferencia de Conocimiento y Entrega de Documentación Viva (Semana 7 y 8):</strong>
+            Capacitación de usuarios superusers, entrega de runbooks operativos y firma del acta formal de acreditación
+            sin dependencia del proveedor.</li>
         </ol>
       </section>
 
@@ -542,24 +755,47 @@
         <h2>Especificación Matemática &amp; Algorítmica del Simulador Financiero ERP TCO</h2>
         <article>
           <h3>Modelado Algorítmico del Costo Total de Propiedad (TCO)</h3>
-          <p>El Simulador Financiero ERP TCO desarrollado por FABRIC aplica un modelo de cálculo determinista para comparar el costo acumulado a 3, 5 y 10 años entre sistemas ERP heredados (On-Premise o hosted) y la suite Oracle Fusion Cloud SaaS.</p>
+          <p>El Simulador Financiero ERP TCO desarrollado por FABRIC aplica un modelo de cálculo determinista para
+            comparar el costo acumulado a 3, 5 y 10 años entre sistemas ERP heredados (On-Premise o hosted) y la suite
+            Oracle Fusion Cloud SaaS.</p>
           <h4>Fórmulas y Variables Financieras Evaluadas:</h4>
           <ul>
-            <li><strong>Cálculo de Tarifa SaaS Oracle Fusion Cloud:</strong> <code>Licensing_Annual = Users * $425 USD * 12 meses</code>.</li>
-            <li><strong>Cálculo de Consultoría L3 y Soporte Crítico:</strong> <code>Consulting_Annual = Hours_L3_Monthly * 12 * $180 USD</code>.</li>
-            <li><strong>Cálculo de Mantenimiento Anual ERP Perpetuo (SAP ECC / EBS / JDE):</strong> <code>Support_Annual = Initial_License_Value * 22%</code>.</li>
-            <li><strong>Cálculo de Infraestructura Física &amp; Data Center:</strong> Suma anualizada de costos de hardware, servidores de cómputo, arreglos SAN/NAS, licencias de sistema operativo (Windows Server / Red Hat Enterprise Linux), hipervisores (VMware) y licencias de base de datos relacional (Oracle Database / SAP HANA / MS SQL Server).</li>
-            <li><strong>Cálculo del Retorno de Inversión (ROI) y Punto de Equilibrio (Break-Even Month):</strong> Evaluación mensual acumulada del flujo de caja (Cash Flow) descontando el costo de la migración en la fase de proyecto frente al ahorro operativo mensual recurrente generado.</li>
+            <li><strong>Cálculo de Tarifa SaaS Oracle Fusion Cloud:</strong>
+              <code>Licensing_Annual = Users * $425 USD * 12 meses</code>.</li>
+            <li><strong>Cálculo de Consultoría L3 y Soporte Crítico:</strong>
+              <code>Consulting_Annual = Hours_L3_Monthly * 12 * $180 USD</code>.</li>
+            <li><strong>Cálculo de Mantenimiento Anual ERP Perpetuo (SAP ECC / EBS / JDE):</strong>
+              <code>Support_Annual = Initial_License_Value * 22%</code>.</li>
+            <li><strong>Cálculo de Infraestructura Física &amp; Data Center:</strong> Suma anualizada de costos de
+              hardware, servidores de cómputo, arreglos SAN/NAS, licencias de sistema operativo (Windows Server / Red
+              Hat Enterprise Linux), hipervisores (VMware) y licencias de base de datos relacional (Oracle Database /
+              SAP HANA / MS SQL Server).</li>
+            <li><strong>Cálculo del Retorno de Inversión (ROI) y Punto de Equilibrio (Break-Even Month):</strong>
+              Evaluación mensual acumulada del flujo de caja (Cash Flow) descontando el costo de la migración en la fase
+              de proyecto frente al ahorro operativo mensual recurrente generado.</li>
           </ul>
         </article>
         <article>
           <h3>Desglose Comparativo de Parámetros por Plataforma ERP</h3>
           <ul>
-            <li><strong>SAP S/4HANA (RISE with SAP):</strong> Tiempo de migración promedio 18 meses, tarifa promedio $450 USD/usuario/mes, tarifa de consultoría L3 $220 USD/hora, costo de migración estimado 1.5x licenciamiento anual.</li>
-            <li><strong>Microsoft Dynamics 365:</strong> Tiempo de migración promedio 18 meses, tarifa promedio $210 USD/usuario/mes, tarifa de consultoría L3 $150 USD/hora, costo de migración estimado 1.2x licenciamiento anual.</li>
-            <li><strong>SAP ECC 6.0 (Legacy On-Premise):</strong> Tiempo de migración promedio 24 meses, costo de mantenimiento anual 22% sobre licenciamiento perpetuo inicial, infraestructura física promedio $350,000 USD/año, tarifa de consultoría L3 $200 USD/hora, costo de migración estimado 1.8x licenciamiento SaaS objetivo.</li>
-            <li><strong>Oracle E-Business Suite (EBS R12):</strong> Tiempo de migración promedio 24 meses, costo de mantenimiento anual 22% sobre licenciamiento perpetuo inicial, infraestructura física promedio $280,000 USD/año, tarifa de consultoría L3 $190 USD/hora, costo de migración estimado 1.7x licenciamiento SaaS objetivo.</li>
-            <li><strong>Oracle JD Edwards EnterpriseOne:</strong> Tiempo de migración promedio 15 meses, costo de mantenimiento anual 20% sobre licenciamiento perpetuo inicial, infraestructura física promedio $150,000 USD/año, tarifa de consultoría L3 $180 USD/hora, costo de migración estimado 1.4x licenciamiento SaaS objetivo.</li>
+            <li><strong>SAP S/4HANA (RISE with SAP):</strong> Tiempo de migración promedio 18 meses, tarifa promedio
+              $450 USD/usuario/mes, tarifa de consultoría L3 $220 USD/hora, costo de migración estimado 1.5x
+              licenciamiento anual.</li>
+            <li><strong>Microsoft Dynamics 365:</strong> Tiempo de migración promedio 18 meses, tarifa promedio $210
+              USD/usuario/mes, tarifa de consultoría L3 $150 USD/hora, costo de migración estimado 1.2x licenciamiento
+              anual.</li>
+            <li><strong>SAP ECC 6.0 (Legacy On-Premise):</strong> Tiempo de migración promedio 24 meses, costo de
+              mantenimiento anual 22% sobre licenciamiento perpetuo inicial, infraestructura física promedio $350,000
+              USD/año, tarifa de consultoría L3 $200 USD/hora, costo de migración estimado 1.8x licenciamiento SaaS
+              objetivo.</li>
+            <li><strong>Oracle E-Business Suite (EBS R12):</strong> Tiempo de migración promedio 24 meses, costo de
+              mantenimiento anual 22% sobre licenciamiento perpetuo inicial, infraestructura física promedio $280,000
+              USD/año, tarifa de consultoría L3 $190 USD/hora, costo de migración estimado 1.7x licenciamiento SaaS
+              objetivo.</li>
+            <li><strong>Oracle JD Edwards EnterpriseOne:</strong> Tiempo de migración promedio 15 meses, costo de
+              mantenimiento anual 20% sobre licenciamiento perpetuo inicial, infraestructura física promedio $150,000
+              USD/año, tarifa de consultoría L3 $180 USD/hora, costo de migración estimado 1.4x licenciamiento SaaS
+              objetivo.</li>
           </ul>
         </article>
       </section>
@@ -568,16 +804,22 @@
         <h2>Reporte Completo de Investigación — FABRIC Benchmark Index 2026 (5 Capítulos)</h2>
         <article>
           <h3>Capítulo I: Estado de las Implementaciones Oracle Fusion Cloud en México y LATAM</h3>
-          <p>Análisis estadístico sobre la distribución de proyectos ERP por industria (Retail, Fintech, Manufactura, Servicios Financieros, Logística) y tamaño corporativo. Evaluación comparativa entre tiempo contractual acordado e historial real de go-live.</p>
+          <p>Análisis estadístico sobre la distribución de proyectos ERP por industria (Retail, Fintech, Manufactura,
+            Servicios Financieros, Logística) y tamaño corporativo. Evaluación comparativa entre tiempo contractual
+            acordado e historial real de go-live.</p>
           <ul>
             <li>Distribución regional de proyectos activos en México, Colombia, Chile, Perú y Centroamérica.</li>
-            <li>Tasas acumuladas de éxito/fracaso en el primer ciclo crítico durante los periodos 2023, 2024 y 2025.</li>
-            <li>Identificación del perfil de consultoras con mayor frecuencia en proyectos que requirieron intervención o rescate.</li>
+            <li>Tasas acumuladas de éxito/fracaso en el primer ciclo crítico durante los periodos 2023, 2024 y 2025.
+            </li>
+            <li>Identificación del perfil de consultoras con mayor frecuencia en proyectos que requirieron intervención
+              o rescate.</li>
           </ul>
         </article>
         <article>
           <h3>Capítulo II: Anatomía del Fracaso &amp; Patrones Recurrentes</h3>
-          <p>Estudio de los 5 errores de diseño técnico más comunes que provocan el colapso operativo post go-live: mala definición de catálogo de cuentas, reglas contables SLA deficientes, interfaces de integración sin manejo de excepciones, subestimación de volumen en timbrado CFDI 4.0 y falta de superusers capacitados.</p>
+          <p>Estudio de los 5 errores de diseño técnico más comunes que provocan el colapso operativo post go-live: mala
+            definición de catálogo de cuentas, reglas contables SLA deficientes, interfaces de integración sin manejo de
+            excepciones, subestimación de volumen en timbrado CFDI 4.0 y falta de superusers capacitados.</p>
           <ul>
             <li>Señales de alerta tempranas (Red Flags) detectadas en las semanas 1 a 4 del proyecto.</li>
             <li>Correlación directa entre modelos contractuales frágiles y la probabilidad de retrasos.</li>
@@ -586,7 +828,8 @@
         </article>
         <article>
           <h3>Capítulo III: Costos Reales de Implementación vs Costos Ocultos de Rescate</h3>
-          <p>Auditoría de sobrecostos no planificados. Comparativa detallada entre el costo de un rescate oportuno frente al gasto acumulado en consultoría Time &amp; Materials sin compromisos de entrega.</p>
+          <p>Auditoría de sobrecostos no planificados. Comparativa detallada entre el costo de un rescate oportuno
+            frente al gasto acumulado en consultoría Time &amp; Materials sin compromisos de entrega.</p>
           <ul>
             <li>Horas de trabajo no facturadas absorbidas internamente por los equipos del cliente.</li>
             <li>Medición del costo financiero derivado de cierres contables prolongados (más de 10 días).</li>
@@ -595,7 +838,8 @@
         </article>
         <article>
           <h3>Capítulo IV: Benchmark de Modelos Contractuales &amp; Cláusulas de Protección</h3>
-          <p>Evaluación comparativa entre contratos Fixed-Price por fase con garantía de primer cierre contable vs contratos Time &amp; Materials tradicional.</p>
+          <p>Evaluación comparativa entre contratos Fixed-Price por fase con garantía de primer cierre contable vs
+            contratos Time &amp; Materials tradicional.</p>
           <ul>
             <li>Análisis de cláusulas penalizadoras que alinean efectivamente los incentivos del proveedor.</li>
             <li>Modelos de Success-Fee y su impacto real en la calidad de entrega.</li>
@@ -604,7 +848,8 @@
         </article>
         <article>
           <h3>Capítulo V: Proyecciones 2026-2027 &amp; El Mercado ERP Oracle</h3>
-          <p>Tendencias de adopción, pipeline de migraciones desde Oracle EBS / JD Edwards / SAP ECC hacia Oracle Fusion Cloud 25B/26A, y evolución del patrocinio ejecutivo entre el CFO y el CIO.</p>
+          <p>Tendencias de adopción, pipeline de migraciones desde Oracle EBS / JD Edwards / SAP ECC hacia Oracle Fusion
+            Cloud 25B/26A, y evolución del patrocinio ejecutivo entre el CFO y el CIO.</p>
         </article>
       </section>
 
@@ -612,21 +857,39 @@
         <h2>Especificación Extensa de Gobernanza, Seguridad IAM &amp; Arquitectura de Integraciones</h2>
         <article>
           <h3>1. Control de Acceso Basado en Roles (RBAC) &amp; Separación de Funciones (SoD)</h3>
-          <p>Implementación del modelo de seguridad con mínimo privilegio para Oracle Fusion Cloud. Configuración de Roles de Trabajo (Job Roles), Roles Abstractos (Abstract Roles) y Roles de Datos (Data Roles) con segregación estricta de funciones entre capturistas de facturas (AP Invoice Entry), aprobadores de pagos (AP Payment Disbursement), contadores de Libro Mayor (GL Accountants) y administradores de seguridad (IT Security Manager) para cumplir con auditorías SOX, CNBV e IFRS.</p>
+          <p>Implementación del modelo de seguridad con mínimo privilegio para Oracle Fusion Cloud. Configuración de
+            Roles de Trabajo (Job Roles), Roles Abstractos (Abstract Roles) y Roles de Datos (Data Roles) con
+            segregación estricta de funciones entre capturistas de facturas (AP Invoice Entry), aprobadores de pagos (AP
+            Payment Disbursement), contadores de Libro Mayor (GL Accountants) y administradores de seguridad (IT
+            Security Manager) para cumplir con auditorías SOX, CNBV e IFRS.</p>
         </article>
         <article>
           <h3>2. Especificaciones de la API REST / SOAP Oracle Fusion &amp; Manejo de Eventos (Business Events)</h3>
-          <p>Documentación técnica de los endpoints de servicios web utilizados para la integración con sistemas legacy: <code>/fscmRestApi/resources/11.13.18.05/erpintegrationoutbound</code> para descarga de reportes y notificaciones de eventos transaccionales, <code>/fscmRestApi/resources/11.13.18.05/invoices</code> para creación síncrona de facturas de Cuentas por Pagar y <code>/fscmRestApi/resources/11.13.18.05/journalEntries</code> para inyección de pólizas contables automatizadas.</p>
-          <p>Manejo de resiliencia: Implementación de patrones de reintento exponencial (Exponential Backoff), colas de mensajería muerta (Dead Letter Queues - DLQ) en Oracle Integration Cloud (OIC) y conciliación diaria de mensajes procesados vs rechazados.</p>
+          <p>Documentación técnica de los endpoints de servicios web utilizados para la integración con sistemas legacy:
+            <code>/fscmRestApi/resources/11.13.18.05/erpintegrationoutbound</code> para descarga de reportes y
+            notificaciones de eventos transaccionales, <code>/fscmRestApi/resources/11.13.18.05/invoices</code> para
+            creación síncrona de facturas de Cuentas por Pagar y
+            <code>/fscmRestApi/resources/11.13.18.05/journalEntries</code> para inyección de pólizas contables
+            automatizadas.</p>
+          <p>Manejo de resiliencia: Implementación de patrones de reintento exponencial (Exponential Backoff), colas de
+            mensajería muerta (Dead Letter Queues - DLQ) en Oracle Integration Cloud (OIC) y conciliación diaria de
+            mensajes procesados vs rechazados.</p>
         </article>
         <article>
           <h3>3. Protocolos de Cifrado, Redes Privadas OCI &amp; Disaster Recovery</h3>
-          <p>Arquitectura de infraestructura blindada en Oracle Cloud Infrastructure (OCI). Cifrado de datos en reposito con llaves administradas por el cliente (Customer-Managed Encryption Keys - CMEK) en OCI Vault mediante algoritmos AES-256. Cifrado de datos en tránsito con TLS 1.3. Conexión dedicada on-premise mediante Oracle FastConnect o túneles VPN IPSec redundantes en alta disponibilidad.</p>
-          <p>Garantía de Continuidad de Negocio: Replicación asíncrona de base de datos Autonomous Database a una segunda región geográfica de OCI con sincronización continua mediante Data Guard, garantizando un tiempo objetivo de recuperación (RTO) de 15 minutos y punto objetivo de recuperación (RPO) igual a 0 segundos.</p>
+          <p>Arquitectura de infraestructura blindada en Oracle Cloud Infrastructure (OCI). Cifrado de datos en reposito
+            con llaves administradas por el cliente (Customer-Managed Encryption Keys - CMEK) en OCI Vault mediante
+            algoritmos AES-256. Cifrado de datos en tránsito con TLS 1.3. Conexión dedicada on-premise mediante Oracle
+            FastConnect o túneles VPN IPSec redundantes en alta disponibilidad.</p>
+          <p>Garantía de Continuidad de Negocio: Replicación asíncrona de base de datos Autonomous Database a una
+            segunda región geográfica de OCI con sincronización continua mediante Data Guard, garantizando un tiempo
+            objetivo de recuperación (RTO) de 15 minutos y punto objetivo de recuperación (RPO) igual a 0 segundos.</p>
         </article>
         <article>
           <h3>4. Guía de Preparación de Auditoría Fiscal &amp; Contabilidad Electrónica SAT</h3>
-          <p>Generación automatizada de archivos XML de Contabilidad Electrónica exigidos por el SAT (Anexo 24 de la RMF): Catálogo de Cuentas con código agrupador del SAT, Balanza de Comprobación mensual y Pólizas Contables con folios fiscales CFDI asociados a las transacciones de ingresos y egresos.</p>
+          <p>Generación automatizada de archivos XML de Contabilidad Electrónica exigidos por el SAT (Anexo 24 de la
+            RMF): Catálogo de Cuentas con código agrupador del SAT, Balanza de Comprobación mensual y Pólizas Contables
+            con folios fiscales CFDI asociados a las transacciones de ingresos y egresos.</p>
         </article>
       </section>
 
@@ -644,13 +907,15 @@
           <tbody>
             <tr>
               <td>Severidad 1 (P1 - Crítico Bloqueante)</td>
-              <td>Imposibilidad total de operar el Cierre Contable, caída de base de datos OCI, fallo en timbrado CFDI masivo o interrupción del libro mayor.</td>
+              <td>Imposibilidad total de operar el Cierre Contable, caída de base de datos OCI, fallo en timbrado CFDI
+                masivo o interrupción del libro mayor.</td>
               <td>Menos de 15 minutos (24/7)</td>
               <td>Menos de 2 horas con presencia física/remota de Ingeniero Principal</td>
             </tr>
             <tr>
               <td>Severidad 2 (P2 - Alto Impacto)</td>
-              <td>Módulo auxiliar parcialmente inoperativo sin Workaround inmediato (ej. errores en flujos de aprobación BPM o fallas de BI Publisher).</td>
+              <td>Módulo auxiliar parcialmente inoperativo sin Workaround inmediato (ej. errores en flujos de aprobación
+                BPM o fallas de BI Publisher).</td>
               <td>Menos de 1 hora (24/7)</td>
               <td>Menos de 6 horas laborales</td>
             </tr>
@@ -662,7 +927,8 @@
             </tr>
             <tr>
               <td>Severidad 4 (P4 - Solicitud de Servicio)</td>
-              <td>Solicitud de configuración de nuevo usuario, asignación de rol RBAC o cambio menor de formato en plantilla BI Publisher.</td>
+              <td>Solicitud de configuración de nuevo usuario, asignación de rol RBAC o cambio menor de formato en
+                plantilla BI Publisher.</td>
               <td>Menos de 8 horas hábiles</td>
               <td>Según planificación del Sprint semanal</td>
             </tr>
@@ -674,19 +940,26 @@
         <h2>Protocolo de Gestión de Parches Trimestrales de Oracle (Quarterly Updates 25A, 25B, 25C, 25D)</h2>
         <article>
           <h3>1. Recepción y Análisis de Impacto en Ambiente Test (Semana 1)</h3>
-          <p>Revisión detallada del documento de novedades del parche trimestral emitido por Oracle (What's New Documentation). Aplicación automática del parche en la instancia Sandbox / Test el primer viernes del mes de actualización.</p>
+          <p>Revisión detallada del documento de novedades del parche trimestral emitido por Oracle (What's New
+            Documentation). Aplicación automática del parche en la instancia Sandbox / Test el primer viernes del mes de
+            actualización.</p>
         </article>
         <article>
           <h3>2. Ejecución de Pruebas Regresivas Automáticas (Semana 2)</h3>
-          <p>Ejecución de la batería de pruebas de regresión automatizadas sobre los flujos críticos de negocio: captura de facturas, generación de órdenes de pago, timbrado de complementos de pago, contabilización en SLA y corrida del libro mayor.</p>
+          <p>Ejecución de la batería de pruebas de regresión automatizadas sobre los flujos críticos de negocio: captura
+            de facturas, generación de órdenes de pago, timbrado de complementos de pago, contabilización en SLA y
+            corrida del libro mayor.</p>
         </article>
         <article>
           <h3>3. Validación de Integraciones OIC &amp; Reportes BI Publisher (Semana 3)</h3>
-          <p>Verificación de contratos API en Oracle Integration Cloud para asegurar que ningún campo deprecado afecte las interfaces con bancos o facturadores. Validación de compatibilidad de los layouts de impresión de BI Publisher.</p>
+          <p>Verificación de contratos API en Oracle Integration Cloud para asegurar que ningún campo deprecado afecte
+            las interfaces con bancos o facturadores. Validación de compatibilidad de los layouts de impresión de BI
+            Publisher.</p>
         </article>
         <article>
           <h3>4. Pase Limpio a Producción &amp; Monitoreo Post-Update (Semana 4)</h3>
-          <p>Aplicación del parche en el ambiente de Producción durante la ventana de mantenimiento del tercer viernes del mes. Monitoreo intensivo durante las primeras 72 horas posteriores al pase.</p>
+          <p>Aplicación del parche en el ambiente de Producción durante la ventana de mantenimiento del tercer viernes
+            del mes. Monitoreo intensivo durante las primeras 72 horas posteriores al pase.</p>
         </article>
       </section>
 
@@ -694,31 +967,49 @@
         <h2>Compendio de Arquitectura de Datos &amp; Estándar del Catálogo de Cuentas (Chart of Accounts - COA)</h2>
         <article>
           <h3>1. Estructura de Segmentos del Catálogo de Cuentas (Chart of Accounts)</h3>
-          <p>Diseño de arquitectura de catálogo de cuentas flexible para empresas medianas y corporativos multinacionales en Oracle Fusion Cloud. Definición de 7 segmentos estándar optimizados para consolidación contable e inteligencia de negocios:</p>
+          <p>Diseño de arquitectura de catálogo de cuentas flexible para empresas medianas y corporativos
+            multinacionales en Oracle Fusion Cloud. Definición de 7 segmentos estándar optimizados para consolidación
+            contable e inteligencia de negocios:</p>
           <ul>
-            <li><strong>Segmento 1 — Compañía / Entidad Legal (2 dígitos):</strong> Identificador de la entidad legal o sociedad mercantil.</li>
-            <li><strong>Segmento 2 — Centro de Costos / Unidad Operativa (4 dígitos):</strong> Identificador del departamento u órgano generador de gasto.</li>
-            <li><strong>Segmento 3 — Cuenta Contable (6 dígitos):</strong> Clasificación del activo, pasivo, patrimonio, ingreso o gasto bajo normas NIF / IFRS / US GAAP.</li>
-            <li><strong>Segmento 4 — Subcuenta / Clasificador Auxiliar (4 dígitos):</strong> Desglose analítico de cuentas de control de clientes, proveedores o impuestos.</li>
-            <li><strong>Segmento 5 — Proyecto / Iniciativa (5 dígitos):</strong> Asignación de ingresos y gastos a proyectos específicos de inversión o CAPEX.</li>
-            <li><strong>Segmento 6 — Intercompañía (2 dígitos):</strong> Eliminación de saldos y transacciones entre entidades del mismo grupo corporativo.</li>
-            <li><strong>Segmento 7 — Futuro / Reserva de Crecimiento (3 dígitos):</strong> Segmento de reserva reservado para adquisiciones o nuevas unidades de negocio.</li>
+            <li><strong>Segmento 1 — Compañía / Entidad Legal (2 dígitos):</strong> Identificador de la entidad legal o
+              sociedad mercantil.</li>
+            <li><strong>Segmento 2 — Centro de Costos / Unidad Operativa (4 dígitos):</strong> Identificador del
+              departamento u órgano generador de gasto.</li>
+            <li><strong>Segmento 3 — Cuenta Contable (6 dígitos):</strong> Clasificación del activo, pasivo, patrimonio,
+              ingreso o gasto bajo normas NIF / IFRS / US GAAP.</li>
+            <li><strong>Segmento 4 — Subcuenta / Clasificador Auxiliar (4 dígitos):</strong> Desglose analítico de
+              cuentas de control de clientes, proveedores o impuestos.</li>
+            <li><strong>Segmento 5 — Proyecto / Iniciativa (5 dígitos):</strong> Asignación de ingresos y gastos a
+              proyectos específicos de inversión o CAPEX.</li>
+            <li><strong>Segmento 6 — Intercompañía (2 dígitos):</strong> Eliminación de saldos y transacciones entre
+              entidades del mismo grupo corporativo.</li>
+            <li><strong>Segmento 7 — Futuro / Reserva de Crecimiento (3 dígitos):</strong> Segmento de reserva reservado
+              para adquisiciones o nuevas unidades de negocio.</li>
           </ul>
         </article>
         <article>
           <h3>2. Flujos de Cierre Contable Mensual por Módulo (Checklist Operativo)</h3>
           <p>Manual paso a paso para el cierre de periodos contables en Oracle Financials Cloud:</p>
           <ol>
-            <li><strong>Cierre de Inventarios &amp; Costos (CML):</strong> Transferencia de transacciones de inventario al auxiliar de costos y generación de pólizas hacia el Libro Mayor.</li>
-            <li><strong>Cierre de Cuentas por Pagar (AP):</strong> Validación de facturas no contabilizadas, corrida de pagos masivos, conciliación de pagos en tránsito y cierre del periodo de compras.</li>
-            <li><strong>Cierre de Cuentas por Cobrar (AR):</strong> Aplicación de cobros pendientes, timbrado de complementos de pago, conciliación de auxiliares de clientes y cierre del periodo de ventas.</li>
-            <li><strong>Cierre de Activos Fijos (FA):</strong> Ejecución del proceso de depreciación mensual, contabilización de bajas/adquisiciones y cierre del libro de activos.</li>
-            <li><strong>Cierre del Libro Mayor (GL):</strong> Ejecución de pólizas de revaluación multi-moneda, eliminación de pólizas intercompañía, conciliación final de auxiliares y bloqueo del periodo contable.</li>
+            <li><strong>Cierre de Inventarios &amp; Costos (CML):</strong> Transferencia de transacciones de inventario
+              al auxiliar de costos y generación de pólizas hacia el Libro Mayor.</li>
+            <li><strong>Cierre de Cuentas por Pagar (AP):</strong> Validación de facturas no contabilizadas, corrida de
+              pagos masivos, conciliación de pagos en tránsito y cierre del periodo de compras.</li>
+            <li><strong>Cierre de Cuentas por Cobrar (AR):</strong> Aplicación de cobros pendientes, timbrado de
+              complementos de pago, conciliación de auxiliares de clientes y cierre del periodo de ventas.</li>
+            <li><strong>Cierre de Activos Fijos (FA):</strong> Ejecución del proceso de depreciación mensual,
+              contabilización de bajas/adquisiciones y cierre del libro de activos.</li>
+            <li><strong>Cierre del Libro Mayor (GL):</strong> Ejecución de pólizas de revaluación multi-moneda,
+              eliminación de pólizas intercompañía, conciliación final de auxiliares y bloqueo del periodo contable.
+            </li>
           </ol>
         </article>
         <article>
           <h3>3. Carga Masiva de Datos Vía FBDI (File-Based Data Import) &amp; Web Services</h3>
-          <p>Especificación de las plantillas XLSM de carga masiva de datos FBDI utilizadas para migraciones iniciales e interfaces de alto volumen en Oracle ERP Cloud: <code>GlDailyRatesImport.xlsm</code> para tipos de cambio diarios, <code>GlInterface.xlsm</code> para pólizas de diario, <code>ApInvoicesInterface.xlsm</code> para facturas de proveedores y <code>ArAutoinvoiceInterface.xlsm</code> para facturación de clientes.</p>
+          <p>Especificación de las plantillas XLSM de carga masiva de datos FBDI utilizadas para migraciones iniciales e
+            interfaces de alto volumen en Oracle ERP Cloud: <code>GlDailyRatesImport.xlsm</code> para tipos de cambio
+            diarios, <code>GlInterface.xlsm</code> para pólizas de diario, <code>ApInvoicesInterface.xlsm</code> para
+            facturas de proveedores y <code>ArAutoinvoiceInterface.xlsm</code> para facturación de clientes.</p>
         </article>
       </section>
 
@@ -726,19 +1017,32 @@
         <h2>Manuales Técnicos de Desarrollo BI Publisher, BPM Worklist &amp; Modelado de Consultas SQL</h2>
         <article>
           <h3>1. Desarrollo de Formatos de Impresión BI Publisher (Layouts RTF / XSL-FO)</h3>
-          <p>Documentación técnica para la construcción de plantillas de alta fidelidad en Oracle BI Publisher: integración de archivos Data Model (.xdm) con consultas SQL optimizadas sobre las vistas del diccionario de datos de Oracle Fusion (ej. <code>RA_CUSTOMER_TRX_ALL</code> para facturas de ventas, <code>AP_INVOICES_ALL</code> para facturas de proveedores, <code>PO_HEADERS_ALL</code> para órdenes de compra), desarrollo de plantillas RTF en Microsoft Word con campos formateados e inyección de código de barras bidimensional QR para validación fiscal SAT.</p>
+          <p>Documentación técnica para la construcción de plantillas de alta fidelidad en Oracle BI Publisher:
+            integración de archivos Data Model (.xdm) con consultas SQL optimizadas sobre las vistas del diccionario de
+            datos de Oracle Fusion (ej. <code>RA_CUSTOMER_TRX_ALL</code> para facturas de ventas,
+            <code>AP_INVOICES_ALL</code> para facturas de proveedores, <code>PO_HEADERS_ALL</code> para órdenes de
+            compra), desarrollo de plantillas RTF en Microsoft Word con campos formateados e inyección de código de
+            barras bidimensional QR para validación fiscal SAT.</p>
         </article>
         <article>
           <h3>2. Configuración de Reglas de Aprobación BPM Worklist (Oracle Business Process Management)</h3>
-          <p>Especificación de reglas de aprobación jerárquicas y por límites de monto en Oracle BPM Worklist. Configuración de flujos aprobatorios paralelos y secuenciales para requisiciones de compra, órdenes de pago, asientos contables de diario manuales y facturas de proveedores. Definición de rutas de escalación automática tras 24 horas de inactividad del aprobador y notificaciones electrónicas interactivas (Actionable Emails).</p>
+          <p>Especificación de reglas de aprobación jerárquicas y por límites de monto en Oracle BPM Worklist.
+            Configuración de flujos aprobatorios paralelos y secuenciales para requisiciones de compra, órdenes de pago,
+            asientos contables de diario manuales y facturas de proveedores. Definición de rutas de escalación
+            automática tras 24 horas de inactividad del aprobador y notificaciones electrónicas interactivas (Actionable
+            Emails).</p>
         </article>
         <article>
           <h3>3. Consultas SQL de Diagnóstico para Auditoría de Cierres Contables</h3>
-          <p>Consultas SQL de extracción directa en BI Publisher para detectar transacciones no contabilizadas que bloquean el cierre del periodo:</p>
+          <p>Consultas SQL de extracción directa en BI Publisher para detectar transacciones no contabilizadas que
+            bloquean el cierre del periodo:</p>
           <ul>
-            <li><code>SELECT * FROM AP_INVOICE_DISTRIBUTIONS_ALL WHERE POSTED_FLAG != 'Y'</code> — Identificación de distribuciones de facturas de compra no enviadas al Libro Mayor.</li>
-            <li><code>SELECT * FROM XLA_EVENTS WHERE EVENT_STATUS_CODE != 'P'</code> — Identificación de eventos contables pendientes de procesamiento por el motor Subledger Accounting (SLA).</li>
-            <li><code>SELECT * FROM GL_JE_HEADERS WHERE STATUS != 'P'</code> — Identificación de encabezados de pólizas de diario pendientes de contabilizar en el Libro Mayor.</li>
+            <li><code>SELECT * FROM AP_INVOICE_DISTRIBUTIONS_ALL WHERE POSTED_FLAG != 'Y'</code> — Identificación de
+              distribuciones de facturas de compra no enviadas al Libro Mayor.</li>
+            <li><code>SELECT * FROM XLA_EVENTS WHERE EVENT_STATUS_CODE != 'P'</code> — Identificación de eventos
+              contables pendientes de procesamiento por el motor Subledger Accounting (SLA).</li>
+            <li><code>SELECT * FROM GL_JE_HEADERS WHERE STATUS != 'P'</code> — Identificación de encabezados de pólizas
+              de diario pendientes de contabilizar en el Libro Mayor.</li>
           </ul>
         </article>
       </section>
@@ -748,42 +1052,62 @@
         <article>
           <h3>1. Tablas de Contabilidad General (General Ledger - GL)</h3>
           <ul>
-            <li><code>GL_LEDGERS</code> — Catálogo de libros contables (Primary, Secondary, Reporting currencies) con reglas de calendario fiscal y moneda funcional.</li>
-            <li><code>GL_CODE_COMBINATIONS</code> — Combinaciones contables válidas generadas por el Catálogo de Cuentas (Chart of Accounts - COA).</li>
+            <li><code>GL_LEDGERS</code> — Catálogo de libros contables (Primary, Secondary, Reporting currencies) con
+              reglas de calendario fiscal y moneda funcional.</li>
+            <li><code>GL_CODE_COMBINATIONS</code> — Combinaciones contables válidas generadas por el Catálogo de Cuentas
+              (Chart of Accounts - COA).</li>
             <li><code>GL_JE_BATCHES</code> — Lotes de pólizas contables registradas en el Libro Mayor.</li>
-            <li><code>GL_JE_HEADERS</code> — Encabezados de pólizas contables con estatus de contabilización (P = Posted, U = Unposted).</li>
-            <li><code>GL_JE_LINES</code> — Líneas de pólizas contables con importes al debe (enter_dr), haber (enter_cr) y conversión a moneda nacional.</li>
-            <li><code>GL_BALANCES</code> — Balanzas de comprobación acumuladas por periodo fiscal, combinación contable y tipo de saldo (Actual, Budget, Encumbrance).</li>
+            <li><code>GL_JE_HEADERS</code> — Encabezados de pólizas contables con estatus de contabilización (P =
+              Posted, U = Unposted).</li>
+            <li><code>GL_JE_LINES</code> — Líneas de pólizas contables con importes al debe (enter_dr), haber (enter_cr)
+              y conversión a moneda nacional.</li>
+            <li><code>GL_BALANCES</code> — Balanzas de comprobación acumuladas por periodo fiscal, combinación contable
+              y tipo de saldo (Actual, Budget, Encumbrance).</li>
           </ul>
         </article>
         <article>
           <h3>2. Tablas de Cuentas por Pagar (Accounts Payable - AP)</h3>
           <ul>
-            <li><code>AP_INVOICES_ALL</code> — Encabezados de facturas de proveedores con montos totales, moneda, proveedor (vendor_id) y estatus de aprobación.</li>
-            <li><code>AP_INVOICE_LINES_ALL</code> — Líneas de detalle de facturas con ítems, conceptos de gasto y referencias a órdenes de compra.</li>
-            <li><code>AP_INVOICE_DISTRIBUTIONS_ALL</code> — Distribución contable de facturas de compra asociadas a combinaciones de costo.</li>
-            <li><code>AP_HOLDS_ALL</code> — Registros de retenciones o bloqueos operativos sobre facturas (ej. falta de recepción de mercancía u orden de compra).</li>
-            <li><code>AP_CHECKS_ALL</code> — Registro de pagos masivos emitidos (cheques, transferencias electrónicas SPEI/SWIFT).</li>
-            <li><code>AP_PAYMENT_SCHEDULES_ALL</code> — Calendario de vencimiento de facturas de proveedores para flujo de caja.</li>
+            <li><code>AP_INVOICES_ALL</code> — Encabezados de facturas de proveedores con montos totales, moneda,
+              proveedor (vendor_id) y estatus de aprobación.</li>
+            <li><code>AP_INVOICE_LINES_ALL</code> — Líneas de detalle de facturas con ítems, conceptos de gasto y
+              referencias a órdenes de compra.</li>
+            <li><code>AP_INVOICE_DISTRIBUTIONS_ALL</code> — Distribución contable de facturas de compra asociadas a
+              combinaciones de costo.</li>
+            <li><code>AP_HOLDS_ALL</code> — Registros de retenciones o bloqueos operativos sobre facturas (ej. falta de
+              recepción de mercancía u orden de compra).</li>
+            <li><code>AP_CHECKS_ALL</code> — Registro de pagos masivos emitidos (cheques, transferencias electrónicas
+              SPEI/SWIFT).</li>
+            <li><code>AP_PAYMENT_SCHEDULES_ALL</code> — Calendario de vencimiento de facturas de proveedores para flujo
+              de caja.</li>
           </ul>
         </article>
         <article>
           <h3>3. Tablas de Cuentas por Cobrar &amp; Facturación (Accounts Receivable - AR &amp; Billing)</h3>
           <ul>
-            <li><code>RA_CUSTOMER_TRX_ALL</code> — Encabezados de facturas de venta, notas de crédito y notas de débito emitidas a clientes.</li>
-            <li><code>RA_CUSTOMER_TRX_LINES_ALL</code> — Líneas de detalle de transacciones de venta con cantidades, precios unitarios e impuestos.</li>
-            <li><code>AR_PAYMENT_SCHEDULES_ALL</code> — Auxiliar de saldos de clientes y cuentas por cobrar por fecha de vencimiento.</li>
-            <li><code>AR_CASH_RECEIPTS_ALL</code> — Cobros y depósitos recibidos de clientes pendientes de aplicación contable.</li>
-            <li><code>AR_RECEIVABLE_APPLICATIONS_ALL</code> — Registro de aplicaciones de cobros contra facturas de venta.</li>
+            <li><code>RA_CUSTOMER_TRX_ALL</code> — Encabezados de facturas de venta, notas de crédito y notas de débito
+              emitidas a clientes.</li>
+            <li><code>RA_CUSTOMER_TRX_LINES_ALL</code> — Líneas de detalle de transacciones de venta con cantidades,
+              precios unitarios e impuestos.</li>
+            <li><code>AR_PAYMENT_SCHEDULES_ALL</code> — Auxiliar de saldos de clientes y cuentas por cobrar por fecha de
+              vencimiento.</li>
+            <li><code>AR_CASH_RECEIPTS_ALL</code> — Cobros y depósitos recibidos de clientes pendientes de aplicación
+              contable.</li>
+            <li><code>AR_RECEIVABLE_APPLICATIONS_ALL</code> — Registro de aplicaciones de cobros contra facturas de
+              venta.</li>
           </ul>
         </article>
         <article>
           <h3>4. Tablas del Motor de Reglas Contables (Subledger Accounting - SLA / XLA)</h3>
           <ul>
-            <li><code>XLA_EVENTS</code> — Eventos transaccionales generados por los módulos auxiliares pendientes de contabilizar.</li>
-            <li><code>XLA_AE_HEADERS</code> — Encabezados de pólizas contables subledger generadas por el motor SLA.</li>
-            <li><code>XLA_AE_LINES</code> — Detalle de líneas de débito y crédito subledger trazables hacia los documentos origen.</li>
-            <li><code>XLA_DISTRIBUTION_LINKS</code> — Matriz de trazabilidad punto a punto entre la transacción auxiliar, la póliza SLA y el asiento final en el Libro Mayor.</li>
+            <li><code>XLA_EVENTS</code> — Eventos transaccionales generados por los módulos auxiliares pendientes de
+              contabilizar.</li>
+            <li><code>XLA_AE_HEADERS</code> — Encabezados de pólizas contables subledger generadas por el motor SLA.
+            </li>
+            <li><code>XLA_AE_LINES</code> — Detalle de líneas de débito y crédito subledger trazables hacia los
+              documentos origen.</li>
+            <li><code>XLA_DISTRIBUTION_LINKS</code> — Matriz de trazabilidad punto a punto entre la transacción
+              auxiliar, la póliza SLA y el asiento final en el Libro Mayor.</li>
           </ul>
         </article>
       </section>
@@ -792,11 +1116,17 @@
         <h2>Manual de Arquitectura de Integración iPaaS Vía Oracle Integration Cloud (OIC Gen 3)</h2>
         <article>
           <h3>1. Patrón de Integración Bulk Data Import (FBDI Asíncrono)</h3>
-          <p>Flujo de orquestación en OIC para importación masiva de datos: generación del archivo ZIP comprimido con plantillas XLSM, carga al servidor UCM (Universal Content Management) mediante el servicio web <code>/erpintegrationws/ErpIntegrationService</code>, invocación de la tarea programada <code>ImportBulkData</code> y monitoreo del job de carga hasta la emisión de reportes de error o éxito.</p>
+          <p>Flujo de orquestación en OIC para importación masiva de datos: generación del archivo ZIP comprimido con
+            plantillas XLSM, carga al servidor UCM (Universal Content Management) mediante el servicio web
+            <code>/erpintegrationws/ErpIntegrationService</code>, invocación de la tarea programada
+            <code>ImportBulkData</code> y monitoreo del job de carga hasta la emisión de reportes de error o éxito.</p>
         </article>
         <article>
           <h3>2. Patrón de Integración Real-Time Event-Driven (Oracle Business Events)</h3>
-          <p>Subscripción a eventos de negocio en tiempo real publicados por Oracle Fusion Cloud ERP (ej. evento de aprobación de factura o creación de cliente). OIC consume la notificación mediante el adaptador nativo Oracle ERP Cloud Adapter, transforma el payload JSON/XML y lo transmite de forma síncrona hacia sistemas bancarios o facturadores fiscales.</p>
+          <p>Subscripción a eventos de negocio en tiempo real publicados por Oracle Fusion Cloud ERP (ej. evento de
+            aprobación de factura o creación de cliente). OIC consume la notificación mediante el adaptador nativo
+            Oracle ERP Cloud Adapter, transforma el payload JSON/XML y lo transmite de forma síncrona hacia sistemas
+            bancarios o facturadores fiscales.</p>
         </article>
       </section>
 
@@ -804,15 +1134,22 @@
         <h2>Manual Avanzado de Modelado Financiero &amp; Estructuras de Consolidación Multi-Compañía</h2>
         <article>
           <h3>1. Consolidación Contable Multi-Moneda &amp; Revaluación Automática</h3>
-          <p>Especificación de reglas de revaluación de activos y pasivos monetarios en moneda extranjera (USD, EUR, CAD, BRL, CLP, COP) según la norma NIF B-15 / IAS 21. Configuración de tipos de cambio diarios (Spot), tipos de cambio promedio (Corporate) y tipos de cambio históricos para la conversión del balance general y estado de resultados hacia la moneda de presentación consolidada.</p>
+          <p>Especificación de reglas de revaluación de activos y pasivos monetarios en moneda extranjera (USD, EUR,
+            CAD, BRL, CLP, COP) según la norma NIF B-15 / IAS 21. Configuración de tipos de cambio diarios (Spot), tipos
+            de cambio promedio (Corporate) y tipos de cambio históricos para la conversión del balance general y estado
+            de resultados hacia la moneda de presentación consolidada.</p>
         </article>
         <article>
           <h3>2. Eliminación de Saldos Intercompañía &amp; Transacciones Globales (AGIS)</h3>
-          <p>Orquestación del módulo Advanced Global Intercompany System (AGIS) en Oracle Fusion Cloud. Definición de reglas de eliminación automática de facturación y cobranza cruzada entre subsidiarias del mismo grupo empresarial, asegurando balances consolidados libres de duplicaciones contables.</p>
+          <p>Orquestación del módulo Advanced Global Intercompany System (AGIS) en Oracle Fusion Cloud. Definición de
+            reglas de eliminación automática de facturación y cobranza cruzada entre subsidiarias del mismo grupo
+            empresarial, asegurando balances consolidados libres de duplicaciones contables.</p>
         </article>
         <article>
           <h3>3. Gestión de Presupuestos &amp; Control de Compromisos (Encumbrance Accounting)</h3>
-          <p>Configuración de reglas de control presupuestario en tiempo real sobre requisiciones de compra (Pre-Encumbrance), órdenes de compra (Encumbrance) y facturas de proveedor (Actual). Notificación automática de sobregiros presupuestarios y bloqueos aprobatorios para la protección del flujo de caja.</p>
+          <p>Configuración de reglas de control presupuestario en tiempo real sobre requisiciones de compra
+            (Pre-Encumbrance), órdenes de compra (Encumbrance) y facturas de proveedor (Actual). Notificación automática
+            de sobregiros presupuestarios y bloqueos aprobatorios para la protección del flujo de caja.</p>
         </article>
       </section>
 
@@ -867,17 +1204,23 @@
         <article>
           <h3>1. Eventos del Ciclo Financiero &amp; Tesorería</h3>
           <ul>
-            <li><code>oracle.apps.financials.payables.invoices.invoiceApproved</code> — Emitido cuando una factura de proveedor completa su flujo de aprobación BPM.</li>
-            <li><code>oracle.apps.financials.payables.payments.paymentCreated</code> — Emitido tras la ejecución exitosa de un lote de pago masivo en AP.</li>
-            <li><code>oracle.apps.financials.generalLedger.journals.journalPosted</code> — Emitido cuando una póliza contable se asienta definitivamente en el Libro Mayor.</li>
-            <li><code>oracle.apps.financials.receivables.receipts.receiptApplied</code> — Emitido al aplicar un cobro de cliente contra una factura en AR.</li>
+            <li><code>oracle.apps.financials.payables.invoices.invoiceApproved</code> — Emitido cuando una factura de
+              proveedor completa su flujo de aprobación BPM.</li>
+            <li><code>oracle.apps.financials.payables.payments.paymentCreated</code> — Emitido tras la ejecución exitosa
+              de un lote de pago masivo en AP.</li>
+            <li><code>oracle.apps.financials.generalLedger.journals.journalPosted</code> — Emitido cuando una póliza
+              contable se asienta definitivamente en el Libro Mayor.</li>
+            <li><code>oracle.apps.financials.receivables.receipts.receiptApplied</code> — Emitido al aplicar un cobro de
+              cliente contra una factura en AR.</li>
           </ul>
         </article>
         <article>
           <h3>2. Eventos de la Cadena de Suministro (SCM &amp; Procurement)</h3>
           <ul>
-            <li><code>oracle.apps.scm.purchaseOrders.orderApproved</code> — Emitido cuando una orden de compra es autorizada por el área de compras.</li>
-            <li><code>oracle.apps.scm.inventory.receipts.materialReceived</code> — Emitido al confirmar la recepción física de insumos o activos en almacén.</li>
+            <li><code>oracle.apps.scm.purchaseOrders.orderApproved</code> — Emitido cuando una orden de compra es
+              autorizada por el área de compras.</li>
+            <li><code>oracle.apps.scm.inventory.receipts.materialReceived</code> — Emitido al confirmar la recepción
+              física de insumos o activos en almacén.</li>
           </ul>
         </article>
       </section>
@@ -897,7 +1240,8 @@
             <tr>
               <td>SOX-FIN-01</td>
               <td>Prevenir el registro de pólizas de diario por personal no autorizado.</td>
-              <td>Restricción por Data Roles en GL y flujos obligatorios de aprobación BPM para pólizas > $50,000 USD.</td>
+              <td>Restricción por Data Roles en GL y flujos obligatorios de aprobación BPM para pólizas > $50,000 USD.
+              </td>
               <td>Diaria / Automatizada</td>
             </tr>
             <tr>
@@ -915,7 +1259,8 @@
             <tr>
               <td>SOX-IT-01</td>
               <td>Asegurar la trazabilidad total de cambios en configuraciones del sistema.</td>
-              <td>Auditoría de datos (Oracle Audit Vault / Audit Trail) sobre tablas de configuración de Subledger Accounting (SLA).</td>
+              <td>Auditoría de datos (Oracle Audit Vault / Audit Trail) sobre tablas de configuración de Subledger
+                Accounting (SLA).</td>
               <td>Trimestral</td>
             </tr>
           </tbody>
@@ -926,11 +1271,17 @@
         <h2>Especificaciones Técnicas de Integración Bancaria SWIFT &amp; Host-to-Host (H2H)</h2>
         <article>
           <h3>1. Formatos Estándar de Extractos Bancarios (MT940 / CAMT.053)</h3>
-          <p>Especificación de layouts XML / SWIFT para automatización de conciliación bancaria en Cash Management: procesamiento de archivos MT940 de respuesta bancaria, mapeo de referencias de transferencia SPEI / TEF, validación de códigos de transacción bancaria (Nostro / Loro) y coincidencia automática con pagos de cuentas por cobrar (AR) y cuentas por pagar (AP).</p>
+          <p>Especificación de layouts XML / SWIFT para automatización de conciliación bancaria en Cash Management:
+            procesamiento de archivos MT940 de respuesta bancaria, mapeo de referencias de transferencia SPEI / TEF,
+            validación de códigos de transacción bancaria (Nostro / Loro) y coincidencia automática con pagos de cuentas
+            por cobrar (AR) y cuentas por pagar (AP).</p>
         </article>
         <article>
           <h3>2. Dispersión Masiva de Pagos Vía Archivos Encriptados PGP</h3>
-          <p>Generación automatizada de archivos de pago en formatos propietarios de instituciones bancarias (BBVA, Banorte, Santander, CitiBanamex, J.P. Morgan, HSBC), encriptación asimétrica mediante llaves PGP/GPG en Oracle Integration Cloud (OIC) y transmisión segura vía protocolos SFTP con autenticación de llave pública SSH.</p>
+          <p>Generación automatizada de archivos de pago en formatos propietarios de instituciones bancarias (BBVA,
+            Banorte, Santander, CitiBanamex, J.P. Morgan, HSBC), encriptación asimétrica mediante llaves PGP/GPG en
+            Oracle Integration Cloud (OIC) y transmisión segura vía protocolos SFTP con autenticación de llave pública
+            SSH.</p>
         </article>
       </section>
 
@@ -968,19 +1319,29 @@
         <h2>Compendio de Módulos Especializados Oracle Cloud (EPM, CX, WMS, EAM, SCM Advanced)</h2>
         <article>
           <h3>1. Oracle Enterprise Performance Management Cloud (EPM Cloud)</h3>
-          <p>Plataforma para la consolidación financiera estratégica y planificación presupuestaria (Financial Consolidation and Close - FCCS, Planning and Budgeting - PBCS, Profitability and Cost Management - PCMCS). Permite la consolidación bajo reglas IFRS/US GAAP, eliminación de partidas intercompañía complejas, conversión de moneda con tipos históricos y modelado de escenarios financieros (driver-based forecasting).</p>
+          <p>Plataforma para la consolidación financiera estratégica y planificación presupuestaria (Financial
+            Consolidation and Close - FCCS, Planning and Budgeting - PBCS, Profitability and Cost Management - PCMCS).
+            Permite la consolidación bajo reglas IFRS/US GAAP, eliminación de partidas intercompañía complejas,
+            conversión de moneda con tipos históricos y modelado de escenarios financieros (driver-based forecasting).
+          </p>
         </article>
         <article>
           <h3>2. Oracle Warehouse Management Cloud (WMS Cloud / Logfire)</h3>
-          <p>Gestión avanzada de operaciones de centro de distribución (CD): recepción en muelle, asignación dinámica de bins/localizadores, picking por olas (wave picking), packing, cross-docking, inventario en tiempo real con terminales de radiofrecuencia (RF) e integración nativa con Oracle SCM Cloud y cargadores de fletes.</p>
+          <p>Gestión avanzada de operaciones de centro de distribución (CD): recepción en muelle, asignación dinámica de
+            bins/localizadores, picking por olas (wave picking), packing, cross-docking, inventario en tiempo real con
+            terminales de radiofrecuencia (RF) e integración nativa con Oracle SCM Cloud y cargadores de fletes.</p>
         </article>
         <article>
           <h3>3. Oracle Enterprise Asset Management Cloud (EAM Cloud / Maintenance)</h3>
-          <p>Mantenimiento preventivo, correctivo y predictivo de activos fijos industriales y flota vehicular. Generación automática de órdenes de trabajo (WO), control de partes y repuestos en inventario, trazabilidad de horas máquina y asignación de costos de mantenimiento hacia la contabilidad analítica en GL.</p>
+          <p>Mantenimiento preventivo, correctivo y predictivo de activos fijos industriales y flota vehicular.
+            Generación automática de órdenes de trabajo (WO), control de partes y repuestos en inventario, trazabilidad
+            de horas máquina y asignación de costos de mantenimiento hacia la contabilidad analítica en GL.</p>
         </article>
         <article>
           <h3>4. Oracle Sales &amp; B2B Commerce Cloud (CX Cloud)</h3>
-          <p>Gestión del pipeline de ventas empresarial, cotización de configuraciones complejas (CPQ - Configure, Price, Quote), administración de cuentas clave y sincronización en tiempo real de clientes, oportunidades y pedidos con el ERP Oracle Fusion.</p>
+          <p>Gestión del pipeline de ventas empresarial, cotización de configuraciones complejas (CPQ - Configure,
+            Price, Quote), administración de cuentas clave y sincronización en tiempo real de clientes, oportunidades y
+            pedidos con el ERP Oracle Fusion.</p>
         </article>
       </section>
 
@@ -1076,11 +1437,17 @@
         <h2>Guía de Buenas Prácticas de Ingeniería, Calidad de Código &amp; Gobierno Técnico</h2>
         <article>
           <h3>1. Estándares de Nomenclatura para Desarrollos OIC &amp; BI Publisher</h3>
-          <p>Reglas estrictas de codificación para artefactos técnicos: prefijo <code>FAB_</code> para todas las integraciones custom en Oracle Integration Cloud (ej. <code>FAB_OIC_AP_INVOICES_IMP_INT</code>), sufijos estándar <code>_REQ</code> / <code>_RES</code> para payload de solicitud y respuesta, y nomenclatura de paquetes BI Publisher ordenada por módulo financiero (ej. <code>/Custom/Financials/Payables/FAB_AP_INV_PRINT.xdo</code>).</p>
+          <p>Reglas estrictas de codificación para artefactos técnicos: prefijo <code>FAB_</code> para todas las
+            integraciones custom en Oracle Integration Cloud (ej. <code>FAB_OIC_AP_INVOICES_IMP_INT</code>), sufijos
+            estándar <code>_REQ</code> / <code>_RES</code> para payload de solicitud y respuesta, y nomenclatura de
+            paquetes BI Publisher ordenada por módulo financiero (ej.
+            <code>/Custom/Financials/Payables/FAB_AP_INV_PRINT.xdo</code>).</p>
         </article>
         <article>
           <h3>2. Políticas de Seguridad de Datos &amp; Purga de Archivos Temporales</h3>
-          <p>Manejo seguro de datos sensibles en servidores SFTP y UCM: política de retención máxima de 30 días para archivos FBDI procesados, purga automatizada de logs de integración con datos personales (PII) bajo regulación GDPR/LFPDPPP y rotación trimestral obligatoria de certificados SSL/TLS y llaves privadas SSH.</p>
+          <p>Manejo seguro de datos sensibles en servidores SFTP y UCM: política de retención máxima de 30 días para
+            archivos FBDI procesados, purga automatizada de logs de integración con datos personales (PII) bajo
+            regulación GDPR/LFPDPPP y rotación trimestral obligatoria de certificados SSL/TLS y llaves privadas SSH.</p>
         </article>
       </section>
 
@@ -1088,27 +1455,43 @@
         <h2>Especificaciones de Base de Datos Oracle Autonomous Transaction Processing (ATP) &amp; Tuning SQL</h2>
         <article>
           <h3>1. Arquitectura Autónomas &amp; Auto-Scaling de Cómputo OCPUs</h3>
-          <p>Uso de Oracle Autonomous Transaction Processing (ATP) en OCI para la capa de almacenamiento y procesamiento del ERP. Configuración de Auto-Scaling dinámico para escalar automáticamente hasta 3 veces el número de OCPUs asignadas durante ventanas de alta carga operativa como cierres contables mensuales o corridas de nómina masivas.</p>
+          <p>Uso de Oracle Autonomous Transaction Processing (ATP) en OCI para la capa de almacenamiento y procesamiento
+            del ERP. Configuración de Auto-Scaling dinámico para escalar automáticamente hasta 3 veces el número de
+            OCPUs asignadas durante ventanas de alta carga operativa como cierres contables mensuales o corridas de
+            nómina masivas.</p>
         </article>
         <article>
           <h3>2. Monitoreo de Consultas Lentas &amp; Vistas de Diccionario V$ / GV$</h3>
-          <p>Directrices para la optimización de reportes OTBI y BI Publisher: uso de hints SQL para forzar planes de ejecución eficientes (ej. <code>/*+ INDEX(RA_CUSTOMER_TRX_ALL RA_CUSTOMER_TRX_N1) */</code>), prevención de escaneos completos de tabla (Full Table Scans) sobre tablas de transacciones masivas y monitoreo de bloqueos de tabla vía vistas dinámicas del rendimiento (<code>GV$SESSION</code>, <code>GV$SQL_AREA</code>).</p>
+          <p>Directrices para la optimización de reportes OTBI y BI Publisher: uso de hints SQL para forzar planes de
+            ejecución eficientes (ej. <code>/*+ INDEX(RA_CUSTOMER_TRX_ALL RA_CUSTOMER_TRX_N1) */</code>), prevención de
+            escaneos completos de tabla (Full Table Scans) sobre tablas de transacciones masivas y monitoreo de bloqueos
+            de tabla vía vistas dinámicas del rendimiento (<code>GV$SESSION</code>, <code>GV$SQL_AREA</code>).</p>
         </article>
       </section>
 
       <section>
         <h2>Plan Maestro de Pruebas Integrales UAT &amp; Criterios de Aceptación Contractual (10 Fases)</h2>
         <ol>
-          <li><strong>Fase 1: Pruebas Unitarias de Configuración de Módulos (AP, AR, GL, FA):</strong> Validación de la captura manual y automática de transacciones simples.</li>
-          <li><strong>Fase 2: Pruebas de Interfaces de Integración Síncronas (REST API):</strong> Verificación de tiempos de respuesta menores a 500ms en la creación de facturas y pólizas contables.</li>
-          <li><strong>Fase 3: Pruebas de Carga Masiva FBDI Asíncrona:</strong> Carga de archivos ZIP de más de 50,000 registros validando la velocidad de procesamiento en UCM.</li>
-          <li><strong>Fase 4: Pruebas de Timbrado Masivo SAT CFDI 4.0:</strong> Simulación de timbrado continuo a máxima capacidad con PACs redundantes.</li>
-          <li><strong>Fase 5: Pruebas de Reglas de Contabilización Subledger (SLA):</strong> Verificación de que cada asiento contable auxiliar cuadra al 100% con la cuenta de control en GL.</li>
-          <li><strong>Fase 6: Pruebas de Reportes de Impresión BI Publisher:</strong> Validación de la fidelidad visual y código QR en formatos PDF imprimibles.</li>
-          <li><strong>Fase 7: Pruebas de Flujos Aprobatorios BPM Worklist:</strong> Simulación de aprobaciones por límites de monto y rutas de escalación por inactividad.</li>
-          <li><strong>Fase 8: Pruebas de Conciliación Bancaria Automática:</strong> Carga de archivos MT940 reales y verificación de la tasa de coincidencia superior al 95%.</li>
-          <li><strong>Fase 9: Simulacro Completo de Cierre Contable en Sandbox:</strong> Ejecución de todas las tareas de cierre de periodo en secuencia estricta.</li>
-          <li><strong>Fase 10: Pruebas de Seguridad RBAC &amp; Segregación de Funciones:</strong> Validación de que los usuarios finales solo acceden a las funciones autorizadas por su rol de trabajo.</li>
+          <li><strong>Fase 1: Pruebas Unitarias de Configuración de Módulos (AP, AR, GL, FA):</strong> Validación de la
+            captura manual y automática de transacciones simples.</li>
+          <li><strong>Fase 2: Pruebas de Interfaces de Integración Síncronas (REST API):</strong> Verificación de
+            tiempos de respuesta menores a 500ms en la creación de facturas y pólizas contables.</li>
+          <li><strong>Fase 3: Pruebas de Carga Masiva FBDI Asíncrona:</strong> Carga de archivos ZIP de más de 50,000
+            registros validando la velocidad de procesamiento en UCM.</li>
+          <li><strong>Fase 4: Pruebas de Timbrado Masivo SAT CFDI 4.0:</strong> Simulación de timbrado continuo a máxima
+            capacidad con PACs redundantes.</li>
+          <li><strong>Fase 5: Pruebas de Reglas de Contabilización Subledger (SLA):</strong> Verificación de que cada
+            asiento contable auxiliar cuadra al 100% con la cuenta de control en GL.</li>
+          <li><strong>Fase 6: Pruebas de Reportes de Impresión BI Publisher:</strong> Validación de la fidelidad visual
+            y código QR en formatos PDF imprimibles.</li>
+          <li><strong>Fase 7: Pruebas de Flujos Aprobatorios BPM Worklist:</strong> Simulación de aprobaciones por
+            límites de monto y rutas de escalación por inactividad.</li>
+          <li><strong>Fase 8: Pruebas de Conciliación Bancaria Automática:</strong> Carga de archivos MT940 reales y
+            verificación de la tasa de coincidencia superior al 95%.</li>
+          <li><strong>Fase 9: Simulacro Completo de Cierre Contable en Sandbox:</strong> Ejecución de todas las tareas
+            de cierre de periodo en secuencia estricta.</li>
+          <li><strong>Fase 10: Pruebas de Seguridad RBAC &amp; Segregación de Funciones:</strong> Validación de que los
+            usuarios finales solo acceden a las funciones autorizadas por su rol de trabajo.</li>
         </ol>
       </section>
 
@@ -1116,15 +1499,26 @@
         <h2>Manual Completo de Arquitectura Cloud, Seguridad &amp; Gobierno IT (Enterprise Level)</h2>
         <article>
           <h3>1. Arquitectura de Redes Privadas OCI (Virtual Cloud Network - VCN)</h3>
-          <p>Configuración de topología de red Hub-and-Spoke en Oracle Cloud Infrastructure: subnetas privadas aisladas para la base de datos Autonomous Database y servidores de middleware OIC, subnetas públicas restringidas únicamente para puertas de enlace (API Gateway / Load Balancers), tablas de ruteo dinámico (DRG) para conectividad on-premise vía FastConnect a 10 Gbps y listas de seguridad con filtrado estricto por IP y puertos (Security Lists / Network Security Groups NSG).</p>
+          <p>Configuración de topología de red Hub-and-Spoke en Oracle Cloud Infrastructure: subnetas privadas aisladas
+            para la base de datos Autonomous Database y servidores de middleware OIC, subnetas públicas restringidas
+            únicamente para puertas de enlace (API Gateway / Load Balancers), tablas de ruteo dinámico (DRG) para
+            conectividad on-premise vía FastConnect a 10 Gbps y listas de seguridad con filtrado estricto por IP y
+            puertos (Security Lists / Network Security Groups NSG).</p>
         </article>
         <article>
           <h3>2. Gobierno de Usuarios &amp; Autenticación SSO / MFA en IDCS</h3>
-          <p>Federación de identidades entre Oracle Identity Cloud Service (IDCS / OCI IAM) y Microsoft Azure Active Directory / Entra ID mediante el protocolo SAML 2.0 / OpenID Connect (OIDC). Configuración de autenticación multifactor obligatoria (MFA) con autenticador FIDO2 / TOTP para usuarios con privilegios administrativos o acceso a módulos contables y bancarios.</p>
+          <p>Federación de identidades entre Oracle Identity Cloud Service (IDCS / OCI IAM) y Microsoft Azure Active
+            Directory / Entra ID mediante el protocolo SAML 2.0 / OpenID Connect (OIDC). Configuración de autenticación
+            multifactor obligatoria (MFA) con autenticador FIDO2 / TOTP para usuarios con privilegios administrativos o
+            acceso a módulos contables y bancarios.</p>
         </article>
         <article>
           <h3>3. Protocolo de Resguardo de Datos (Backups &amp; Point-in-Time Recovery)</h3>
-          <p>Política de respaldos automatizados de base de datos en OCI Object Storage: respaldos incrementales diarios automatizados, respaldos acumulados semanales y retención de respaldos mensuales auditables durante 7 años en almacenamiento de bajo costo Object Storage Archive. Capacidad de recuperación a un punto específico en el tiempo (Point-in-Time Recovery - PITR) con precisión de segundos para prevención de corrupción accidental de datos.</p>
+          <p>Política de respaldos automatizados de base de datos en OCI Object Storage: respaldos incrementales diarios
+            automatizados, respaldos acumulados semanales y retención de respaldos mensuales auditables durante 7 años
+            en almacenamiento de bajo costo Object Storage Archive. Capacidad de recuperación a un punto específico en
+            el tiempo (Point-in-Time Recovery - PITR) con precisión de segundos para prevención de corrupción accidental
+            de datos.</p>
         </article>
       </section>
 
@@ -1172,11 +1566,16 @@
         <h2>Guía Extendida de Cumplimiento Regulatorio, Fiscal &amp; Auditoría Externa</h2>
         <article>
           <h3>1. Anexo 24 RMF SAT — Contabilidad Electrónica en México</h3>
-          <p>Generación nativa de archivos XML estructurados conforme a los esquemas técnicos vigentes del SAT: Catálogo de cuentas con código agrupador SAT (V1.3), Balanza de comprobación mensual con saldos iniciales, deudores, acreedores y saldos finales (V1.3), Pólizas contables con asociación obligatoria de Folios Fiscales UUID de comprobantes CFDI 4.0 (V1.3) y Auxiliar de Folios de comprobantes fiscales.</p>
+          <p>Generación nativa de archivos XML estructurados conforme a los esquemas técnicos vigentes del SAT: Catálogo
+            de cuentas con código agrupador SAT (V1.3), Balanza de comprobación mensual con saldos iniciales, deudores,
+            acreedores y saldos finales (V1.3), Pólizas contables con asociación obligatoria de Folios Fiscales UUID de
+            comprobantes CFDI 4.0 (V1.3) y Auxiliar de Folios de comprobantes fiscales.</p>
         </article>
         <article>
           <h3>2. Cumplimiento Norma Internacional de Información Financiera (IFRS / NIF)</h3>
-          <p>Soporte multi-libro contable para la emisión paralela de estados financieros bajo NIF mexicanas (moneda nacional MXN) e IFRS / US GAAP (moneda de reporte USD) dentro del mismo entorno ERP, eliminando la necesidad de realizar ajustes extracontables al cierre del ejercicio.</p>
+          <p>Soporte multi-libro contable para la emisión paralela de estados financieros bajo NIF mexicanas (moneda
+            nacional MXN) e IFRS / US GAAP (moneda de reporte USD) dentro del mismo entorno ERP, eliminando la necesidad
+            de realizar ajustes extracontables al cierre del ejercicio.</p>
         </article>
       </section>
 
@@ -1184,11 +1583,18 @@
         <h2>Manual Completo de Administración de Entornos Oracle Fusion Cloud (Sandbox, Test, Prod)</h2>
         <article>
           <h3>1. Estrategia de Clonación de Entornos (Environment Refresh / P2T)</h3>
-          <p>Procedimiento estandarizado para la clonación de datos desde el ambiente de Producción hacia los ambientes de prueba y desarrollo (Production to Test - P2T): programación periódica de clonaciones tras parches trimestrales, ejecución de scripts de ofuscación de datos sensibles de clientes y empleados (Data Masking) para cumplimiento de normativas de privacidad y reconfiguración automatizada de endpoints de integración OIC y credenciales bancarias para apuntar a servidores de Sandbox.</p>
+          <p>Procedimiento estandarizado para la clonación de datos desde el ambiente de Producción hacia los ambientes
+            de prueba y desarrollo (Production to Test - P2T): programación periódica de clonaciones tras parches
+            trimestrales, ejecución de scripts de ofuscación de datos sensibles de clientes y empleados (Data Masking)
+            para cumplimiento de normativas de privacidad y reconfiguración automatizada de endpoints de integración OIC
+            y credenciales bancarias para apuntar a servidores de Sandbox.</p>
         </article>
         <article>
           <h3>2. Gestión de Personalizaciones Vía Sandboxes &amp; Flexfields (DFF / KFF)</h3>
-          <p>Gobernanza sobre personalizaciones de la interfaz Fusion UX: uso de Sandboxes para la inclusión de atributos personalizados vía Descriptive Flexfields (DFF) y Key Flexfields (KFF), publicación controlada de Sandboxes aprobados y respaldo previo de configuraciones de página para evitar sobrescrituras durante actualizaciones de software.</p>
+          <p>Gobernanza sobre personalizaciones de la interfaz Fusion UX: uso de Sandboxes para la inclusión de
+            atributos personalizados vía Descriptive Flexfields (DFF) y Key Flexfields (KFF), publicación controlada de
+            Sandboxes aprobados y respaldo previo de configuraciones de página para evitar sobrescrituras durante
+            actualizaciones de software.</p>
         </article>
       </section>
 
@@ -1216,7 +1622,8 @@
             <tr>
               <td>SAT-CFDI-4001: RFC No Encontrado</td>
               <td>El RFC del receptor no se encuentra registrado en el padrón oficial LCO del SAT.</td>
-              <td>Validación y corrección de la ficha maestra del cliente en el módulo AR antes de reintentar timbrado.</td>
+              <td>Validación y corrección de la ficha maestra del cliente en el módulo AR antes de reintentar timbrado.
+              </td>
             </tr>
             <tr>
               <td>OIC-JOB-9901: Timeout UCM</td>
@@ -1231,11 +1638,18 @@
         <h2>Marco de Seguridad Cibergrafica, Certificaciones SOC 2 &amp; Compliance ISO 27001</h2>
         <article>
           <h3>1. Arquitectura Zero-Trust &amp; Cifrado End-to-End en OCI</h3>
-          <p>Implementación del principio de Zero-Trust para entornos de producción Oracle Fusion Cloud ERP: micro-segmentación de red mediante puertas de enlace de seguridad OCI Web Application Firewall (WAF), inspección de tráfico malicioso contra ataques DDoS de Capa 7, encriptación de bases de datos mediante Transparent Data Encryption (TDE) y resguardo de certificados SSL/TLS en módulos Hardware Security Module (HSM) dedicados con certificación FIPS 140-2 Level 3.</p>
+          <p>Implementación del principio de Zero-Trust para entornos de producción Oracle Fusion Cloud ERP:
+            micro-segmentación de red mediante puertas de enlace de seguridad OCI Web Application Firewall (WAF),
+            inspección de tráfico malicioso contra ataques DDoS de Capa 7, encriptación de bases de datos mediante
+            Transparent Data Encryption (TDE) y resguardo de certificados SSL/TLS en módulos Hardware Security Module
+            (HSM) dedicados con certificación FIPS 140-2 Level 3.</p>
         </article>
         <article>
           <h3>2. Gobierno de Identidades &amp; Auditoría de Sesiones Privilegiadas (PIM / PAM)</h3>
-          <p>Supervisión continua de usuarios administradores mediante soluciones Privileged Access Management (PAM): grabación de sesiones en tiempo real, aprobación por doble factor para elevación de privilegios temporales (Just-In-Time Access) y generación de registros de auditoría inviolables exportados hacia plataformas SIEM (Splunk / Microsoft Sentinel).</p>
+          <p>Supervisión continua de usuarios administradores mediante soluciones Privileged Access Management (PAM):
+            grabación de sesiones en tiempo real, aprobación por doble factor para elevación de privilegios temporales
+            (Just-In-Time Access) y generación de registros de auditoría inviolables exportados hacia plataformas SIEM
+            (Splunk / Microsoft Sentinel).</p>
         </article>
       </section>
 
@@ -1283,11 +1697,18 @@
         <h2>Manual Avanzado de Conexión Bancaria Host-to-Host (H2H) &amp; Protocolos de Seguridad FinTech</h2>
         <article>
           <h3>1. Arquitectura de Conectores Bancarios H2H Directos</h3>
-          <p>Integración directa entre Oracle Cash Management y los núcleos bancarios empresariales (BBVA Net Cash, Banorte Directo, Santander Enlace Operativo, CitiDirect BE, J.P. Morgan Access, HSBC Connect). Configuración de canales de comunicación dedicados SFTP con autenticación de clave pública RSA de 4096 bits y encriptación de payloads en reposito y tránsito mediante PGP Armor.</p>
+          <p>Integración directa entre Oracle Cash Management y los núcleos bancarios empresariales (BBVA Net Cash,
+            Banorte Directo, Santander Enlace Operativo, CitiDirect BE, J.P. Morgan Access, HSBC Connect). Configuración
+            de canales de comunicación dedicados SFTP con autenticación de clave pública RSA de 4096 bits y encriptación
+            de payloads en reposito y tránsito mediante PGP Armor.</p>
         </article>
         <article>
           <h3>2. Procesamiento de Mensajería Internacional ISO 20022 (PAIN, CAMT, PACS)</h3>
-          <p>Implementación del estándar global ISO 20022 para la automatización de flujos de pago internacionales y locales: traducción de órdenes de pago enviadas desde Cuentas por Pagar (AP) al formato XML <code>pain.001.001.03</code> (Customer Credit Transfer Initiation), recepción de notificaciones de estatus de pago en formato <code>pain.002.001.03</code> (Payment Status Report) y reconciliación de extractos bancarios diarios en formato <code>camt.053.001.02</code> (Bank-to-Customer Statement).</p>
+          <p>Implementación del estándar global ISO 20022 para la automatización de flujos de pago internacionales y
+            locales: traducción de órdenes de pago enviadas desde Cuentas por Pagar (AP) al formato XML
+            <code>pain.001.001.03</code> (Customer Credit Transfer Initiation), recepción de notificaciones de estatus
+            de pago en formato <code>pain.002.001.03</code> (Payment Status Report) y reconciliación de extractos
+            bancarios diarios en formato <code>camt.053.001.02</code> (Bank-to-Customer Statement).</p>
         </article>
       </section>
 
@@ -1335,11 +1756,17 @@
         <h2>Guía de Administración de Retención de Archivos, Logs &amp; Purga en UCM</h2>
         <article>
           <h3>1. Políticas de Retención de Datos Fiscales y Financieros (10 Años)</h3>
-          <p>Estrategia de resguardo prolongado para cumplimiento con el Código Fiscal de la Federación (CFF Artículo 30): conservación de archivos XML CFDI 4.0 y sus respectivas representaciones impresas PDF en contenedores de almacenamiento inmutable OCI Object Storage Retention Rules (WORM - Write Once, Read Many), impidiendo la eliminación o modificación accidental durante el periodo legal de auditoría de 10 años.</p>
+          <p>Estrategia de resguardo prolongado para cumplimiento con el Código Fiscal de la Federación (CFF Artículo
+            30): conservación de archivos XML CFDI 4.0 y sus respectivas representaciones impresas PDF en contenedores
+            de almacenamiento inmutable OCI Object Storage Retention Rules (WORM - Write Once, Read Many), impidiendo la
+            eliminación o modificación accidental durante el periodo legal de auditoría de 10 años.</p>
         </article>
         <article>
           <h3>2. Purga Automatizada de Archivos Temporales e Integraciones (30 Días)</h3>
-          <p>Mecanismo de limpieza programada en el servidor Oracle UCM (Universal Content Management) y colas de Oracle Integration Cloud (OIC): purga semanal automatizada de archivos planos ZIP/XLSM temporales de FBDI procesados exitosamente, minimizando el consumo de almacenamiento y reduciendo la exposición de datos personales conforme a la LFPDPPP.</p>
+          <p>Mecanismo de limpieza programada en el servidor Oracle UCM (Universal Content Management) y colas de Oracle
+            Integration Cloud (OIC): purga semanal automatizada de archivos planos ZIP/XLSM temporales de FBDI
+            procesados exitosamente, minimizando el consumo de almacenamiento y reduciendo la exposición de datos
+            personales conforme a la LFPDPPP.</p>
         </article>
       </section>
 
@@ -1347,15 +1774,22 @@
         <h2>Compendio de Cumplimiento Fiscal Multi-País LATAM (México, Colombia, Chile, Perú, Costa Rica)</h2>
         <article>
           <h3>1. Colombia — Facturación Electrónica DIAN &amp; Nómina Electrónica</h3>
-          <p>Integración con la Dirección de Impuestos y Aduanas Nacionales (DIAN) de Colombia: generación de archivos XML UBL 2.1 con código CUFE (Código Único de Factura Electrónica), firmado digital mediante certificados X.509 V3, timbrado vía proveedores tecnológicos autorizados e integración de documentos equivalentes y nómina electrónica.</p>
+          <p>Integración con la Dirección de Impuestos y Aduanas Nacionales (DIAN) de Colombia: generación de archivos
+            XML UBL 2.1 con código CUFE (Código Único de Factura Electrónica), firmado digital mediante certificados
+            X.509 V3, timbrado vía proveedores tecnológicos autorizados e integración de documentos equivalentes y
+            nómina electrónica.</p>
         </article>
         <article>
           <h3>2. Chile — Documentos Tributarios Electrónicos (DTE SII)</h3>
-          <p>Cumplimiento con el Servicio de Impuestos Internos (SII) de Chile: generación de DTEs (Factura Electrónica 33, Nota de Crédito 61, Guía de Despacho 52) con Timbre Electrónico DTE (TED) impreso en código PDF417 e integración con Cuentas por Cobrar (AR) y Ventas.</p>
+          <p>Cumplimiento con el Servicio de Impuestos Internos (SII) de Chile: generación de DTEs (Factura Electrónica
+            33, Nota de Crédito 61, Guía de Despacho 52) con Timbre Electrónico DTE (TED) impreso en código PDF417 e
+            integración con Cuentas por Cobrar (AR) y Ventas.</p>
         </article>
         <article>
           <h3>3. Perú — Sistema de Emisión Electrónica (SEE SUNAT)</h3>
-          <p>Integración con la Superintendencia Nacional de Aduanas y de Administración Tributaria (SUNAT) de Perú: emisión de comprobantes de pago electrónicos en formato UBL 2.1 con código CDE (Código Digital de Emisión), retenciones de IGV y detracción bancaria (SPOT) conciliada en Cash Management.</p>
+          <p>Integración con la Superintendencia Nacional de Aduanas y de Administración Tributaria (SUNAT) de Perú:
+            emisión de comprobantes de pago electrónicos en formato UBL 2.1 con código CDE (Código Digital de Emisión),
+            retenciones de IGV y detracción bancaria (SPOT) conciliada en Cash Management.</p>
         </article>
       </section>
 
@@ -1409,11 +1843,17 @@
         <h2>Manual Extenso de Arquitectura de Alta Disponibilidad OCI &amp; Disaster Recovery (RPO=0)</h2>
         <article>
           <h3>1. Configuración de Regiones Redundantes &amp; OCI Data Guard</h3>
-          <p>Despliegue de arquitectura multiregión en Oracle Cloud Infrastructure: replicación asíncrona de base de datos Autonomous Database entre la región principal (ej. Mexico Central - Querétaro) y la región secundaria de respaldo (ej. US East - Ashburn) mediante OCI Data Guard. Conmutación automática por error (Auto-Failover) con tiempo objetivo de recuperación (RTO) menor a 15 minutos e imposibilidad de pérdida de transacciones contables registradas (RPO = 0).</p>
+          <p>Despliegue de arquitectura multiregión en Oracle Cloud Infrastructure: replicación asíncrona de base de
+            datos Autonomous Database entre la región principal (ej. Mexico Central - Querétaro) y la región secundaria
+            de respaldo (ej. US East - Ashburn) mediante OCI Data Guard. Conmutación automática por error
+            (Auto-Failover) con tiempo objetivo de recuperación (RTO) menor a 15 minutos e imposibilidad de pérdida de
+            transacciones contables registradas (RPO = 0).</p>
         </article>
         <article>
           <h3>2. Balanceo de Carga Masivo &amp; Capa de Filtrado Web (OCI Load Balancers &amp; WAF)</h3>
-          <p>Distribución de tráfico transaccional mediante OCI Flexible Load Balancers con algoritmos de balanceo Round-Robin ponderado y persistencia de sesión por galleta (Cookie-based Session Persistence). Protección contra vulnerabilidades OWASP Top 10 e inspección de tráfico TLS 1.3 en tiempo real.</p>
+          <p>Distribución de tráfico transaccional mediante OCI Flexible Load Balancers con algoritmos de balanceo
+            Round-Robin ponderado y persistencia de sesión por galleta (Cookie-based Session Persistence). Protección
+            contra vulnerabilidades OWASP Top 10 e inspección de tráfico TLS 1.3 en tiempo real.</p>
         </article>
       </section>
 
@@ -1467,11 +1907,15 @@
         <h2>Manual Avanzado de Gobernanza SOC 2 Type II &amp; Matriz de Controles de Auditoría</h2>
         <article>
           <h3>1. Control de Seguridad Logica (Trust Services Criteria - Security)</h3>
-          <p>Implementación de controles de autenticación fuerte, gestión de cambios de configuración con aprobación previa de comité CAB (Change Advisory Board), aislamiento de entornos Sandbox/Test frente a Producción y registro auditable e inmutable de accesos privilegiados a bases de datos Autonomous ATP.</p>
+          <p>Implementación de controles de autenticación fuerte, gestión de cambios de configuración con aprobación
+            previa de comité CAB (Change Advisory Board), aislamiento de entornos Sandbox/Test frente a Producción y
+            registro auditable e inmutable de accesos privilegiados a bases de datos Autonomous ATP.</p>
         </article>
         <article>
           <h3>2. Control de Disponibilidad &amp; Redundancia (Trust Services Criteria - Availability)</h3>
-          <p>Monitoreo continuo de disponibilidad del servicio con compromiso de SLA del 99.95% de uptime anual. Pruebas semestrales obligatorias de conmutación por error (Failover Drill) con OCI Data Guard entre regiones de Querétaro y Ashburn.</p>
+          <p>Monitoreo continuo de disponibilidad del servicio con compromiso de SLA del 99.95% de uptime anual. Pruebas
+            semestrales obligatorias de conmutación por error (Failover Drill) con OCI Data Guard entre regiones de
+            Querétaro y Ashburn.</p>
         </article>
       </section>
 
@@ -1479,11 +1923,16 @@
         <h2>Guía de Tuning de Concurrencia de Base de Datos Autonomous ATP &amp; Conexiones JDBC</h2>
         <article>
           <h3>1. Gestión de Pools de Conexiones JDBC (UCP / HikariCP)</h3>
-          <p>Configuración de Universal Connection Pool (UCP) para aplicaciones de middleware e integraciones OIC: uso de servicios de base de datos con prioridad diferenciada (<code>HIGH</code> para cierres contables y reportes ejecutivos, <code>MEDIUM</code> para integraciones REST en tiempo real y <code>LOW</code> para cargas masivas de datos FBDI en background).</p>
+          <p>Configuración de Universal Connection Pool (UCP) para aplicaciones de middleware e integraciones OIC: uso
+            de servicios de base de datos con prioridad diferenciada (<code>HIGH</code> para cierres contables y
+            reportes ejecutivos, <code>MEDIUM</code> para integraciones REST en tiempo real y <code>LOW</code> para
+            cargas masivas de datos FBDI en background).</p>
         </article>
         <article>
           <h3>2. Prevención de Bloqueos de Transacciones (Enqueue Locks / Latches)</h3>
-          <p>Estrategias de diseño para evitar contención de bloqueos en tablas transaccionales de alto volumen (`AP_INVOICE_DISTRIBUTIONS_ALL`, `GL_INTERFACE`): uso de secuencias de base de datos optimizadas con CACHE elevado y procesamiento por lotes paralelos.</p>
+          <p>Estrategias de diseño para evitar contención de bloqueos en tablas transaccionales de alto volumen
+            (`AP_INVOICE_DISTRIBUTIONS_ALL`, `GL_INTERFACE`): uso de secuencias de base de datos optimizadas con CACHE
+            elevado y procesamiento por lotes paralelos.</p>
         </article>
       </section>
 
@@ -1529,17 +1978,24 @@
 
       <section>
         <h2>Doctrina de No-Alineación y Compromiso con la Calidad</h2>
-        <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
+        <p>FABRIC SOFT MEXICO SA DE CV es una firma independiente de ingeniería y consultoría técnica. No actuamos como
+          agentes comerciales de Oracle Corporation ni comercializamos licencias. Nuestro único compromiso contractual
+          es la estabilidad, seguridad y desempeño operativo de la infraestructura de nuestros clientes.</p>
       </section>
 
       <footer>
         <h2>FABRIC — Oracle Critical Engineering</h2>
         <p>Ciudad de México · México. © 2026 FABRIC SOFT MEXICO SA DE CV. Todos los derechos reservados.</p>
-        <p>Contacto de soporte e ingeniería: contacto@fabricsoft.mx | Atendido directamente por Ingenieros Principales.</p>
-        <p>Redes Sociales y Canales Oficiales: LinkedIn (https://www.linkedin.com/company/fabricsoft/), Facebook, YouTube, Instagram, Twitter / X, TikTok.</p>
+        <p>Contacto de soporte e ingeniería: contacto@fabricsoft.mx | Atendido directamente por Ingenieros Principales.
+        </p>
+        <p>Redes Sociales y Canales Oficiales: LinkedIn (https://www.linkedin.com/company/fabricsoft/), Facebook,
+          YouTube, Instagram, Twitter / X, TikTok.</p>
       </footer>
     </main>
   </div>
+
+  <!-- React application layer: interactive UI only -->
+  <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
   <!-- Google Tag Manager & Analytics (Diferidos para no bloquear el renderizado) -->
