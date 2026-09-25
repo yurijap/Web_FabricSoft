@@ -57,7 +57,7 @@ function useMediaQuery(query: string) {
   return matches;
 }
 
-function useDeferredGlobeLoad(enabled: boolean, delayMs = 900) {
+function useDeferredGlobeLoad(enabled: boolean, delayMs = 100) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
 
@@ -498,7 +498,7 @@ const PremiumGlobe = memo(function PremiumGlobe() {
 
 export default function S01Hero() {
   const { t, lang } = useI18n();
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(true);
 
   const highlightPhrases = useMemo<HighlightPhrase[]>(
     () => [
@@ -508,11 +508,6 @@ export default function S01Hero() {
     ],
     [t],
   );
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setMounted(true), 80);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   return (
     <section
