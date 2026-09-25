@@ -28,7 +28,7 @@ const app = (
 
 const rootElement = document.getElementById('root')!
 
-if (rootElement.hasChildNodes() && rootElement.firstElementChild && rootElement.firstElementChild.tagName !== 'MAIN') {
+if (rootElement.hasChildNodes()) {
   hydrateRoot(rootElement, app)
 } else {
   createRoot(rootElement).render(app)
