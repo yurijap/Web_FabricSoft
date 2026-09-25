@@ -113,10 +113,9 @@
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5V45D24K" height="0" width="0"
       class="hidden invisible"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
-  <div id="root"></div>
-
-  <!-- Static fallback semantic content for LLMs, Crawlers & SEO (Persistent & Server-side Readable) -->
-  <main class="sr-only" aria-hidden="true">
+  <div id="root">
+    <!-- Static fallback semantic content for LLMs, Crawlers & SEO (Hydrated by React on load) -->
+    <main class="sr-only">
       <!-- Navegación Estática Principal -->
       <nav aria-label="Navegación Principal Estática">
         <ul>
@@ -2007,6 +2006,7 @@
       </footer>
     </main>
 
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 
   <!-- Google Tag Manager & Analytics (Diferidos para no bloquear el renderizado) -->
