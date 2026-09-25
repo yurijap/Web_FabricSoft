@@ -21,6 +21,8 @@
     });
   </script>
   <!-- Resource Hints & Preload for Non-Blocking Render -->
+  <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+  <link rel="preconnect" href="https://www.google-analytics.com" crossorigin />
   <link rel="preload" href="/fonts/inter-v20-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" as="font" type="font/woff2"
     crossorigin="anonymous" />
   <link rel="modulepreload" href="/src/main.tsx" />
@@ -2020,15 +2022,19 @@
     gtag('config', 'G-Z56N6JL0QB');
   </script>
 
-  <!-- Google Tag Manager (Diferido para no bloquear el renderizado) -->
-  <script>(function (w, d, s, l, i) {
-      w[l] = w[l] || []; w[l].push({
-        'gtm.start':
-          new Date().getTime(), event: 'gtm.js'
-      }); var f = d.getElementsByTagName(s)[0],
-        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-5V45D24K');</script>
+  <!-- Google Tag Manager (Diferido al evento load para eliminar bloqueo de renderizado) -->
+  <script>
+    window.addEventListener('load', function() {
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({
+          'gtm.start':
+            new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+            'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', 'GTM-5V45D24K');
+    });
+  </script>
 
 </body>
 
