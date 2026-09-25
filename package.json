@@ -7,7 +7,7 @@
   "scripts": {
     "setup-tailwind": "tailwindcss init -p",
     "dev": "vite",
-    "build": "npx vite build",
+    "build": "vite build && vite build --ssr src/entry-server.tsx --outDir dist/server && node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

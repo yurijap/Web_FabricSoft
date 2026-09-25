@@ -890,7 +890,7 @@ export default function S01Hero() {
             <Link
               to="/#radar-admision"
               onClick={(e) => {
-                if (window.location.pathname === '/') {
+                if (typeof window !== 'undefined' && window.location.pathname === '/') {
                   e.preventDefault();
                   const target = document.getElementById('radar-admision');
                   if (target) {
@@ -910,7 +910,7 @@ export default function S01Hero() {
             <Link
               to="/#radar-admision"
               onClick={(e) => {
-                if (window.location.pathname === '/') {
+                if (typeof window !== 'undefined' && window.location.pathname === '/') {
                   e.preventDefault();
                   const target = document.getElementById('radar-admision');
                   if (target) {
