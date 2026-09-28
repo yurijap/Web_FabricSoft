@@ -1,4 +1,4 @@
-import { lazy, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { useTheme } from "../../../theme/ThemeProvider";
@@ -248,10 +248,9 @@ function applyGlobeTheme(
   polygonSeries.mapPolygons.each((polygon) => polygon.setAll(settings));
 }
 
-
 const AmChartsGlobe = memo(function AmChartsGlobe({ theme }: { theme: GlobeTheme }) {
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const { containerRef, shouldLoad } = useDeferredGlobeLoad(true, isMobile ? 600 : 1200);
+  const { containerRef, shouldLoad } = useDeferredGlobeLoad(true, isMobile ? 420 : 900);
   const chartRef = useRef<HTMLDivElement>(null);
   const am5Ref = useRef<GlobeModules["am5"] | null>(null);
   const polygonSeriesRef = useRef<import("@amcharts/amcharts5/map").MapPolygonSeries | null>(null);
