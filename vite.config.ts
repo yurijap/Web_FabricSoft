@@ -46,6 +46,8 @@ export default defineConfig({
             if (id.includes('framer-motion')) return 'vendor-motion';
             if (id.includes('lucide-react')) return 'vendor-icons';
             if (id.includes('@tsparticles')) return 'vendor-particles';
+            if (id.includes('sonner')) return 'vendor-sonner';
+            if (id.includes('axios')) return 'vendor-axios';
             if (id.includes('react-router')) return 'vendor-router';
             if (
               id.includes('react-dom') ||
@@ -61,6 +63,7 @@ export default defineConfig({
   },
   esbuild: {
     drop: ['console', 'debugger'],
+    legalComments: 'none',
     target: 'es2022',
   },
   css: {
