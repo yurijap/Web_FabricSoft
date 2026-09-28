@@ -250,7 +250,7 @@ function applyGlobeTheme(
 
 const AmChartsGlobe = memo(function AmChartsGlobe({ theme }: { theme: GlobeTheme }) {
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const { containerRef, shouldLoad } = useDeferredGlobeLoad(true, isMobile ? 1800 : 900);
+  const { containerRef, shouldLoad } = useDeferredGlobeLoad(true, isMobile ? 420 : 900);
   const chartRef = useRef<HTMLDivElement>(null);
   const am5Ref = useRef<GlobeModules["am5"] | null>(null);
   const polygonSeriesRef = useRef<import("@amcharts/amcharts5/map").MapPolygonSeries | null>(null);
