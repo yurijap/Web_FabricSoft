@@ -41,7 +41,7 @@ const AdminRescueSettings = lazy(() => import('../pages/admin/rescue-fusion/Admi
 const AdminErpModernizationLeads = lazy(() => import('../pages/admin/erp-modernization/AdminErpModernizationLeads'));
 
 // Páginas Públicas
-import Home from '../pages/public/home/home';
+const Home = lazy(() => import('../pages/public/home/home'));
 const CasoPage = lazy(() => import('../pages/public/casos/CasoPage'));
 const AplicarPage = lazy(() => import('../pages/public/aplicar/AplicarPage'));
 const TransparenciaPage = lazy(() => import('../pages/public/transparencia/TransparenciaPage'));
