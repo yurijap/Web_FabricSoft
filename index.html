@@ -8,8 +8,36 @@
   <link rel="icon" type="image/x-icon" href="/Logo.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FABRIC | Oracle Fusion Cloud &amp; Soporte Primer Ciclo Crítico</title>
-  <!-- Error Resilience Guard for Bots & External Analytics -->
+  <!-- Error Resilience Guard for Bots & External Analytics + Network Interceptor -->
   <script>
+    // Interceptar fetch y XMLHttpRequest para anular peticiones infructuosas a Factors.ai de inmediato
+    (function () {
+      var origFetch = window.fetch;
+      if (origFetch) {
+        window.fetch = function (resource, init) {
+          var url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
+          if (url.includes('factors.ai')) {
+            return Promise.resolve(new Response(JSON.stringify({ status: 'blocked' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          }
+          return origFetch.apply(this, arguments);
+        };
+      }
+      var origOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (method, url) {
+        if (typeof url === 'string' && url.includes('factors.ai')) {
+          this.__isFactors = true;
+        }
+        return origOpen.apply(this, arguments);
+      };
+      var origSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.send = function () {
+        if (this.__isFactors) {
+          return;
+        }
+        return origSend.apply(this, arguments);
+      };
+    })();
+
     window.addEventListener('error', function (e) {
       if (e.message && (e.message.includes('gtm') || e.message.includes('gtag') || e.message.includes('factors') || e.message.includes('WebGL') || e.message.includes('ResizeObserver'))) {
         e.preventDefault();
