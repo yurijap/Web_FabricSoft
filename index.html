@@ -11,12 +11,13 @@
   <!-- Error Resilience Guard for Bots & External Analytics -->
   <script>
     window.addEventListener('error', function (e) {
-      if (e.message && (e.message.includes('gtm') || e.message.includes('gtag') || e.message.includes('WebGL') || e.message.includes('ResizeObserver'))) {
+      if (e.message && (e.message.includes('gtm') || e.message.includes('gtag') || e.message.includes('factors') || e.message.includes('WebGL') || e.message.includes('ResizeObserver'))) {
         e.preventDefault();
       }
     });
     window.addEventListener('unhandledrejection', function (e) {
-      if (e.reason && e.reason.message && (e.reason.message.includes('fetch') || e.reason.message.includes('network'))) {
+      var reasonMsg = e.reason && (e.reason.message || String(e.reason));
+      if (reasonMsg && (reasonMsg.includes('fetch') || reasonMsg.includes('network') || reasonMsg.includes('factors') || reasonMsg.includes('update_properties'))) {
         e.preventDefault();
       }
     });
