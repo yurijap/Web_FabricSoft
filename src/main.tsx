@@ -28,18 +28,8 @@ const app = (
 
 const rootElement = document.getElementById('root')!
 
-const removeInitialLoader = () => {
-  const loader = document.getElementById('fabric-initial-loader')
-  if (loader) {
-    loader.style.opacity = '0'
-    setTimeout(() => loader.remove(), 250)
-  }
-}
-
 if (rootElement.hasChildNodes() && rootElement.firstElementChild && rootElement.firstElementChild.tagName !== 'MAIN') {
   hydrateRoot(rootElement, app)
-  removeInitialLoader()
 } else {
   createRoot(rootElement).render(app)
-  requestAnimationFrame(removeInitialLoader)
 }
