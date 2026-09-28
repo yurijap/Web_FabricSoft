@@ -49,7 +49,6 @@ export default defineConfig({
             ) {
               return 'vendor-react';
             }
-            return 'vendor-misc';
           }
         },
       },
