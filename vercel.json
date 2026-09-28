@@ -1,6 +1,15 @@
 {
   "headers": [
     {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
@@ -19,11 +28,15 @@
       ]
     },
     {
-      "source": "/(.*)\\.(js|mjs)",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Content-Type",
-          "value": "text/javascript; charset=utf-8"
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         }
       ]
     }
@@ -34,7 +47,7 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/((?!assets/|api/|.*\\.(?:js|mjs|css|json|ico|png|jpg|jpeg|svg|woff|woff2|ttf|eot)).*)",
+      "source": "/((?!assets/|api/|fonts/|.*\\.(?:js|mjs|css|json|ico|png|jpg|jpeg|svg|woff|woff2|ttf|eot)).*)",
       "destination": "/index.html"
     }
   ]
