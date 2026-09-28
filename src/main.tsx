@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
 
 import App from './App.tsx'
+import './index.css'
 import { FabricProvider } from './store/FabricContext.tsx'
 import { ThemeProvider, useTheme } from './theme/ThemeProvider.tsx'
 
