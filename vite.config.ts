@@ -29,7 +29,12 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: false,
     cssCodeSplit: true,
+    cssMinify: true,
     minify: 'esbuild',
+    reportCompressedSize: false,
+    modulePreload: {
+      polyfill: false,
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {
