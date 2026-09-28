@@ -248,9 +248,11 @@ function applyGlobeTheme(
   polygonSeries.mapPolygons.each((polygon) => polygon.setAll(settings));
 }
 
+const AmChartsGlobeLazy = lazy(() => Promise.resolve({ default: AmChartsGlobe }));
+
 const AmChartsGlobe = memo(function AmChartsGlobe({ theme }: { theme: GlobeTheme }) {
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const { containerRef, shouldLoad } = useDeferredGlobeLoad(true, isMobile ? 150 : 300);
+  const { containerRef, shouldLoad } = useDeferredGlobeLoad(true, isMobile ? 600 : 1200);
   const chartRef = useRef<HTMLDivElement>(null);
   const am5Ref = useRef<GlobeModules["am5"] | null>(null);
   const polygonSeriesRef = useRef<import("@amcharts/amcharts5/map").MapPolygonSeries | null>(null);
