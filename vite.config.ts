@@ -26,52 +26,30 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'es2022',
     sourcemap: false,
     cssCodeSplit: true,
-    cssMinify: true,
-    minify: 'esbuild',
-    reportCompressedSize: false,
-    modulePreload: {
-      polyfill: false,
-    },
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('@clerk')) return 'vendor-clerk';
-            if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
-            if (id.includes('@amcharts') || id.includes('chart.js') || id.includes('react-chartjs-2')) return 'vendor-charts';
-            if (id.includes('xlsx')) return 'vendor-excel';
-            if (id.includes('framer-motion')) return 'vendor-motion';
-            if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('@tsparticles')) return 'vendor-particles';
-            if (id.includes('sonner')) return 'vendor-sonner';
-            if (id.includes('axios')) return 'vendor-axios';
-            if (id.includes('react-router')) return 'vendor-router';
+            if (id.includes('react-router')) return 'react-router';
             if (
               id.includes('react-dom') ||
               id.includes('/react/') ||
               id.includes('scheduler')
             ) {
-              return 'vendor-react';
+              return 'react';
             }
           }
         },
       },
     },
   },
-  esbuild: {
-    drop: ['console', 'debugger'],
-    legalComments: 'none',
-    target: 'es2022',
-  },
   css: {
     devSourcemap: false,
   },
   optimizeDeps: {
     esbuildOptions: {
-      target: 'es2022',
       sourcemap: false,
     },
   },
