@@ -1,16 +1,21 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { Toaster } from 'sonner'
 
 import App from './App.tsx'
 import './index.css'
 import { FabricProvider } from './store/FabricContext.tsx'
 import { ThemeProvider, useTheme } from './theme/ThemeProvider.tsx'
 
+const LazyToaster = lazy(() => import('sonner').then(m => ({ default: m.Toaster })))
+
 function ThemedToaster() {
   const { theme } = useTheme()
-  return <Toaster theme={theme} position="bottom-right" richColors />
+  return (
+    <Suspense fallback={null}>
+      <LazyToaster theme={theme} position="bottom-right" richColors />
+    </Suspense>
+  )
 }
 
 const app = (
