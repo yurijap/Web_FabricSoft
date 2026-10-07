@@ -123,7 +123,7 @@ export default function Footer() {
               <p>Ciudad de México · México</p>
             </div>
 
-            <div className="flex items-center gap-6 mb-10">
+            <div className="flex items-center gap-6 mb-4">
               <a href="https://www.linkedin.com/company/fabricsoft/" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
                 <span className="sr-only">LinkedIn</span>
                 <SocialIcons.LinkedIn />
@@ -147,6 +147,12 @@ export default function Footer() {
               <a href="https://www.tiktok.com/@fabricsoft_" target="_blank" rel="noopener noreferrer" className="text-[#F5F5F5]/50 hover:text-[#C9A96E] transition-colors duration-300 hover:scale-110">
                 <span className="sr-only">TikTok</span>
                 <SocialIcons.TikTok />
+              </a>
+            </div>
+
+            <div className="font-mono text-sm mb-8 text-[#F5F5F5]/80 break-words">
+              <a href="mailto:contacto@fabricsoft.com.mx" className="hover:text-[#C9A96E] transition-colors duration-300">
+                contacto@fabricsoft.com.mx
               </a>
             </div>
 
