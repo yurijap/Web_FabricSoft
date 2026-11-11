@@ -3,6 +3,8 @@ import { esES } from '@clerk/localizations';
 import { dark } from '@clerk/themes';
 import { Outlet } from 'react-router-dom';
 import { AccessProvider } from './AccessContext';
+import { SecurityFrame } from './SecurityFrame';
+import { useTheme } from '../theme/ThemeProvider';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
@@ -25,8 +27,10 @@ function isValidClerkKey(key?: string): boolean {
 }
 
 export default function ClerkBoundary() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   if (!isValidClerkKey(PUBLISHABLE_KEY)) {
-    return <main className="min-h-screen bg-[#050B14] text-white flex items-center justify-center p-6"><p role="alert">El acceso administrativo no está configurado. Contacta al responsable del sistema.</p></main>;
+    return <SecurityFrame title="El acceso aún no está disponible" description="El acceso administrativo no está configurado."><p role="alert">Contacta al responsable de la plataforma para continuar.</p></SecurityFrame>;
   }
 
   return (
@@ -34,10 +38,16 @@ export default function ClerkBoundary() {
       publishableKey={PUBLISHABLE_KEY!}
       localization={esES}
       appearance={{
-        baseTheme: dark,
+        baseTheme: isDark ? dark : undefined,
         variables: {
-          colorPrimary: '#ffffff',
-          colorBackground: '#111111',
+          colorPrimary: isDark ? '#d1b079' : '#8c611f',
+          colorBackground: isDark ? '#10223a' : '#fffefa',
+          colorText: isDark ? '#f0f4fa' : '#1c2831',
+          colorTextSecondary: isDark ? '#b1bfd0' : '#53616c',
+          colorInputBackground: isDark ? '#142b46' : '#f2efe7',
+          colorInputText: isDark ? '#f0f4fa' : '#1c2831',
+          fontFamily: 'Inter, sans-serif',
+          borderRadius: '0.625rem',
         },
       }}
     >

@@ -21,7 +21,7 @@ try {
   const verified = user.email_addresses?.some(e => e.email_address.toLowerCase() === expectedEmail && e.verification?.status === 'verified');
   if (!verified || user.banned) throw new Error('El correo verificado no coincide con la cuenta indicada.');
   await provider.setAccess(id, { email: expectedEmail, role: 'superadmin', status: 'active', grantedBy: 'local-bootstrap', updatedAt: new Date().toISOString() });
-  console.log('Superadmin autorizado. El panel exigirá configurar y verificar el autenticador antes de permitir el acceso.');
+  console.log('Superadmin autorizado. Inicia sesión con esta cuenta para entrar al panel.');
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

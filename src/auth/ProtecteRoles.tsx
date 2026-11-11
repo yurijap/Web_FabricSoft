@@ -1,28 +1,24 @@
 import type { ReactNode } from 'react';
 import { useAuth, useClerk } from '@clerk/clerk-react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { LoaderPersonalizado } from '../components/ui/LoaderPersonalizado';
+import { AlertCircle, LogOut, RefreshCw } from 'lucide-react';
+import { SecurityFrame, SecurityLoading } from './SecurityFrame';
 import { useAccess } from './AccessContext';
-import MfaScreen from './MfaScreen';
 
 export function ProtectorRoles({ children, rolesPermitidos }: { children: ReactNode; rolesPermitidos: string[] }) {
   const { isLoaded, isSignedIn } = useAuth();
   const { signOut } = useClerk();
   const location = useLocation();
   const { identity, loading, error, refresh } = useAccess();
-  if (!isLoaded) return <LoaderPersonalizado mensaje="Verificando credenciales…" pantallaCompleta />;
+  if (!isLoaded) return <SecurityLoading message="Verificando credenciales…" />;
   if (!isSignedIn) return <Navigate to="/acceso" state={{ from: location.pathname }} replace />;
-  if (loading) return <LoaderPersonalizado mensaje="Verificando permisos…" pantallaCompleta />;
+  if (loading) return <SecurityLoading message="Verificando permisos…" />;
   if (error || !identity || !rolesPermitidos.includes(identity.rol)) {
-    return <main className="min-h-screen flex items-center justify-center p-6 bg-[#050B14] text-white">
-      <section className="max-w-lg space-y-5">
-        <h1 className="text-2xl font-semibold">Acceso restringido</h1>
-        <p role="alert">{error || 'Tu cuenta no tiene permisos para esta sección.'}</p>
-        <button onClick={() => void refresh()} className="rounded-lg border border-[#C9A96E] px-4 py-2">Reintentar</button>
-        <button onClick={() => void signOut({ redirectUrl: '/acceso' })} className="ml-4 underline">Cerrar sesión</button>
-      </section>
-    </main>;
+    return <SecurityFrame title="Acceso restringido" description="Necesitamos confirmar tu autorización antes de abrir la consola."
+      footer={<button type="button" className="fs-security__link" onClick={() => void signOut({ redirectUrl: '/acceso' })}><LogOut size={14} aria-hidden="true" />Cerrar sesión</button>}>
+      <div role="alert" className="fs-security__alert fs-security__alert--error"><AlertCircle size={17} aria-hidden="true" /><span>{error || 'Tu cuenta no tiene permisos para esta sección.'}</span></div>
+      <button type="button" onClick={() => void refresh()} className="fs-security__button"><RefreshCw size={17} aria-hidden="true" />Reintentar verificación</button>
+    </SecurityFrame>;
   }
-  if (identity.mfaRequired && !identity.mfaVerified) return <MfaScreen />;
   return <>{children}</>;
 }

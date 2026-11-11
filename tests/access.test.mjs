@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import express from 'express';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
-import { createAccessControl, userAccess, hasRecentMfa } from '../server/access.js';
+import { createAccessControl, userAccess } from '../server/access.js';
 import { INITIAL_SUPERADMIN_EMAIL } from '../server/initial-superadmin.js';
 import { accessConfiguration } from '../server/access-config.js';
 
@@ -23,7 +23,7 @@ function account(id = 'user_owner', role = 'superadmin') {
   return { id, primary_email_address_id: 'id_email', first_name: 'Test', last_name: 'User',
     email_addresses: [{ id: 'id_email', email_address: `${id}@example.com`, verification: { status: 'verified' } }],
     private_metadata: { fabricAccess: { email: `${id}@example.com`, role, status: 'active' } },
-    public_metadata: {}, totp_enabled: true };
+    public_metadata: {}, totp_enabled: false };
 }
 async function fixture(t, { configured = true, configuration = { authorizedParties: [origin], appOrigin: origin } } = {}) {
   const owner = account();
@@ -95,18 +95,16 @@ test('revoked sessions and blocked users are rejected even with a valid JWT', as
   assert.equal((await state.request('/api/leads')).status, 403);
 });
 
-test('superadmin must enroll TOTP and verify a recent second factor; login only exposes enrollment status', async t => {
+test('authorized superadmin can enter and manage users without configuring a second factor', async t => {
   const state = await fixture(t);
   for (const fva of [undefined, [0, -1], [0, 15], [0, '0']]) {
-    const response = await state.request('/api/access/users', { jwt: token({ fva }) });
-    assert.equal(response.status, 403); assert.equal(response.data.code, 'MFA_REQUIRED');
-    const login = await state.request('/api/auth/login', { jwt: token({ fva }) });
-    assert.equal(login.status, 200); assert.equal(login.data.mfaVerified, false);
+    const jwt = token({ fva });
+    const login = await state.request('/api/auth/login', { jwt });
+    assert.equal(login.status, 200);
+    assert.equal(login.data.mfaRequired, false);
+    assert.equal((await state.request('/api/access/users', { jwt })).status, 200);
+    assert.equal((await state.request('/api/leads', { jwt })).status, 200);
   }
-  state.owner.totp_enabled = false;
-  const response = await state.request('/api/leads');
-  assert.equal(response.data.code, 'MFA_ENROLLMENT_REQUIRED');
-  assert.equal((await state.request('/api/access/users')).status, 403);
 });
 
 test('admins can operate the console but cannot manage any users or invitations', async t => {
@@ -164,7 +162,7 @@ test('legacy private aliases and downloads cannot bypass authorization', async t
   ]) assert.equal((await state.request(path, { method, jwt: null })).status, 401, `${method} ${path}`);
 });
 
-test('revocation and reactivation work, and promotion immediately requires MFA', async t => {
+test('revocation and reactivation work, and promotion grants the assigned permissions', async t => {
   const state = await fixture(t);
   assert.equal((await state.request('/api/access/invitations/inv_test/revoke', { method: 'POST' })).status, 200);
   assert.deepEqual(state.calls[0], ['revoke', 'inv_test']);
@@ -173,8 +171,7 @@ test('revocation and reactivation work, and promotion immediately requires MFA',
   assert.equal((await state.request('/api/access/users/user_target', { method: 'PATCH', body: { role: 'superadmin', status: 'active' } })).status, 200);
   state.session.user_id = 'user_target';
   const response = await state.request('/api/leads', { jwt });
-  assert.equal(response.status, 403);
-  assert.equal(response.data.code, 'MFA_REQUIRED');
+  assert.equal(response.status, 200);
   assert.equal((await state.request('/api/leads', { jwt: token({ sub: 'user_target' }) })).status, 200);
 });
 
@@ -191,7 +188,6 @@ test('provider outage fails closed and invalid mutations have no side effects', 
   state.outage = false;
   state.owner.banned = true;
   assert.equal((await state.request('/api/leads')).status, 403);
-  assert.equal(hasRecentMfa(account(), { fva: [0, 0] }), true);
 });
 
 function initialOwner(state) {
@@ -199,7 +195,7 @@ function initialOwner(state) {
   state.owner.email_addresses[0].email_address = INITIAL_SUPERADMIN_EMAIL;
 }
 
-test('the explicitly authorized verified email receives a persisted superadmin role on login and must still pass MFA', async t => {
+test('the explicitly authorized verified email receives a persisted superadmin role without a second-factor requirement', async t => {
   assert.equal(INITIAL_SUPERADMIN_EMAIL, 'edilbertoh369@gmail.com');
   const state = await fixture(t);
   initialOwner(state);
@@ -208,11 +204,10 @@ test('the explicitly authorized verified email receives a persisted superadmin r
   const login = await state.request('/api/auth/login');
   assert.equal(login.status, 200);
   assert.equal(login.data.rol, 'superadmin');
-  assert.equal(login.data.mfaRequired, true);
-  assert.equal(login.data.mfaVerified, false);
+  assert.equal(login.data.mfaRequired, false);
   assert.equal(state.owner.private_metadata.fabricAccess.grantedBy, 'initial-owner-authorization');
   assert.equal(state.calls.length, 1);
-  assert.equal((await state.request('/api/access/users')).data.code, 'MFA_ENROLLMENT_REQUIRED');
+  assert.equal((await state.request('/api/access/users', { jwt: token({ fva: undefined }) })).status, 200);
   await state.request('/api/auth/login');
   assert.equal(state.calls.length, 1, 'the initial grant must be written only once');
   assert.equal(state.audit[0].action, 'access.initial_superadmin');
@@ -261,7 +256,7 @@ test('initial-owner provisioning cannot grant access if the provider cannot pers
   assert.equal(missing.calls.length, 0);
 });
 
-test('production accepts the verified initial owner on the real domain and still enforces MFA', async t => {
+test('production accepts the verified initial owner on the real domain without a second factor', async t => {
   const configuration = accessConfiguration({ VERCEL: '1', NODE_ENV: 'production' });
   const state = await fixture(t, { configuration });
   initialOwner(state);
@@ -270,8 +265,8 @@ test('production accepts the verified initial owner on the real domain and still
     const login = await state.request('/api/auth/login', { jwt });
     assert.equal(login.status, 200);
     assert.equal(login.data.rol, 'superadmin');
-    assert.equal(login.data.mfaVerified, false);
-    assert.equal((await state.request('/api/access/users', { jwt })).data.code, 'MFA_REQUIRED');
+    assert.equal(login.data.mfaRequired, false);
+    assert.equal((await state.request('/api/access/users', { jwt })).status, 200);
     assert.equal((await state.request('/api/access/users', { jwt: token({ azp }) })).status, 200);
   }
   for (const azp of [origin, 'https://evil.example', 'https://fabricsoft.com.mx.evil.example']) {

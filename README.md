@@ -1,6 +1,6 @@
 # ◼ FABRICSOFT
 
-Configuración del panel privado: [Usuarios, accesos y MFA](docs/accesos.md).
+Configuración del panel privado: [Usuarios y accesos](docs/accesos.md).
 
 ### Oracle Engineering · AI · ERP Transformation
 

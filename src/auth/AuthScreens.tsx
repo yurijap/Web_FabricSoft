@@ -1,170 +1,33 @@
-import { ArrowLeft } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { SignIn, SignUp } from '@clerk/clerk-react';
+import { Mail } from 'lucide-react';
+import { SecurityFrame } from './SecurityFrame';
+
+const appearance = {
+  elements: {
+    rootBox: 'fs-security__clerk-root',
+    cardBox: 'fs-security__clerk-box',
+    card: 'fs-security__clerk-card',
+    header: 'fs-security__clerk-hidden',
+    footerAction: 'fs-security__clerk-hidden',
+  },
+};
 
 export function AccesoScreen() {
-  return (
-    <div className="bg-[#050B14] text-white min-h-screen flex flex-col justify-center items-center px-4 relative font-sans">
-      {/* Background gradients */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(201,169,110,0.1),transparent_70%)] pointer-events-none"></div>
-      <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-[#1E3A5F]/10 blur-[120px] pointer-events-none" />
-      <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-[#C9A96E]/5 blur-[120px] pointer-events-none" />
-
-      <Link to="/" className="absolute top-8 left-8 inline-flex items-center gap-2 text-slate-400 hover:text-[#C9A96E] font-mono text-xs transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Volver al Sitio
-      </Link>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Brand Header */}
-        <div className="text-center mb-8 flex flex-col items-center">
-          <Link to="/" className="inline-flex flex-col items-center select-none group w-48 md:w-64">
-            <img 
-              src="/Logo_FabricSoft.webp" 
-              alt="FabricSoft Logo" 
-              className="h-16 md:h-20 object-contain"
-            />
-          </Link>
-          <p className="text-[#C9A96E] font-mono text-[9px] tracking-[0.2em] uppercase mt-4 font-bold">ADMIN PORTAL & CRITICAL TELEMETRY</p>
-        </div>
-
-        {/* Clerk Sign In component */}
-        <SignIn
-          appearance={{
-            elements: {
-              rootBox: "mx-auto w-full",
-              cardBox: "shadow-none border-0 bg-transparent w-full",
-              card: "bg-[#0A1626]/85 backdrop-blur-xl border border-[#1E3A5F]/60 rounded-3xl p-6 md:p-8 w-full shadow-[0_20px_50px_rgba(0,0,0,0.4)]",
-              headerTitle: "hidden",
-              headerSubtitle: "hidden",
-              header: "hidden",
-              socialButtonsBlockButton: "bg-[#12253F] border border-[#1E3A5F] text-[#F5F5F5] hover:bg-[#1C355E] hover:text-white font-mono text-xs rounded-xl transition-colors",
-              socialButtonsBlockButtonText: "text-[#F5F5F5] font-mono text-xs",
-              formButtonPrimary: "w-full py-4 text-xs font-bold uppercase tracking-widest text-[#050B14] bg-[#C9A96E] hover:bg-[#E2C799] transition-all duration-200 font-mono rounded-full border-0 cursor-pointer shadow-lg hover:shadow-[#C9A96E]/20",
-              formFieldLabel: "text-[#94A3B8] font-bold block font-mono text-[10px] uppercase tracking-wider",
-              formFieldInput: "w-full bg-[#12253F]/50 border border-[#1E3A5F] focus:border-[#C9A96E] focus:ring-1 focus:ring-[#C9A96E]/30 outline-none py-3.5 px-4 text-white placeholder-slate-500 transition-colors rounded-xl font-mono text-xs",
-              formFieldAction: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[10px] uppercase tracking-wider",
-              formFieldActionLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[10px] uppercase tracking-wider",
-              formFieldHintText: "text-slate-400 font-mono text-[10px]",
-              footerActionLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[11px] font-bold uppercase tracking-wider",
-              dividerText: "text-[#94A3B8] font-mono text-[10px] uppercase",
-              dividerLine: "bg-[#1E3A5F]/40",
-              identityPreviewText: "text-white font-mono text-xs",
-              identityPreviewEditButtonIcon: "text-[#C9A96E]",
-              formFieldInputShowPasswordButton: "text-slate-400 hover:text-white",
-              footerActionText: "text-slate-400 font-mono text-[11px] uppercase",
-              footerAction: "hidden",
-              formResendCodeLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[11px] font-bold uppercase tracking-wider",
-              alternativeMethodsBlockButton: "bg-[#12253F] border border-[#1E3A5F] text-[#F5F5F5] hover:bg-[#1C355E] hover:text-white font-mono text-xs rounded-xl transition-colors",
-              alternativeMethodsBlockButtonText: "text-[#F5F5F5] font-mono text-xs",
-              userPreviewSecondaryIdentifier: "text-[#94A3B8] font-mono text-xs",
-              backLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[11px] font-bold uppercase tracking-wider",
-              footer: "mt-4",
-            },
-            variables: {
-              colorPrimary: "#C9A96E",
-              colorBackground: "#0A1626",
-              colorText: "#F5F5F5",
-              colorTextSecondary: "#94A3B8",
-              colorInputText: "#FFFFFF",
-              colorDanger: "#EF4444",
-              fontFamily: "var(--sans)",
-            }
-          }}
-          routing="virtual"
-          signUpUrl="/crear-cuenta"
-          forceRedirectUrl="/admin"
-        />
-
-        {/* Footer info */}
-        <p className="text-center font-mono text-[9px] text-[#94A3B8] mt-6 leading-relaxed">
-          El acceso está sujeto a auditoría de logs IP. <br />
-          Cualquier intento de intrusión será derivado a los equipos de IT de FABRIC.
-        </p>
-      </div>
-    </div>
-  );
+  return <SecurityFrame title="Bienvenido a tu consola" description="Inicia sesión con la cuenta que tiene acceso a FabricSoft.">
+    <SignIn appearance={appearance} routing="virtual" signUpUrl="/crear-cuenta" forceRedirectUrl="/admin" />
+  </SecurityFrame>;
 }
 
 export function CrearCuentaScreen() {
   const [params] = useSearchParams();
   if (!params.get('__clerk_ticket')) {
-    return <main className="min-h-screen bg-[#050B14] text-white flex items-center justify-center p-6">
-      <section className="max-w-md space-y-4"><h1 className="text-2xl font-semibold">Acceso por invitación</h1>
-        <p>Solicita una invitación al superadministrador para entrar a FabricSoft.</p>
-        <Link to="/acceso" className="text-[#C9A96E] underline">Ya tengo cuenta: iniciar sesión</Link>
-      </section>
-    </main>;
+    return <SecurityFrame title="Tu invitación es el primer paso" description="El acceso a FabricSoft está reservado a las personas autorizadas por el superadministrador.">
+      <div className="fs-security__key-box"><Mail size={21} aria-hidden="true" /><p>Solicita una invitación a tu equipo y abre el enlace que recibirás en tu correo.</p></div>
+      <Link to="/acceso" className="fs-security__button">Ya tengo cuenta: iniciar sesión</Link>
+    </SecurityFrame>;
   }
-  return (
-    <div className="bg-[#050B14] text-white min-h-screen flex flex-col justify-center items-center px-4 relative font-sans">
-      {/* Background gradients */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(201,169,110,0.1),transparent_70%)] pointer-events-none"></div>
-      <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-[#1E3A5F]/10 blur-[120px] pointer-events-none" />
-      <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-[#C9A96E]/5 blur-[120px] pointer-events-none" />
-
-      <Link to="/" className="absolute top-8 left-8 inline-flex items-center gap-2 text-slate-400 hover:text-[#C9A96E] font-mono text-xs transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Volver al Sitio
-      </Link>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Brand Header */}
-        <div className="text-center mb-8 flex flex-col items-center">
-          <Link to="/" className="inline-flex flex-col items-center select-none group w-48 md:w-64">
-            <img 
-              src="/Logo_FabricSoft.webp" 
-              alt="FabricSoft Logo" 
-              className="h-16 md:h-20 object-contain"
-            />
-          </Link>
-          <p className="text-[#C9A96E] font-mono text-[9px] tracking-[0.2em] uppercase mt-4 font-bold">NUEVO REGISTRO DE OPERADOR</p>
-        </div>
-
-        <SignUp
-          appearance={{
-            elements: {
-              rootBox: "mx-auto w-full",
-              cardBox: "shadow-none border-0 bg-transparent w-full",
-              card: "bg-[#0A1626]/85 backdrop-blur-xl border border-[#1E3A5F]/60 rounded-3xl p-6 md:p-8 w-full shadow-[0_20px_50px_rgba(0,0,0,0.4)]",
-              headerTitle: "hidden",
-              headerSubtitle: "hidden",
-              header: "hidden",
-              socialButtonsBlockButton: "bg-[#12253F] border border-[#1E3A5F] text-[#F5F5F5] hover:bg-[#1C355E] hover:text-white font-mono text-xs rounded-xl transition-colors",
-              socialButtonsBlockButtonText: "text-[#F5F5F5] font-mono text-xs",
-              formButtonPrimary: "w-full py-4 text-xs font-bold uppercase tracking-widest text-[#050B14] bg-[#C9A96E] hover:bg-[#E2C799] transition-all duration-200 font-mono rounded-full border-0 cursor-pointer shadow-lg hover:shadow-[#C9A96E]/20",
-              formFieldLabel: "text-[#94A3B8] font-bold block font-mono text-[10px] uppercase tracking-wider",
-              formFieldInput: "w-full bg-[#12253F]/50 border border-[#1E3A5F] focus:border-[#C9A96E] focus:ring-1 focus:ring-[#C9A96E]/30 outline-none py-3.5 px-4 text-white placeholder-slate-500 transition-colors rounded-xl font-mono text-xs",
-              formFieldAction: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[10px] uppercase tracking-wider",
-              formFieldActionLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[10px] uppercase tracking-wider",
-              formFieldHintText: "text-slate-400 font-mono text-[10px]",
-              footerActionLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[11px] font-bold uppercase tracking-wider",
-              dividerText: "text-[#94A3B8] font-mono text-[10px] uppercase",
-              dividerLine: "bg-[#1E3A5F]/40",
-              identityPreviewText: "text-white font-mono text-xs",
-              identityPreviewEditButtonIcon: "text-[#C9A96E]",
-              formFieldInputShowPasswordButton: "text-slate-400 hover:text-white",
-              footerActionText: "text-slate-400 font-mono text-[11px] uppercase",
-              formResendCodeLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[11px] font-bold uppercase tracking-wider",
-              alternativeMethodsBlockButton: "bg-[#12253F] border border-[#1E3A5F] text-[#F5F5F5] hover:bg-[#1C355E] hover:text-white font-mono text-xs rounded-xl transition-colors",
-              alternativeMethodsBlockButtonText: "text-[#F5F5F5] font-mono text-xs",
-              userPreviewSecondaryIdentifier: "text-[#94A3B8] font-mono text-xs",
-              backLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[11px] font-bold uppercase tracking-wider",
-              footer: "mt-4",
-            },
-            variables: {
-              colorPrimary: "#C9A96E",
-              colorBackground: "#0A1626",
-              colorText: "#F5F5F5",
-              colorTextSecondary: "#94A3B8",
-              colorInputText: "#FFFFFF",
-              colorDanger: "#EF4444",
-              fontFamily: "var(--sans)",
-            }
-          }}
-          routing="virtual"
-          signInUrl="/acceso"
-          forceRedirectUrl="/admin"
-        />
-      </div>
-    </div>
-  );
+  return <SecurityFrame title="Completa tu cuenta" description="Acepta tu invitación para empezar a trabajar con tu equipo.">
+    <SignUp appearance={appearance} routing="virtual" signInUrl="/acceso" forceRedirectUrl="/admin" />
+  </SecurityFrame>;
 }

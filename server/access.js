@@ -1,7 +1,6 @@
 import express from 'express';
 import { provisionInitialSuperadmin } from './initial-superadmin.js';
 
-export const MFA_MAX_AGE_MINUTES = 15;
 const ROLES = new Set(['admin', 'superadmin']);
 const STATUSES = new Set(['active', 'blocked']);
 
@@ -14,11 +13,6 @@ export function userAccess(user) {
     e.verification?.status === 'verified' && e.email_address.toLowerCase() === access.email.toLowerCase());
   if (!access || !ROLES.has(access.role) || !verifiedEmail || user.banned) return null;
   return { ...access, status: access.status === 'active' ? 'active' : 'blocked' };
-}
-
-export function hasRecentMfa(user, claims) {
-  const age = claims.fva?.[1];
-  return user.totp_enabled === true && Number.isFinite(age) && age >= 0 && age < MFA_MAX_AGE_MINUTES;
 }
 
 // Explicit public operations. All other backend operations, including legacy aliases,
@@ -90,28 +84,20 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
       if (!access || access.status !== 'active') {
         return fail(res, 403, 'ACCESS_DENIED', 'Tu cuenta no tiene acceso autorizado. Solicita una invitación al superadministrador.');
       }
-      req.identity = { claims, user, access, mfaVerified: hasRecentMfa(user, claims) };
+      req.identity = { claims, user, access };
       next();
     } catch {
       return fail(res, 503, 'IDENTITY_UNAVAILABLE', 'No se pudo verificar tu acceso. Intenta de nuevo.');
     }
   }
 
-  function enforceMfa(req, res, next) {
-    if (req.identity.access.role === 'superadmin' && !req.identity.mfaVerified) {
-      return fail(res, 403, req.identity.user.totp_enabled ? 'MFA_REQUIRED' : 'MFA_ENROLLMENT_REQUIRED',
-        'El superadministrador debe verificar su segundo factor para continuar.');
-    }
-    next();
-  }
-
   router.get('/auth/login', identify, (req, res) => {
-    const { user, access, mfaVerified } = req.identity;
+    const { user, access } = req.identity;
     res.json({ success: true, userId: user.id, status: 'activo', rol: access.role,
-      mfaRequired: access.role === 'superadmin', mfaEnrolled: user.totp_enabled === true, mfaVerified });
+      mfaRequired: false });
   });
 
-  router.use('/access', identify, enforceMfa, (req, res, next) => {
+  router.use('/access', identify, (req, res, next) => {
     if (req.identity.access.role !== 'superadmin') return fail(res, 403, 'SUPERADMIN_REQUIRED', 'Solo el superadministrador puede gestionar accesos.');
     next();
   });
@@ -131,7 +117,6 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
       id: user.id, name: [user.first_name, user.last_name].filter(Boolean).join(' '),
       email: user.email_addresses?.find(e => e.id === user.primary_email_address_id)?.email_address || '',
       role: userAccess(user)?.role || null, status: userAccess(user)?.status || 'unauthorized',
-      mfaEnrolled: user.totp_enabled === true,
     })), total: count.total_count, offset });
   }));
 
@@ -184,12 +169,12 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
 
   function protect(req, res, next) {
     if (isPublicOperation(req)) return next();
-    return identify(req, res, () => enforceMfa(req, res, () => {
+    return identify(req, res, () => {
       if (req.path.toLowerCase().replace(/\/+$/, '') === '/api/admin/clear-db' && req.identity.access.role !== 'superadmin') {
         return fail(res, 403, 'SUPERADMIN_REQUIRED', 'Solo el superadministrador puede vaciar la base de datos.');
       }
       next();
-    }));
+    });
   }
   return { router, protect };
 }

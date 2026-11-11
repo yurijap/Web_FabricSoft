@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, Suspense, type ReactNode } from 'react';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import { useAccess } from '../../auth/AccessContext';
+import { SecurityThemeToggle } from '../../auth/SecurityFrame';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
   Activity,
@@ -85,10 +86,10 @@ const NAV_GROUPS: NavGroup[] = [
 const NestedLoader = () => (
   <div className="flex min-h-[60vh] w-full flex-col items-center justify-center bg-transparent">
     <div className="relative mb-4 flex h-10 w-10 items-center justify-center">
-      <div className="absolute inset-0 rounded-full border border-[#2A2A2A]" />
-      <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#C9A96E]" />
+      <div className="absolute inset-0 rounded-full border border-[var(--border)]" />
+      <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[var(--accent)]" />
     </div>
-    <div className="font-mono text-[9px] font-bold text-[#C9A96E] uppercase tracking-[0.2em] animate-pulse">
+    <div className="font-mono text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] animate-pulse">
       Cargando sección...
     </div>
   </div>
@@ -123,6 +124,15 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
     });
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => { document.body.style.overflow = previous; window.removeEventListener('keydown', closeOnEscape); };
+  }, [mobileOpen]);
+
   const displayName = user?.fullName || user?.firstName || 'Admin';
   const email = user?.primaryEmailAddress?.emailAddress || '';
   const initials = displayName
@@ -148,11 +158,12 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
         className="fabric-admin-sidebar"
         style={{
           width: 276,
+          maxWidth: 'calc(100vw - 48px)',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          background: '#0E2747',
-          borderRight: '1px solid #1E3A5F',
+          background: 'var(--bg-panel)',
+          borderRight: '1px solid var(--border)',
           boxShadow: '4px 0 24px rgba(0,0,0,0.25)',
         }}
       >
@@ -161,7 +172,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           className="fabric-admin-sidebar-brand"
           style={{
             padding: '18px 18px 16px',
-            borderBottom: '1px solid #1E3A5F',
+            borderBottom: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -198,7 +209,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   fontSize: 13,
                   fontWeight: 700,
                   letterSpacing: '0.18em',
-                  color: '#FFFFFF',
+                  color: 'var(--text-primary)',
                   textTransform: 'uppercase',
                 }}
               >
@@ -209,7 +220,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   fontFamily: 'var(--mono, monospace)',
                   fontSize: 9,
                   letterSpacing: '0.12em',
-                  color: '#94A3B8',
+                  color: 'var(--fs-muted)',
                   textTransform: 'uppercase',
                   marginTop: 2,
                 }}
@@ -226,16 +237,16 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             style={{
               width: 32,
               height: 32,
-              border: '1px solid #1E3A5F',
+              border: '1px solid var(--border)',
               background: 'transparent',
-              color: '#94A3B8',
+              color: 'var(--fs-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: 6,
             }}
-            className="lg:hidden"
+            className="fabric-admin-sidebar-close lg:hidden"
             aria-label="Cerrar"
           >
             <PanelLeftClose size={15} />
@@ -255,14 +266,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             scrollbarWidth: 'none',
           }}
         >
-          <style>{`
-            [data-admin-nav]::-webkit-scrollbar { display: none; }
-            .nav-item-enter { animation: navItemIn 180ms ease both; }
-            @keyframes navItemIn {
-              from { opacity: 0; transform: translateY(-4px); }
-              to   { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
+
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {NAV_GROUPS.map(({ group, items }, gi) => {
@@ -301,8 +305,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                           width: 12,
                           height: 1.5,
                           background: groupActive
-                            ? '#C9A96E'
-                            : '#1E3A5F',
+                            ? 'var(--accent)'
+                            : 'var(--border)',
                           transition: 'background 200ms',
                           flexShrink: 0,
                         }}
@@ -315,8 +319,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                           letterSpacing: '0.15em',
                           textTransform: 'uppercase',
                           color: groupActive
-                            ? '#C9A96E'
-                            : '#64748b',
+                            ? 'var(--accent)'
+                            : 'var(--fs-muted)',
                           transition: 'color 200ms',
                           userSelect: 'none',
                         }}
@@ -329,8 +333,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                       strokeWidth={2}
                       style={{
                         color: groupActive
-                          ? '#C9A96E'
-                          : '#64748b',
+                          ? 'var(--accent)'
+                          : 'var(--fs-muted)',
                         transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                         transition: 'transform 200ms ease, color 200ms',
                         flexShrink: 0,
@@ -347,11 +351,11 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                         gap: 2,
                         paddingLeft: 8,
                         paddingBottom: 4,
-                        borderLeft: '1px solid #1E3A5F',
+                        borderLeft: '1px solid var(--border)',
                         marginLeft: 10,
                       }}
                     >
-                      {items.filter(item => !item.superadminOnly || identity?.rol === 'superadmin').map(({ path, label, badge, icon: Icon }, ii) => {
+                      {items.filter(item => !item.superadminOnly || identity?.rol === 'superadmin').map(({ path, label, badge, icon: Icon }) => {
                         const active =
                           location.pathname === path ||
                           (path !== '/admin' && location.pathname.startsWith(path));
@@ -360,13 +364,14 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                           <Link
                             key={path}
                             to={path}
-                            className="nav-item-enter"
+                            className="fabric-admin-nav-link"
                             style={{
                               display: 'grid',
                               gridTemplateColumns: '16px 1fr auto',
                               alignItems: 'center',
                               gap: 10,
                               padding: '8px 11px',
+                              minHeight: 40,
                               textDecoration: 'none',
                               position: 'relative',
                               overflow: 'hidden',
@@ -375,19 +380,18 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                                 ? 'rgba(201,169,110,0.12)'
                                 : 'transparent',
                               borderLeft: active
-                                ? '2px solid #C9A96E'
+                                ? '2px solid var(--accent)'
                                 : '2px solid transparent',
                               transition: 'background 150ms, border-color 150ms',
-                              animationDelay: `${ii * 30}ms`,
                             }}
                             onMouseEnter={(e) => {
                               if (!active) {
                                 (e.currentTarget as HTMLElement).style.background =
-                                  '#123254';
+                                  'var(--bg-elevated)';
                                 const labelSpan = e.currentTarget.querySelector('span[data-label]') as HTMLElement;
-                                if (labelSpan) labelSpan.style.color = '#FFFFFF';
+                                if (labelSpan) labelSpan.style.color = 'var(--text-primary)';
                                 const iconSvg = e.currentTarget.querySelector<SVGSVGElement>('svg');
-                                if (iconSvg) iconSvg.style.color = '#C9A96E';
+                                if (iconSvg) iconSvg.style.color = 'var(--accent)';
                               }
                             }}
                             onMouseLeave={(e) => {
@@ -395,9 +399,9 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                                 (e.currentTarget as HTMLElement).style.background =
                                   'transparent';
                                 const labelSpan = e.currentTarget.querySelector('span[data-label]') as HTMLElement;
-                                if (labelSpan) labelSpan.style.color = '#94A3B8';
+                                if (labelSpan) labelSpan.style.color = 'var(--fs-muted)';
                                 const iconSvg = e.currentTarget.querySelector<SVGSVGElement>('svg');
-                                if (iconSvg) iconSvg.style.color = '#64748b';
+                                if (iconSvg) iconSvg.style.color = 'var(--fs-muted)';
                               }
                             }}
                           >
@@ -406,8 +410,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                               strokeWidth={1.8}
                               style={{
                                 color: active
-                                  ? '#C9A96E'
-                                  : '#64748b',
+                                  ? 'var(--accent)'
+                                  : 'var(--fs-muted)',
                                 transition: 'color 150ms',
                                 flexShrink: 0,
                               }}
@@ -419,8 +423,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                                 fontSize: 11.5,
                                 letterSpacing: '0.02em',
                                 color: active
-                                  ? '#FFFFFF'
-                                  : '#94A3B8',
+                                  ? 'var(--text-primary)'
+                                  : 'var(--fs-muted)',
                                 transition: 'color 150ms',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -442,11 +446,11 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                                   borderRadius: 4,
                                   border: active
                                     ? '1px solid rgba(201,169,110,0.4)'
-                                    : '1px solid #1E3A5F',
+                                    : '1px solid var(--border)',
                                   color: active
-                                    ? '#C9A96E'
-                                    : '#94A3B8',
-                                  background: active ? 'rgba(201,169,110,0.1)' : '#123254',
+                                    ? 'var(--accent)'
+                                    : 'var(--fs-muted)',
+                                  background: active ? 'rgba(201,169,110,0.1)' : 'var(--bg-elevated)',
                                   flexShrink: 0,
                                   lineHeight: 1.6,
                                 }}
@@ -470,7 +474,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           className="fabric-admin-sidebar-user"
           style={{
             flexShrink: 0,
-            borderTop: '1px solid #1E3A5F',
+            borderTop: '1px solid var(--border)',
             padding: '14px 16px',
             background: '#07192F',
           }}
@@ -498,7 +502,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                 fontFamily: 'var(--mono, monospace)',
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#C9A96E',
+                color: 'var(--accent)',
                 letterSpacing: '0.05em',
                 borderRadius: '50%',
               }}
@@ -519,7 +523,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   fontFamily: 'var(--mono, monospace)',
                   fontSize: 11,
                   fontWeight: 600,
-                  color: '#FFFFFF',
+                  color: 'var(--text-primary)',
                   letterSpacing: '0.02em',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -533,7 +537,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   style={{
                     fontFamily: 'var(--mono, monospace)',
                     fontSize: 9,
-                    color: '#94A3B8',
+                    color: 'var(--fs-muted)',
                     letterSpacing: '0.02em',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -584,7 +588,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             </div>
           </div>
 
-          <button type="button" onClick={() => openUserProfile()} className="w-full text-sm text-[#C9A96E] py-3 underline">Seguridad de mi cuenta</button>
+          <SecurityThemeToggle />
+          <button type="button" onClick={() => openUserProfile()} className="w-full text-sm text-[var(--accent)] py-3 underline">Seguridad de mi cuenta</button>
           {/* Logout */}
           <button
             type="button"
@@ -597,9 +602,9 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               justifyContent: 'center',
               gap: 8,
               height: 34,
-              border: '1px solid #1E3A5F',
-              background: '#0E2747',
-              color: isSigningOut ? 'rgba(201,169,110,0.6)' : '#94A3B8',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-panel)',
+              color: isSigningOut ? 'rgba(201,169,110,0.6)' : 'var(--fs-muted)',
               fontFamily: 'var(--mono, monospace)',
               fontSize: 9,
               fontWeight: 700,
@@ -618,9 +623,9 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             }}
             onMouseLeave={(e) => {
               if (!isSigningOut) {
-                (e.currentTarget as HTMLElement).style.borderColor = '#1E3A5F';
-                (e.currentTarget as HTMLElement).style.color = '#94A3B8';
-                (e.currentTarget as HTMLElement).style.background = '#0E2747';
+                (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+                (e.currentTarget as HTMLElement).style.color = 'var(--fs-muted)';
+                (e.currentTarget as HTMLElement).style.background = 'var(--bg-panel)';
               }
             }}
           >
@@ -631,7 +636,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                   height: 12,
                   borderRadius: '50%',
                   border: '1.5px solid rgba(201,169,110,0.3)',
-                  borderTopColor: '#C9A96E',
+                  borderTopColor: 'var(--accent)',
                   animation: 'spin 600ms linear infinite',
                 }}
               />
@@ -650,7 +655,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
   return (
     <div
       className="fabric-admin-shell"
-      style={{ minHeight: '100vh', background: '#0B1F3A', color: '#F5F5F5' }}
+      style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
     >
       <style>{`
         @keyframes admin-content-in {
@@ -725,8 +730,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             height: 56,
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid #e2e8f0',
-            background: 'rgba(255, 255, 255, 0.9)',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-panel)',
             backdropFilter: 'blur(12px)',
             padding: '0 20px',
           }}
@@ -745,7 +750,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                 fontFamily: 'var(--mono, monospace)',
                 fontSize: 9,
                 letterSpacing: '0.12em',
-                color: '#64748b',
+                color: 'var(--fs-muted)',
                 textTransform: 'uppercase',
               }}
             >
@@ -761,13 +766,14 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               background: 'transparent',
-              color: '#C9A96E',
+              color: 'var(--accent)',
               cursor: 'pointer',
               borderRadius: 6,
             }}
             aria-label="Abrir menú"
+            aria-expanded={mobileOpen}
           >
             <Menu size={17} />
           </button>
@@ -796,7 +802,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
               position: 'absolute',
               top: 0,
               right: 0,
-              width: 420,
+              width: 'min(420px, 100%)',
               height: 420,
               background: 'radial-gradient(circle, rgba(201,169,110,0.03) 0%, transparent 68%)',
               pointerEvents: 'none',

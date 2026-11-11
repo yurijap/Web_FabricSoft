@@ -6,9 +6,6 @@ import { api } from '../config/api';
 export type AccessIdentity = {
   userId: string;
   rol: 'admin' | 'superadmin';
-  mfaRequired: boolean;
-  mfaEnrolled: boolean;
-  mfaVerified: boolean;
 };
 type AccessState = {
   identity: AccessIdentity | null;
@@ -43,7 +40,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
         try { failure.response.data = JSON.parse(await failure.response.data.text()); } catch { /* Preserve the original error. */ }
       }
       const code = failure.response?.data?.code;
-      if (failure.config?.url !== '/auth/login' && ['MFA_REQUIRED', 'MFA_ENROLLMENT_REQUIRED', 'ACCESS_DENIED', 'SUPERADMIN_REQUIRED', 'INVALID_SESSION', 'UNAUTHENTICATED', 'AUTH_ORIGIN_NOT_ALLOWED'].includes(code)) {
+      if (failure.config?.url !== '/auth/login' && ['ACCESS_DENIED', 'SUPERADMIN_REQUIRED', 'INVALID_SESSION', 'UNAUTHENTICATED', 'AUTH_ORIGIN_NOT_ALLOWED'].includes(code)) {
         window.dispatchEvent(new Event('fabric-access-change'));
       }
       return Promise.reject(failure);

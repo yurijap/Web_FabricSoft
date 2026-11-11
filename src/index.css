@@ -4429,65 +4429,43 @@ html[data-theme="light"] .dashboard-white-theme .dashboard-card {
   color: inherit;
 }
 
-/* =========================================================================
-   FORCE 100% WHITE THEME FOR ALL ADMIN DASHBOARD CONSOLE PAGES (.fabric-admin-shell)
-   ========================================================================= */
+/* Administrative chrome follows the same selected theme as the public site. */
 .fabric-admin-shell,
 .fabric-admin-page,
 html[data-theme="dark"] .fabric-admin-shell,
 html[data-theme="dark"] .fabric-admin-page {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+  background: var(--bg-base) !important;
+  color: var(--text-primary) !important;
 }
-
 .fabric-admin-sidebar,
 html[data-theme="dark"] .fabric-admin-sidebar {
-  background: #ffffff !important;
-  border-right: 1px solid #e2e8f0 !important;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03) !important;
+  background: var(--bg-panel) !important;
+  border-right: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-float) !important;
 }
-
-.fabric-admin-sidebar-brand {
-  border-bottom: 1px solid #f1f5f9 !important;
-}
-
+.fabric-admin-sidebar-brand { border-bottom: 1px solid var(--border) !important; }
 .fabric-admin-sidebar-brand div,
-.fabric-admin-sidebar-brand span {
-  color: #0f172a !important;
-}
-
+.fabric-admin-sidebar-brand span { color: var(--text-primary) !important; }
 .fabric-admin-hero,
 html[data-theme="dark"] .fabric-admin-hero {
-  background: #ffffff !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  color: #0f172a !important;
+  background: var(--bg-panel) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
 }
-
 .fabric-admin-title,
-html[data-theme="dark"] .fabric-admin-title {
-  color: #0f172a !important;
-}
-
+html[data-theme="dark"] .fabric-admin-title { color: var(--text-primary) !important; }
 .fabric-admin-subtitle,
-html[data-theme="dark"] .fabric-admin-subtitle {
-  color: #475569 !important;
-}
-
+html[data-theme="dark"] .fabric-admin-subtitle { color: var(--fs-muted, var(--text-secondary)) !important; }
 .fabric-admin-eyebrow,
-html[data-theme="dark"] .fabric-admin-eyebrow {
-  color: #2563eb !important;
-}
-
+html[data-theme="dark"] .fabric-admin-eyebrow { color: var(--accent) !important; }
 .admin-main-panel,
 .fabric-admin-content article,
 html[data-theme="dark"] .admin-main-panel {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+  background-color: var(--bg-panel) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-soft) !important;
 }
-
-
 
 /* Ocultar barras de desplazamiento globales manteniendo la funcionalidad de scroll */
 ::-webkit-scrollbar {
