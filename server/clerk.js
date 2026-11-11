@@ -13,7 +13,7 @@ export function createIdentityProvider(secretKey) {
     if (!response.ok) {
       // Never propagate provider responses, credentials or invitation tickets to the browser/logs.
       const error = new Error('No se pudo completar la operación con el proveedor de identidad.');
-      error.status = response.status === 422 || response.status === 409 ? 409 : 503;
+      error.status = response.status === 404 ? 404 : response.status === 422 || response.status === 409 ? 409 : 503;
       throw error;
     }
     return response.json();
@@ -21,6 +21,7 @@ export function createIdentityProvider(secretKey) {
   return {
     verifyToken: (token, authorizedParties) => client.verifyToken(token, { authorizedParties }),
     getUser: id => request(`/users/${encodeURIComponent(id)}`),
+    deleteUser: id => request(`/users/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     getSession: id => request(`/sessions/${encodeURIComponent(id)}`),
     listUsers: (limit, offset) => request(`/users?limit=${limit}&offset=${offset}&order_by=-created_at`),
     countUsers: () => request('/users/count'),

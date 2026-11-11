@@ -1,6 +1,6 @@
 # Usuarios y accesos
 
-El panel **Sistema → Usuarios y accesos** (`/admin/usuarios`) permite al superadmin invitar, revocar invitaciones, autorizar cuentas existentes, cambiar entre `admin` y `superadmin`, y bloquear el acceso. Un admin opera la consola pero no administra accesos. La cuenta actual no puede bloquearse ni cambiar su propio rol.
+El panel **Sistema → Usuarios y accesos** (`/admin/usuarios`) permite al superadmin invitar, revocar invitaciones, autorizar cuentas existentes, cambiar entre `admin` y `superadmin`, bloquear el acceso y eliminar cuentas. Un admin opera la consola pero no administra accesos. La cuenta actual no puede bloquearse, eliminarse ni cambiar su propio rol.
 
 Por solicitud del propietario, **la aplicación ya no exige MFA**. No se necesita configurar un autenticador ni códigos de recuperación para entrar al panel. Se mantienen la verificación de sesión de Clerk, los correos verificados y los permisos comprobados en el servidor. La respuesta de login incluye `mfaRequired: false` por compatibilidad con clientes anteriores.
 
@@ -34,9 +34,17 @@ Después de esa configuración, las invitaciones y los permisos se administran d
 - Una lista explícita mantiene públicos los formularios y catálogos del sitio. Las operaciones privadas y sus alias antiguos, las cargas y las descargas exigen autorización antes de acceder a MongoDB.
 - Los cambios de acceso emiten eventos de auditoría en los logs del servidor, sin secretos ni tickets de invitación.
 
+## Eliminar o bloquear una cuenta
+
+- **Bloquear** conserva la cuenta y permite reactivarla. La siguiente solicitud privada queda denegada.
+- **Eliminar cuenta** borra permanentemente su identidad de acceso en Clerk y la retira de la lista. Funciona con cuentas activas, bloqueadas o sin acceso. Los leads, citas y documentos de MongoDB se conservan.
+- Solo superadmin puede eliminar. El servidor rechaza la eliminación de la cuenta actual y exige escribir el correo principal actual del usuario; si no tiene correo, su identificador. Los errores del proveedor se muestran sin dar por eliminada la cuenta.
+- La lista y su total se actualizan después de la eliminación. Al borrar el último usuario de una página, se vuelve a la anterior. El evento `access.deleted` registra actor y cuenta eliminada, sin credenciales.
+- Eliminar no bloquea por sí solo futuros registros con el mismo correo. El modo Invite-only controla la creación de cuentas; los usuarios nuevos siguen necesitando autorización.
+
 ## Verificación y alcance
 
-`pnpm test:access` comprueba tokens falsificados y caducados, origen incorrecto, ausencia de configuración, cuentas sin permiso, sesiones revocadas, separación de roles, acceso de superadmin sin segundo factor, invitaciones, bloqueos y alias privados. Las pruebas usan firmas RSA reales y simulan las respuestas de la API de identidad; no envían correos ni alteran cuentas reales.
+`pnpm test:access` comprueba tokens falsificados y caducados, origen incorrecto, ausencia de configuración, cuentas sin permiso, sesiones revocadas, separación de roles, acceso de superadmin sin segundo factor, invitaciones, bloqueos, eliminación de cuentas y alias privados. Las pruebas usan firmas RSA reales y simulan las respuestas de la API de identidad; no envían correos ni alteran cuentas reales.
 
 La integración real de Clerk necesita las claves y una prueba con cuentas controladas antes de publicar. El rol admin debe recibir 403 al llamar directamente a `/api/access/users`. El chequeo TypeScript global del repositorio tenía errores en otros módulos existentes; no se considera aprobado por validar únicamente los módulos de acceso.
 
@@ -57,4 +65,4 @@ CLERK_AUTHORIZED_PARTIES=https://fabricsoft.com.mx,https://www.fabricsoft.com.mx
 
 Después de modificar variables, vuelve a desplegar. Si persiste `INVALID_SESSION`, comprueba que `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` correspondan a la misma instancia. Los logs registran `access.session_rejected` con una categoría segura, sin tokens.
 
-Referencias: [restricción de registros](https://clerk.com/docs/guides/secure/restricting-access), [validación de sesiones](https://clerk.com/docs/reference/backend/verify-token).
+Referencias: [restricción de registros](https://clerk.com/docs/guides/secure/restricting-access), [validación de sesiones](https://clerk.com/docs/reference/backend/verify-token), [eliminación de usuarios](https://clerk.com/docs/reference/backend/user/delete-user).

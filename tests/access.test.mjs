@@ -28,12 +28,23 @@ function account(id = 'user_owner', role = 'superadmin') {
 async function fixture(t, { configured = true, configuration = { authorizedParties: [origin], appOrigin: origin } } = {}) {
   const owner = account();
   const target = account('user_target', 'admin');
-  const state = { owner, target, session: { status: 'active', user_id: owner.id, expire_at: Date.now() + 3600000 }, calls: [], audit: [], outage: false };
+  const state = { owner, target, session: { status: 'active', user_id: owner.id, expire_at: Date.now() + 3600000 }, calls: [], audit: [], outage: false, deletedUsers: new Set() };
   const provider = {
     verifyToken: (value, authorizedParties) => verifier.verifyToken(value, { jwtKey, authorizedParties }),
-    getUser: async id => { if (state.outage) throw new Error('private upstream detail'); return id === target.id ? target : owner; },
+    getUser: async id => {
+      if (state.outage) throw new Error('private upstream detail');
+      if (state.deletedUsers.has(id) || ![owner.id, target.id].includes(id)) throw Object.assign(new Error('Not found'), { status: 404 });
+      return id === target.id ? target : owner;
+    },
     getSession: async () => state.session,
-    listUsers: async () => [owner, target], countUsers: async () => ({ total_count: 2 }),
+    listUsers: async () => [owner, target].filter(user => !state.deletedUsers.has(user.id)),
+    countUsers: async () => ({ total_count: 2 - state.deletedUsers.size }),
+    deleteUser: async id => {
+      state.calls.push(['delete', id]);
+      if (state.deleteFailure) throw new Error('private provider error');
+      state.deletedUsers.add(id);
+      return { id, object: 'user', deleted: true };
+    },
     listInvitations: async () => [{ id: 'inv_test', email_address: 'new@example.com', status: 'pending', public_metadata: { fabricAccess: { role: 'admin' } }, url: 'secret-ticket' }],
     invite: async body => { state.calls.push(['invite', body]); return { id: 'inv_test' }; },
     revokeInvitation: async id => state.calls.push(['revoke', id]),
@@ -115,6 +126,7 @@ test('admins can operate the console but cannot manage any users or invitations'
     ['/api/access/users', 'GET'], ['/api/access/invitations', 'GET'],
     ['/api/access/invitations', 'POST', { email: 'new@example.com', role: 'superadmin' }],
     ['/api/access/users/user_target', 'PATCH', { role: 'superadmin', status: 'active' }],
+    ['/api/access/users/user_target', 'DELETE', { confirmation: 'user_target@example.com' }],
     ['/api/access/invitations/inv_test/revoke', 'POST'],
     ['/api/admin/clear-db', 'DELETE'],
   ]) assert.equal((await state.request(path, { method, body })).status, 403);
@@ -301,4 +313,57 @@ test('an explicit localhost-only production setting gives an actionable error wi
   assert.equal(response.data.code, 'AUTH_ORIGIN_NOT_ALLOWED');
   assert.equal(state.audit[0].reason, 'origin-not-allowed');
   assert.equal(JSON.stringify(state.audit).includes(jwt), false);
+});
+
+test('only authenticated superadmins can delete an account, with exact target confirmation', async t => {
+  const state = await fixture(t);
+  const path = '/api/access/users/user_target';
+  assert.equal((await state.request(path, { method: 'DELETE', jwt: null, body: { confirmation: 'user_target@example.com' } })).status, 401);
+  for (const confirmation of [undefined, '', 'another@example.com', 'user_owner@example.com']) {
+    const response = await state.request(path, { method: 'DELETE', body: { confirmation } });
+    assert.equal(response.status, 400);
+    assert.equal(response.data.code, 'DELETE_CONFIRMATION_REQUIRED');
+  }
+  assert.equal(state.calls.length, 0);
+  const deleted = await state.request(path, { method: 'DELETE', body: { confirmation: ' USER_TARGET@EXAMPLE.COM ' } });
+  assert.equal(deleted.status, 200);
+  assert.equal(deleted.data.deletedUserId, 'user_target');
+  assert.deepEqual(state.calls, [['delete', 'user_target']]);
+  const listing = await state.request('/api/access/users');
+  assert.equal(listing.data.total, 1);
+  assert.equal(listing.data.users.some(user => user.id === 'user_target'), false);
+  assert.deepEqual(state.audit.at(-1), { action: 'access.deleted', actor: 'user_owner', target: 'user_target' });
+  // An already-issued, correctly signed JWT must not restore a deleted account.
+  state.session.user_id = 'user_target';
+  assert.equal((await state.request('/api/leads', { jwt: token({ sub: 'user_target' }) })).status, 401);
+});
+
+test('self-deletion, invalid targets and stale confirmation cannot reach the provider deletion', async t => {
+  const state = await fixture(t);
+  assert.equal((await state.request('/api/access/users/user_owner', { method: 'DELETE', body: { confirmation: 'user_owner@example.com' } })).data.code, 'SELF_DELETE_FORBIDDEN');
+  assert.equal((await state.request('/api/access/users/invalid-id', { method: 'DELETE', body: { confirmation: 'test@example.com' } })).status, 400);
+  assert.equal((await state.request('/api/access/users/user_unknown', { method: 'DELETE', body: { confirmation: 'test@example.com' } })).status, 404);
+  state.target.email_addresses[0].email_address = 'new-address@example.com';
+  assert.equal((await state.request('/api/access/users/user_target', { method: 'DELETE', body: { confirmation: 'user_target@example.com' } })).status, 400);
+  assert.equal(state.calls.length, 0);
+});
+
+test('superadmin can remove unauthorized accounts and accounts without an email', async t => {
+  const state = await fixture(t);
+  state.target.private_metadata = {};
+  state.target.email_addresses = [];
+  state.target.primary_email_address_id = null;
+  assert.equal((await state.request('/api/access/users/user_target', { method: 'DELETE', body: { confirmation: 'USER_TARGET' } })).status, 400);
+  assert.equal((await state.request('/api/access/users/user_target', { method: 'DELETE', body: { confirmation: 'user_target' } })).status, 200);
+});
+
+test('provider deletion failures leave the account in the list and do not emit a successful deletion event', async t => {
+  const state = await fixture(t);
+  state.deleteFailure = true;
+  const response = await state.request('/api/access/users/user_target', { method: 'DELETE', body: { confirmation: 'user_target@example.com' } });
+  assert.equal(response.status, 503);
+  assert.equal(JSON.stringify(response.data).includes('private provider error'), false);
+  assert.equal((await state.request('/api/access/users')).data.total, 2);
+  assert.equal(state.deletedUsers.size, 0);
+  assert.equal(state.audit.some(event => event.action === 'access.deleted'), false);
 });

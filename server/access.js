@@ -86,7 +86,8 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
       }
       req.identity = { claims, user, access };
       next();
-    } catch {
+    } catch (error) {
+      if (error?.status === 404) return fail(res, 401, 'INVALID_SESSION', 'La cuenta o la sesión ya no está disponible. Inicia sesión de nuevo.');
       return fail(res, 503, 'IDENTITY_UNAVAILABLE', 'No se pudo verificar tu acceso. Intenta de nuevo.');
     }
   }
@@ -165,6 +166,23 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
     // Every private request reads current permissions; already-issued JWTs cannot bypass a block/demotion.
     audit({ action: 'access.updated', actor: req.identity.user.id, target: target.id, role, status });
     res.json({ success: true });
+  }));
+
+  router.delete('/access/users/:id', handle(async (req, res) => {
+    const id = req.params.id;
+    if (!/^user_[\w-]+$/.test(id)) return fail(res, 400, 'INVALID_INPUT', 'Usuario inválido.');
+    if (id === req.identity.user.id) return fail(res, 409, 'SELF_DELETE_FORBIDDEN', 'No puedes eliminar tu propia cuenta desde la consola.');
+    const target = await provider.getUser(id);
+    if (target.id !== id || target.id === req.identity.user.id) return fail(res, 404, 'USER_NOT_FOUND', 'La cuenta ya no está disponible. Actualiza la lista.');
+    const email = target.email_addresses?.find(address => address.id === target.primary_email_address_id)?.email_address;
+    const expected = email || target.id;
+    const confirmation = typeof req.body?.confirmation === 'string' ? req.body.confirmation.trim() : '';
+    const matches = email ? confirmation.toLowerCase() === expected.toLowerCase() : confirmation === expected;
+    if (!confirmation || !matches) return fail(res, 400, 'DELETE_CONFIRMATION_REQUIRED', 'Escribe el correo actual de la cuenta (o su identificador si no tiene correo) para confirmar su eliminación.');
+    const deleted = await provider.deleteUser(id);
+    if (deleted?.deleted !== true || deleted.id !== id) throw new Error('No se pudo confirmar la eliminación.');
+    audit({ action: 'access.deleted', actor: req.identity.user.id, target: id });
+    res.json({ success: true, deletedUserId: id });
   }));
 
   function protect(req, res, next) {
