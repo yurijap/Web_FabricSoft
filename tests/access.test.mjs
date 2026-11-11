@@ -5,6 +5,7 @@ import express from 'express';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
 import { createAccessControl, userAccess, hasRecentMfa } from '../server/access.js';
 import { INITIAL_SUPERADMIN_EMAIL } from '../server/initial-superadmin.js';
+import { accessConfiguration } from '../server/access-config.js';
 
 const origin = 'https://localhost:5173';
 const key = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -24,7 +25,7 @@ function account(id = 'user_owner', role = 'superadmin') {
     private_metadata: { fabricAccess: { email: `${id}@example.com`, role, status: 'active' } },
     public_metadata: {}, totp_enabled: true };
 }
-async function fixture(t, { configured = true } = {}) {
+async function fixture(t, { configured = true, configuration = { authorizedParties: [origin], appOrigin: origin } } = {}) {
   const owner = account();
   const target = account('user_target', 'admin');
   const state = { owner, target, session: { status: 'active', user_id: owner.id, expire_at: Date.now() + 3600000 }, calls: [], audit: [], outage: false };
@@ -42,7 +43,7 @@ async function fixture(t, { configured = true } = {}) {
       (id === owner.id ? owner : target).private_metadata.fabricAccess = access;
     },
   };
-  const { router, protect } = createAccessControl({ provider: configured ? provider : null, authorizedParties: [origin], appOrigin: origin, audit: event => state.audit.push(event) });
+  const { router, protect } = createAccessControl({ provider: configured ? provider : null, ...configuration, audit: event => state.audit.push(event) });
   const app = express();
   app.use(express.json()); app.use('/api', router); app.use(protect);
   app.use((req, res) => res.json({ success: true }));
@@ -258,4 +259,51 @@ test('initial-owner provisioning cannot grant access if the provider cannot pers
   initialOwner(missing);
   assert.equal((await missing.request('/api/auth/login')).status, 503);
   assert.equal(missing.calls.length, 0);
+});
+
+test('production accepts the verified initial owner on the real domain and still enforces MFA', async t => {
+  const configuration = accessConfiguration({ VERCEL: '1', NODE_ENV: 'production' });
+  const state = await fixture(t, { configuration });
+  initialOwner(state);
+  for (const azp of ['https://fabricsoft.com.mx', 'https://www.fabricsoft.com.mx']) {
+    const jwt = token({ azp, fva: [0, -1] });
+    const login = await state.request('/api/auth/login', { jwt });
+    assert.equal(login.status, 200);
+    assert.equal(login.data.rol, 'superadmin');
+    assert.equal(login.data.mfaVerified, false);
+    assert.equal((await state.request('/api/access/users', { jwt })).data.code, 'MFA_REQUIRED');
+    assert.equal((await state.request('/api/access/users', { jwt: token({ azp }) })).status, 200);
+  }
+  for (const azp of [origin, 'https://evil.example', 'https://fabricsoft.com.mx.evil.example']) {
+    const result = await state.request('/api/auth/login', { jwt: token({ azp }) });
+    assert.equal(result.status, 401);
+    assert.equal(result.data.code, 'AUTH_ORIGIN_NOT_ALLOWED');
+  }
+});
+
+test('development, production and explicit origin configuration remain separate and invalid settings fail closed', async t => {
+  assert.deepEqual(accessConfiguration({}), { authorizedParties: [origin], appOrigin: origin });
+  assert.deepEqual(accessConfiguration({ NODE_ENV: 'production' }), accessConfiguration({ VERCEL: '1' }));
+  assert.deepEqual(accessConfiguration({ VERCEL: '1', APP_ORIGIN: 'https://other.example/' }), {
+    authorizedParties: ['https://other.example'], appOrigin: 'https://other.example',
+  });
+  const explicit = accessConfiguration({ VERCEL: '1', CLERK_AUTHORIZED_PARTIES: 'https://a.example/, https://b.example', APP_ORIGIN: 'https://b.example/' });
+  assert.deepEqual(explicit, { authorizedParties: ['https://a.example', 'https://b.example'], appOrigin: 'https://b.example' });
+  for (const value of ['*', 'https://domain.example/path', 'https://user:password@domain.example', 'https://ok.example,']) {
+    const configuration = accessConfiguration({ VERCEL: '1', CLERK_AUTHORIZED_PARTIES: value });
+    assert.deepEqual(configuration.authorizedParties, []);
+    const state = await fixture(t, { configuration });
+    assert.equal((await state.request('/api/auth/login')).status, 503);
+  }
+});
+
+test('an explicit localhost-only production setting gives an actionable error without exposing tokens', async t => {
+  const configuration = accessConfiguration({ NODE_ENV: 'production', CLERK_AUTHORIZED_PARTIES: origin });
+  const state = await fixture(t, { configuration });
+  const jwt = token({ azp: 'https://fabricsoft.com.mx' });
+  const response = await state.request('/api/auth/login', { jwt });
+  assert.equal(response.status, 401);
+  assert.equal(response.data.code, 'AUTH_ORIGIN_NOT_ALLOWED');
+  assert.equal(state.audit[0].reason, 'origin-not-allowed');
+  assert.equal(JSON.stringify(state.audit).includes(jwt), false);
 });

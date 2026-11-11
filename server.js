@@ -7,6 +7,7 @@ import path from 'path';
 import multer from 'multer';
 import { createIdentityProvider } from './server/clerk.js';
 import { createAccessControl } from './server/access.js';
+import { accessConfiguration } from './server/access-config.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -37,8 +38,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const MONGODB_URI = process.env.MONGODB_URI || '';
 
-const allowedOrigins = (process.env.CLERK_AUTHORIZED_PARTIES || process.env.APP_ORIGIN || 'https://localhost:5173')
-  .split(',').map(value => value.trim().replace(/\/$/, '')).filter(Boolean);
+const { authorizedParties: allowedOrigins, appOrigin } = accessConfiguration();
 app.use(cors({ origin: allowedOrigins, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -46,7 +46,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const accessControl = createAccessControl({
   provider: process.env.CLERK_SECRET_KEY ? createIdentityProvider(process.env.CLERK_SECRET_KEY) : null,
   authorizedParties: allowedOrigins,
-  appOrigin: process.env.APP_ORIGIN?.replace(/\/$/, ''),
+  appOrigin,
   audit: event => console.info(JSON.stringify({ type: 'security', at: new Date().toISOString(), ...event })),
 });
 // Authenticate before any database access, upload, or legacy API handler.

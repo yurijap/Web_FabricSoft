@@ -11,7 +11,7 @@ Este mecanismo exige `CLERK_SECRET_KEY` y los orígenes correctos en el backend 
 Para configurar otra instalación desde cero o recuperar la administración localmente:
 
 1. En **`.env.local`**, configura `CLERK_SECRET_KEY` de la misma instancia que `VITE_CLERK_PUBLISHABLE_KEY`. Esta clave es exclusiva del servidor. `.env` y `env.txt` ya estaban versionados en este repositorio: **no pongas secretos en esos archivos**. El backend y el script leen primero `.env.local`, sin sobrescribir variables proporcionadas por el entorno.
-2. Configura `APP_ORIGIN=https://localhost:5173` y `CLERK_AUTHORIZED_PARTIES=https://localhost:5173`. En producción usa tu dominio HTTPS real y claves de producción de esa misma instancia. Si usas más de un origen, sepáralos con comas en `CLERK_AUTHORIZED_PARTIES`. Configura `MONGODB_URI` en `.env.local`; la conexión anterior se migró a este archivo local y ya no hay una contraseña de respaldo en `server.js`.
+2. En desarrollo, configura `APP_ORIGIN=https://localhost:5173` y `CLERK_AUTHORIZED_PARTIES=https://localhost:5173`. En Vercel o con `NODE_ENV=production`, los valores por defecto autorizan `https://fabricsoft.com.mx` y `https://www.fabricsoft.com.mx`. Las variables explícitas tienen prioridad: si ya existen en Vercel, deben indicar el dominio real y no localhost. Usa claves de producción de la misma instancia. Si usas más de un origen, sepáralos con comas en `CLERK_AUTHORIZED_PARTIES`. Configura `MONGODB_URI` en `.env.local`; la conexión anterior se migró a este archivo local y ya no hay una contraseña de respaldo en `server.js`.
 3. En la instancia de Clerk, habilita **Authenticator application (TOTP)** y **Backup codes** en **Multi-factor**. Selecciona **Invite-only** en **Access mode** para cerrar también la creación pública de cuentas. Son ajustes de la instancia del proveedor; la aplicación no puede activarlos sin credenciales administrativas. El código bloquea el panel a cuentas sin autorización incluso si la instancia permite registros públicos.
 4. Identifica tu cuenta existente por su ID `user_…` y su correo verificado. Autoriza únicamente esa cuenta desde la terminal local:
 
@@ -37,7 +37,7 @@ Después de esa configuración, las invitaciones y los permisos se administran d
 
 `pnpm test:access` prueba tokens falsificados y caducados, origen incorrecto, ausencia de configuración, cuentas sin permiso, sesiones revocadas, roles de admin/superadmin, exigencia de MFA, invitaciones, bloqueos y alias privados. Las pruebas usan firmas RSA reales y simulan únicamente las respuestas de la API de identidad; no envían correos reales ni alteran cuentas reales.
 
-Validación local del cambio: 15 pruebas de acceso aprobadas (incluida la autorización inicial por correo verificado) y compilación Vite de producción aprobada. El chequeo TypeScript de los módulos de acceso, MFA, gestión de usuarios, layout y descargas pasa. El chequeo TypeScript global sigue reportando errores en otros módulos existentes (entre ellos `InteractionManager`, `entry-server` y páginas de videollamada); no se presenta como aprobado. No se completó una prueba visual ni una sesión real de Clerk porque falta la clave secreta y la configuración de la instancia.
+Validación local del cambio: 18 pruebas de acceso aprobadas (incluidos el dominio real de producción, la autorización inicial por correo verificado y el rechazo de dominios ajenos) y compilación Vite de producción aprobada. El chequeo TypeScript de los módulos de acceso, MFA, gestión de usuarios, layout y descargas pasa. El chequeo TypeScript global sigue reportando errores en otros módulos existentes (entre ellos `InteractionManager`, `entry-server` y páginas de videollamada); no se presenta como aprobado. No se completó una prueba visual ni una sesión real de Clerk porque falta la clave secreta y la configuración de la instancia.
 
 La integración de Clerk real (correo de invitación, aceptación, alta de TOTP y recuperación) necesita la configuración anterior y una prueba con dos cuentas controladas antes de publicar. Prueba también el rol admin intentando llamar directamente a `/api/access/users`: debe recibir 403.
 
@@ -46,3 +46,18 @@ El transporte público de videollamadas y sus PIN existentes conservan su protoc
 La contraseña de MongoDB anteriormente incluida en el código y en `env.txt` debe rotarse en el proveedor: eliminarla del código actual no elimina copias históricas de Git. Se preservó la configuración local en `.env.local` para evitar perder la conexión durante la migración.
 
 Referencias oficiales: [restricción de registros](https://clerk.com/docs/guides/secure/restricting-access), [configuración de MFA](https://clerk.com/docs/guides/development/custom-flows/account-updates/manage-mfa), [claims de sesión](https://clerk.com/docs/guides/sessions/session-tokens).
+
+## Si aparece «La sesión es inválida o ha expirado»
+
+Ese error ocurre antes de comprobar el correo o asignar el rol. Se corrigió el valor por defecto que anteriormente autorizaba únicamente localhost también en producción. Despliega la corrección, cierra sesión y vuelve a iniciar sesión en el dominio real.
+
+Si el backend devuelve `AUTH_ORIGIN_NOT_ALLOWED`, revisa las variables existentes en Vercel:
+
+```env
+APP_ORIGIN=https://fabricsoft.com.mx
+CLERK_AUTHORIZED_PARTIES=https://fabricsoft.com.mx,https://www.fabricsoft.com.mx
+```
+
+Después de modificar variables, vuelve a desplegar. Si persiste `INVALID_SESSION`, comprueba que `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` correspondan a la misma instancia. Los logs registran `access.session_rejected` con una categoría segura, sin tokens. No se pudo verificar la sesión real de producción desde este entorno.
+
+Referencia: [validación de orígenes autorizados de Clerk](https://clerk.com/docs/reference/backend/verify-token).

@@ -65,7 +65,14 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
     let claims;
     try {
       claims = await provider.verifyToken(token, authorizedParties);
-    } catch {
+    } catch (error) {
+      // Log only a known diagnostic category. Clerk error messages can include
+      // token contents or instance details and must not be logged or returned.
+      const originRejected = error?.reason === 'token-invalid-authorized-parties';
+      audit({ action: 'access.session_rejected', reason: originRejected ? 'origin-not-allowed' : 'invalid-session' });
+      if (originRejected) {
+        return fail(res, 401, 'AUTH_ORIGIN_NOT_ALLOWED', 'Este dominio no está autorizado para iniciar sesión. Revisa APP_ORIGIN y CLERK_AUTHORIZED_PARTIES en Vercel.');
+      }
       return fail(res, 401, 'INVALID_SESSION', 'La sesión es inválida o ha expirado.');
     }
     if (!claims.sub || !claims.sid || !authorizedParties.includes(claims.azp) || claims.act) {
