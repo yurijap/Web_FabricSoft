@@ -5,6 +5,8 @@ import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import { createIdentityProvider } from './server/clerk.js';
+import { createAccessControl } from './server/access.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -12,21 +14,20 @@ const upload = multer({
 });
 
 
-// Cargar variables de .env localmente sin dependencias externas
+// Server secrets live in ignored .env.local; deployment environment takes precedence.
 try {
-  const envPath = path.resolve(process.cwd(), '.env');
-  if (fs.existsSync(envPath)) {
-    const envFile = fs.readFileSync(envPath, 'utf8');
-    envFile.split('\n').forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-        const [key, ...vals] = trimmed.split('=');
-        process.env[key.trim()] = vals.join('=').trim();
+  for (const filename of ['.env.local', '.env']) {
+    const envPath = path.resolve(process.cwd(), filename);
+    if (!fs.existsSync(envPath)) continue;
+    for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+      const match = /^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
+      if (match && process.env[match[1]] === undefined) {
+        process.env[match[1]] = match[2].replace(/^(["'])(.*)\1$/, '$2');
       }
-    });
+    }
   }
-} catch (e) {
-  // Ignorar si falla lectura
+} catch {
+  console.warn('No se pudo leer la configuración local. El acceso privado exige configuración válida.');
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -34,11 +35,23 @@ const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://paqiotoelmanquito_db_user:MWi1lmtR6we256eN@testebddelete2.t5uew6o.mongodb.net/fabricsoft?retryWrites=true&w=majority&appName=TESTEBDDELETE2';
+const MONGODB_URI = process.env.MONGODB_URI || '';
 
-app.use(cors());
+const allowedOrigins = (process.env.CLERK_AUTHORIZED_PARTIES || process.env.APP_ORIGIN || 'https://localhost:5173')
+  .split(',').map(value => value.trim().replace(/\/$/, '')).filter(Boolean);
+app.use(cors({ origin: allowedOrigins, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+const accessControl = createAccessControl({
+  provider: process.env.CLERK_SECRET_KEY ? createIdentityProvider(process.env.CLERK_SECRET_KEY) : null,
+  authorizedParties: allowedOrigins,
+  appOrigin: process.env.APP_ORIGIN?.replace(/\/$/, ''),
+  audit: event => console.info(JSON.stringify({ type: 'security', at: new Date().toISOString(), ...event })),
+});
+// Authenticate before any database access, upload, or legacy API handler.
+app.use('/api', accessControl.router);
+app.use(accessControl.protect);
 
 // Conexión con MongoDB Atlas robusta con reconexión automática
 let cachedConnection = null;
@@ -660,20 +673,6 @@ app.get('/api/status/admin', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-// ================= RUTA DE AUTENTICACIÓN CLERK =================
-app.get('/api/auth/login', async (req, res) => {
-  try {
-    console.log('🔑 Validación de sesión Clerk solicitada.');
-    res.json({
-      success: true,
-      status: 'activo',
-      rol: 'admin'
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
 // ================= RUTAS API PARA CLIENTES Y EVALUACIONES (LEADS) =================
 app.get(['/api/leads/admin', '/api/leads'], async (req, res) => {
   try {

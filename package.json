@@ -7,6 +7,9 @@
   "scripts": {
     "setup-tailwind": "tailwindcss init -p",
     "dev": "vite",
+    "dev:server": "node server.js",
+    "test:access": "node --test tests/access.test.mjs",
+    "bootstrap:superadmin": "node scripts/bootstrap-superadmin.mjs",
     "build": "npx vite build && node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

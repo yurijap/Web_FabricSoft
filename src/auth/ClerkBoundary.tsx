@@ -2,6 +2,7 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import { esES } from '@clerk/localizations';
 import { dark } from '@clerk/themes';
 import { Outlet } from 'react-router-dom';
+import { AccessProvider } from './AccessContext';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
@@ -25,7 +26,7 @@ function isValidClerkKey(key?: string): boolean {
 
 export default function ClerkBoundary() {
   if (!isValidClerkKey(PUBLISHABLE_KEY)) {
-    return <Outlet />;
+    return <main className="min-h-screen bg-[#050B14] text-white flex items-center justify-center p-6"><p role="alert">El acceso administrativo no está configurado. Contacta al responsable del sistema.</p></main>;
   }
 
   return (
@@ -40,7 +41,7 @@ export default function ClerkBoundary() {
         },
       }}
     >
-      <Outlet />
+      <AccessProvider><Outlet /></AccessProvider>
     </ClerkProvider>
   );
 }

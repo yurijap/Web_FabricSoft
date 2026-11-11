@@ -1,5 +1,7 @@
 # ◼ FABRICSOFT
 
+Configuración del panel privado: [Usuarios, accesos y MFA](docs/accesos.md).
+
 ### Oracle Engineering · AI · ERP Transformation
 
 > **Tecnología que entiende tu operación. Ingeniería que transforma tu ERP.**

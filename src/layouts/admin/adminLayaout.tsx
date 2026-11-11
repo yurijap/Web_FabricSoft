@@ -1,24 +1,18 @@
 import { useEffect, useRef, useState, Suspense, type ReactNode } from 'react';
 import { useClerk, useUser } from '@clerk/clerk-react';
+import { useAccess } from '../../auth/AccessContext';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
   Activity,
   BarChart3,
-  Bot,
   CalendarClock,
-  Cloud,
   ChevronRight,
   ClipboardList,
-  Eye,
   FileText,
-  Gauge,
   GitBranch,
   LayoutDashboard,
-  Link2,
   LogOut,
-  Mail,
   Menu,
-  MessageSquareText,
   PanelLeftClose,
   ShieldCheck,
   UsersRound,
@@ -33,6 +27,7 @@ type NavItem = {
   label: string;
   badge?: string | null;
   icon: React.ElementType;
+  superadminOnly?: boolean;
 };
 
 type NavGroup = {
@@ -82,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
     defaultOpen: false,
     items: [
       { path: '/admin/logs', label: 'Logs', badge: '∞', icon: Activity },
+      { path: '/admin/usuarios', label: 'Usuarios y accesos', icon: UsersRound, superadminOnly: true },
     ],
   },
 ];
@@ -102,7 +98,8 @@ const NestedLoader = () => (
 
 export default function AdminLayout({ children }: { children?: ReactNode }) {
   const location = useLocation();
-  const { signOut } = useClerk();
+  const { signOut, openUserProfile } = useClerk();
+  const { identity } = useAccess();
   const { user } = useUser();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -354,7 +351,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                         marginLeft: 10,
                       }}
                     >
-                      {items.map(({ path, label, badge, icon: Icon }, ii) => {
+                      {items.filter(item => !item.superadminOnly || identity?.rol === 'superadmin').map(({ path, label, badge, icon: Icon }, ii) => {
                         const active =
                           location.pathname === path ||
                           (path !== '/admin' && location.pathname.startsWith(path));
@@ -389,7 +386,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                                   '#123254';
                                 const labelSpan = e.currentTarget.querySelector('span[data-label]') as HTMLElement;
                                 if (labelSpan) labelSpan.style.color = '#FFFFFF';
-                                const iconSvg = e.currentTarget.querySelector('svg') as HTMLElement;
+                                const iconSvg = e.currentTarget.querySelector<SVGSVGElement>('svg');
                                 if (iconSvg) iconSvg.style.color = '#C9A96E';
                               }
                             }}
@@ -399,7 +396,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
                                   'transparent';
                                 const labelSpan = e.currentTarget.querySelector('span[data-label]') as HTMLElement;
                                 if (labelSpan) labelSpan.style.color = '#94A3B8';
-                                const iconSvg = e.currentTarget.querySelector('svg') as HTMLElement;
+                                const iconSvg = e.currentTarget.querySelector<SVGSVGElement>('svg');
                                 if (iconSvg) iconSvg.style.color = '#64748b';
                               }
                             }}
@@ -587,6 +584,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             </div>
           </div>
 
+          <button type="button" onClick={() => openUserProfile()} className="w-full text-sm text-[#C9A96E] py-3 underline">Seguridad de mi cuenta</button>
           {/* Logout */}
           <button
             type="button"

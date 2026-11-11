@@ -1,6 +1,5 @@
-import React from 'react';
-import { Shield, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { SignIn, SignUp } from '@clerk/clerk-react';
 
 export function AccesoScreen() {
@@ -53,6 +52,7 @@ export function AccesoScreen() {
               identityPreviewEditButtonIcon: "text-[#C9A96E]",
               formFieldInputShowPasswordButton: "text-slate-400 hover:text-white",
               footerActionText: "text-slate-400 font-mono text-[11px] uppercase",
+              footerAction: "hidden",
               formResendCodeLink: "text-[#C9A96E] hover:text-[#E2C799] underline decoration-[#C9A96E]/30 hover:decoration-[#C9A96E] transition-colors font-mono text-[11px] font-bold uppercase tracking-wider",
               alternativeMethodsBlockButton: "bg-[#12253F] border border-[#1E3A5F] text-[#F5F5F5] hover:bg-[#1C355E] hover:text-white font-mono text-xs rounded-xl transition-colors",
               alternativeMethodsBlockButtonText: "text-[#F5F5F5] font-mono text-xs",
@@ -86,6 +86,15 @@ export function AccesoScreen() {
 }
 
 export function CrearCuentaScreen() {
+  const [params] = useSearchParams();
+  if (!params.get('__clerk_ticket')) {
+    return <main className="min-h-screen bg-[#050B14] text-white flex items-center justify-center p-6">
+      <section className="max-w-md space-y-4"><h1 className="text-2xl font-semibold">Acceso por invitación</h1>
+        <p>Solicita una invitación al superadministrador para entrar a FabricSoft.</p>
+        <Link to="/acceso" className="text-[#C9A96E] underline">Ya tengo cuenta: iniciar sesión</Link>
+      </section>
+    </main>;
+  }
   return (
     <div className="bg-[#050B14] text-white min-h-screen flex flex-col justify-center items-center px-4 relative font-sans">
       {/* Background gradients */}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileText, Search, RefreshCw, Trash2, ShieldCheck, Upload, Download, Tag, HardDrive, Eye } from 'lucide-react';
+import { Search, RefreshCw, Trash2, ShieldCheck, Upload, Download, Tag, Eye } from 'lucide-react';
 import { useAuthApi } from '../../config/api';
 
 interface FileItem {
@@ -28,6 +28,7 @@ export default function AdminControlDocumentos() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeccion, setSelectedSeccion] = useState('todos');
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
 
   // Formulario Carga de Archivo
   const [uploading, setUploading] = useState(false);
@@ -126,10 +127,30 @@ export default function AdminControlDocumentos() {
     }
   };
 
-  const getDownloadUrl = (id: string, download = false) => {
-    const base = `${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/files/${id}/download`;
-    return download ? `${base}?download=true` : base;
-  };
+  useEffect(() => {
+    if (!previewFile) { setPreviewUrl(''); return; }
+    let active = true;
+    let objectUrl = '';
+    adminApi.get(`/files/${previewFile._id}/download`, { responseType: 'blob' })
+      .then(({ data }) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(data);
+        setPreviewUrl(objectUrl);
+      }).catch(() => {
+        if (active) setUploadStatus({ type: 'error', message: 'No se pudo abrir el archivo.' });
+      });
+    return () => { active = false; setPreviewUrl(''); if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [previewFile, adminApi]);
+
+  async function downloadFile(file: FileItem) {
+    try {
+      const { data } = await adminApi.get(`/files/${file._id}/download?download=true`, { responseType: 'blob' });
+      const url = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url; link.download = file.nombreOriginal; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { setUploadStatus({ type: 'error', message: 'No se pudo descargar el archivo.' }); }
+  }
 
   return (
     <div className="min-h-screen bg-[#0B1F3A] text-white p-6 md:p-8 space-y-6 pb-16">
@@ -224,7 +245,7 @@ export default function AdminControlDocumentos() {
                   <td className="py-4 px-5">{fmtDate(f.createdAt)}</td>
                   <td className="py-4 px-5 text-right flex justify-end gap-2">
                     <button onClick={() => setPreviewFile(f)} className="text-sky-400 p-1"><Eye size={14} /></button>
-                    <a href={getDownloadUrl(f._id, true)} className="text-emerald-400 p-1"><Download size={14} /></a>
+                    <button aria-label={`Descargar ${f.nombreOriginal}`} onClick={() => void downloadFile(f)} className="text-emerald-400 p-1"><Download size={14} /></button>
                     <button onClick={() => handleDeleteFile(f._id, f.nombreOriginal)} className="text-[#F87171] p-1"><Trash2 size={14} /></button>
                   </td>
                 </tr>
@@ -242,7 +263,7 @@ export default function AdminControlDocumentos() {
               <button onClick={() => setPreviewFile(null)} className="text-2xl">×</button>
             </div>
             <div className="flex-1 bg-white">
-              <iframe src={getDownloadUrl(previewFile._id)} className="w-full h-full" />
+              {previewUrl ? <iframe title={previewFile.nombreOriginal} sandbox="" src={previewUrl} className="w-full h-full" /> : <p className="p-6">Cargando archivo…</p>}
             </div>
           </div>
         </div>

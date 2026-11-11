@@ -24,10 +24,10 @@ const AdminOfficeHours = lazy(() => import('../pages/admin/AdminOfficeHours'));
 const AdminDocumentos = lazy(() => import('../pages/admin/AdminDocumentos'));
 const AdminValidacionDirecta = lazy(() => import('../pages/admin/AdminValidacionDirecta'));
 const AdminWaitlist = lazy(() => import('../pages/admin/AdminWaitlist'));
-const AdminRescueAssessment = lazy(() => import('../pages/admin/AdminRescueAssessment'));
 const AdminLogs = lazy(() => import('../pages/admin/AdminLogs'));
 const AdminDoctrina = lazy(() => import('../pages/admin/AdminDoctrina'));
 const AdminControlDocumentos = lazy(() => import('../pages/admin/AdminControlDocumentos'));
+const AdminAccess = lazy(() => import('../pages/admin/AdminAccess'));
 
 
 // Rescue Fusion Admin Pages
@@ -272,6 +272,7 @@ export const AppRouter = () => {
               <Route path="logs" element={<AdminLogs />} />
               <Route path="doctrina" element={<AdminDoctrina />} />
               <Route path="control-documentos" element={<AdminControlDocumentos />} />
+              <Route path="usuarios" element={<ProtectorRoles rolesPermitidos={['superadmin']}><AdminAccess /></ProtectorRoles>} />
 
             </Route>
           </Route>
