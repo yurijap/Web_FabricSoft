@@ -24,6 +24,19 @@ El ID y el correo verificado deben corresponder a la misma cuenta. El script no 
 
 Después de esa configuración, las invitaciones y los permisos se administran desde la plataforma. Las invitaciones duran 7 días y su destino se fija en el servidor. Si la persona ya tiene cuenta, autorízala desde la tabla.
 
+## Usar el directorio y elegir el correo
+
+La pantalla abre directamente en **Usuarios**, con búsqueda por nombre o correo en todas las páginas. **Pendientes** contiene las invitaciones. **Invitar usuario** abre un formulario breve y **Gestionar acceso** permite elegir el rol, guardar o bloquear. **Roles y ayuda** muestra los permisos y la explicación del acceso cuando se necesita. Una cuenta sin rol aparece como **Sin rol / Sin acceso**; seleccionar Admin en el formulario no concede permisos hasta guardar.
+
+- **Cualquier proveedor:** Gmail, Outlook, Hotmail y los correos corporativos sirven. La persona debe poder recibir mensajes en esa dirección y verificarla. En Clerk, el método de inicio de sesión por correo debe estar habilitado en **User & authentication**; cambiar el diseño no modifica esa configuración externa ni las claves.
+- **Si aún no tiene cuenta:** invita a su dirección real y que abra el enlace de ese buzón para crear su cuenta. El permiso de la invitación queda asociado al correo verificado de esa cuenta.
+- **Si ya tiene cuenta:** búscala y abre **Gestionar acceso**. La ventana muestra su correo principal y si está verificado. El servidor vuelve a comprobarlo al guardar; si la dirección cambió desde que abriste la lista, exige actualizarla antes de autorizar.
+- **Si inicia sesión con otra cuenta:** no hereda los permisos. Debe entrar con la cuenta autorizada o recibir una autorización independiente. Google es una opción para cuentas de Google; un correo de Outlook o corporativo puede entrar por el método de correo configurado en Clerk.
+- **Si cambia el correo de la misma cuenta:** el autorizado debe seguir presente y verificado. Si lo elimina o deja de estar verificado, pierde el acceso aunque conserve su rol asignado. El superadmin puede revisar y autorizar su nuevo correo principal verificado. La ventana distingue el correo autorizado anteriormente del actual.
+- **Sin correo verificado:** no se puede dar acceso. Sí se puede bloquear o eliminar la cuenta. Un bloqueo no depende de que conserve el correo anterior, y tiene prioridad sobre el permiso de una invitación.
+
+El servidor vincula los permisos a la cuenta de Clerk y al correo aprobado; no limita dominios a Gmail ni concede acceso por compartir dominio con una empresa. La búsqueda devuelve un total filtrado y no expone metadatos privados.
+
 ## Controles implementados
 
 - Se verifica firma, caducidad y origen del token con el SDK de Clerk. Se consulta que la sesión siga activa y que el usuario tenga acceso vigente en cada solicitud privada; no se aceptan sesiones de suplantación.
@@ -65,4 +78,4 @@ CLERK_AUTHORIZED_PARTIES=https://fabricsoft.com.mx,https://www.fabricsoft.com.mx
 
 Después de modificar variables, vuelve a desplegar. Si persiste `INVALID_SESSION`, comprueba que `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` correspondan a la misma instancia. Los logs registran `access.session_rejected` con una categoría segura, sin tokens.
 
-Referencias: [restricción de registros](https://clerk.com/docs/guides/secure/restricting-access), [validación de sesiones](https://clerk.com/docs/reference/backend/verify-token), [eliminación de usuarios](https://clerk.com/docs/reference/backend/user/delete-user).
+Referencias: [restricción de registros](https://clerk.com/docs/guides/secure/restricting-access), [validación de sesiones](https://clerk.com/docs/reference/backend/verify-token), [eliminación de usuarios](https://clerk.com/docs/reference/backend/user/delete-user), [búsqueda de usuarios](https://clerk.com/docs/reference/backend/user/get-user-list), [conteo filtrado](https://clerk.com/docs/reference/backend/user/get-count), [opciones de inicio de sesión](https://clerk.com/docs/guides/configure/auth-strategies/sign-up-sign-in-options).

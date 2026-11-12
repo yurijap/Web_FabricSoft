@@ -14,7 +14,7 @@ const appearance = {
 };
 
 export function AccesoScreen() {
-  return <SecurityFrame title="Bienvenido a tu consola" description="Inicia sesión con la cuenta que tiene acceso a FabricSoft.">
+  return <SecurityFrame title="Bienvenido a tu consola" description="Entra con tu correo autorizado: Gmail, Outlook o corporativo. Usa Google si tu cuenta pertenece a Google.">
     <SignIn appearance={appearance} routing="virtual" signUpUrl="/crear-cuenta" forceRedirectUrl="/admin" />
   </SecurityFrame>;
 }
@@ -27,7 +27,7 @@ export function CrearCuentaScreen() {
       <Link to="/acceso" className="fs-security__button">Ya tengo cuenta: iniciar sesión</Link>
     </SecurityFrame>;
   }
-  return <SecurityFrame title="Completa tu cuenta" description="Acepta tu invitación para empezar a trabajar con tu equipo.">
+  return <SecurityFrame title="Completa tu cuenta" description="Acepta la invitación con el mismo correo que la recibió, sea Gmail, Outlook o corporativo.">
     <SignUp appearance={appearance} routing="virtual" signInUrl="/acceso" forceRedirectUrl="/admin" />
   </SecurityFrame>;
 }

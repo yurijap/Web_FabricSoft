@@ -3,11 +3,13 @@ import { provisionInitialSuperadmin } from './initial-superadmin.js';
 
 const ROLES = new Set(['admin', 'superadmin']);
 const STATUSES = new Set(['active', 'blocked']);
+const storedAccess = user => user.private_metadata?.fabricAccess ?? user.public_metadata?.fabricAccess;
+const primaryEmail = user => user.email_addresses?.find(address => address.id === user.primary_email_address_id);
 
 export function userAccess(user) {
   // Invitation metadata is written by the Backend API and copied by Clerk on acceptance.
   // Private overrides take precedence, including blocks; unsafe_metadata is never trusted.
-  const access = user.private_metadata?.fabricAccess ?? user.public_metadata?.fabricAccess;
+  const access = storedAccess(user);
   if (!access || typeof access.email !== 'string') return null;
   const verifiedEmail = user.email_addresses?.some(e =>
     e.verification?.status === 'verified' && e.email_address.toLowerCase() === access.email.toLowerCase());
@@ -106,19 +108,31 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
   const handle = fn => async (req, res) => {
     try { await fn(req, res); }
     catch (error) { fail(res, error.status || 503, 'ACCESS_OPERATION_FAILED', error.status === 409
-      ? 'La invitación ya existe o el proveedor rechazó esos datos. Revisa el correo y las invitaciones pendientes.'
+      ? 'Revisa las invitaciones pendientes. Si ese correo ya tiene una cuenta, búscala en Usuarios y usa Gestionar acceso.'
       : 'No se pudo completar la operación. Intenta de nuevo.'); }
   };
 
   router.get('/access/users', handle(async (req, res) => {
     const offset = Math.max(0, Math.min(100000, Number.parseInt(req.query.offset, 10) || 0));
-    const [result, count] = await Promise.all([provider.listUsers(25, offset), provider.countUsers()]);
+    const query = typeof req.query.query === 'string' ? req.query.query.trim().slice(0, 254) : '';
+    const [result, count] = await Promise.all([provider.listUsers(25, offset, query), provider.countUsers(query)]);
     const users = Array.isArray(result) ? result : result.data;
-    res.json({ users: users.map(user => ({
-      id: user.id, name: [user.first_name, user.last_name].filter(Boolean).join(' '),
-      email: user.email_addresses?.find(e => e.id === user.primary_email_address_id)?.email_address || '',
-      role: userAccess(user)?.role || null, status: userAccess(user)?.status || 'unauthorized',
-    })), total: count.total_count, offset });
+    res.json({ users: users.map(user => {
+      const primary = primaryEmail(user);
+      const assigned = storedAccess(user);
+      const effective = userAccess(user);
+      const role = ROLES.has(assigned?.role) ? assigned.role : null;
+      const email = primary?.email_address || '';
+      const emailVerified = Boolean(email && primary.verification?.status === 'verified');
+      return {
+        id: user.id, name: [user.first_name, user.last_name].filter(Boolean).join(' '), email,
+        role, status: user.banned || (role && assigned.status !== 'active') ? 'blocked' : effective?.status || 'unauthorized',
+        emailVerified, canGrantAccess: emailVerified && !user.banned,
+        authorizedEmail: role && typeof assigned.email === 'string' ? assigned.email : '',
+        accessIssue: user.banned ? 'banned' : !email ? 'email_missing' : !emailVerified ? 'email_unverified'
+          : role && assigned.status === 'active' && !effective ? 'email_changed' : null,
+      };
+    }), total: count.total_count, offset });
   }));
 
   router.get('/access/invitations', handle(async (req, res) => {
@@ -160,8 +174,19 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
     // No self-demotion/self-blocking: there is always a controlling superadmin.
     if (req.params.id === req.identity.user.id) return fail(res, 409, 'SELF_CHANGE_FORBIDDEN', 'No puedes modificar tu propio acceso.');
     const target = await provider.getUser(req.params.id);
-    const email = target.email_addresses?.find(e => e.id === target.primary_email_address_id && e.verification?.status === 'verified')?.email_address?.toLowerCase();
-    if (!email) return fail(res, 400, 'EMAIL_NOT_VERIFIED', 'El usuario debe verificar su correo antes de recibir acceso.');
+    if (target.id !== req.params.id) return fail(res, 404, 'USER_NOT_FOUND', 'La cuenta ya no está disponible. Actualiza la lista.');
+    const primary = primaryEmail(target);
+    let email = primary?.email_address?.toLowerCase() || '';
+    if (status === 'active') {
+      if (target.banned) return fail(res, 409, 'ACCOUNT_BANNED', 'Esta cuenta está suspendida en el proveedor de identidad. Contacta al responsable del sistema.');
+      if (!email || primary.verification?.status !== 'verified') return fail(res, 400, 'EMAIL_NOT_VERIFIED', 'La persona debe añadir y verificar su correo principal antes de recibir acceso. Puede usar Gmail, Outlook o un correo corporativo.');
+      const confirmedEmail = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      if (confirmedEmail !== email) return fail(res, 409, 'EMAIL_CHANGED', 'El correo de esta cuenta cambió. Cierra esta ventana y actualiza la lista antes de autorizarla.');
+    } else {
+      // Blocking must also work after the approved address is removed or becomes unverified.
+      const approvedEmail = storedAccess(target)?.email;
+      if (typeof approvedEmail === 'string') email = approvedEmail;
+    }
     await provider.setAccess(target.id, { email, role, status, grantedBy: req.identity.user.id, updatedAt: new Date().toISOString() });
     // Every private request reads current permissions; already-issued JWTs cannot bypass a block/demotion.
     audit({ action: 'access.updated', actor: req.identity.user.id, target: target.id, role, status });

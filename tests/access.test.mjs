@@ -28,7 +28,9 @@ function account(id = 'user_owner', role = 'superadmin') {
 async function fixture(t, { configured = true, configuration = { authorizedParties: [origin], appOrigin: origin } } = {}) {
   const owner = account();
   const target = account('user_target', 'admin');
-  const state = { owner, target, session: { status: 'active', user_id: owner.id, expire_at: Date.now() + 3600000 }, calls: [], audit: [], outage: false, deletedUsers: new Set() };
+  const state = { owner, target, session: { status: 'active', user_id: owner.id, expire_at: Date.now() + 3600000 }, calls: [], searches: [], audit: [], outage: false, deletedUsers: new Set() };
+  const matchingUsers = query => [owner, target].filter(user => !state.deletedUsers.has(user.id) &&
+    (!query || [user.id, user.first_name, user.last_name, ...user.email_addresses.map(email => email.email_address)].some(value => value?.toLowerCase().includes(query.toLowerCase()))));
   const provider = {
     verifyToken: (value, authorizedParties) => verifier.verifyToken(value, { jwtKey, authorizedParties }),
     getUser: async id => {
@@ -37,8 +39,8 @@ async function fixture(t, { configured = true, configuration = { authorizedParti
       return id === target.id ? target : owner;
     },
     getSession: async () => state.session,
-    listUsers: async () => [owner, target].filter(user => !state.deletedUsers.has(user.id)),
-    countUsers: async () => ({ total_count: 2 - state.deletedUsers.size }),
+    listUsers: async (limit, offset, query) => { state.searches.push(['list', limit, offset, query]); return matchingUsers(query).slice(offset, offset + limit); },
+    countUsers: async query => { state.searches.push(['count', query]); return { total_count: matchingUsers(query).length }; },
     deleteUser: async id => {
       state.calls.push(['delete', id]);
       if (state.deleteFailure) throw new Error('private provider error');
@@ -180,7 +182,7 @@ test('revocation and reactivation work, and promotion grants the assigned permis
   assert.deepEqual(state.calls[0], ['revoke', 'inv_test']);
   state.target.private_metadata.fabricAccess.status = 'blocked';
   const jwt = token({ sub: 'user_target', fva: [0, -1] });
-  assert.equal((await state.request('/api/access/users/user_target', { method: 'PATCH', body: { role: 'superadmin', status: 'active' } })).status, 200);
+  assert.equal((await state.request('/api/access/users/user_target', { method: 'PATCH', body: { role: 'superadmin', status: 'active', email: 'user_target@example.com' } })).status, 200);
   state.session.user_id = 'user_target';
   const response = await state.request('/api/leads', { jwt });
   assert.equal(response.status, 200);
@@ -366,4 +368,95 @@ test('provider deletion failures leave the account in the list and do not emit a
   assert.equal((await state.request('/api/access/users')).data.total, 2);
   assert.equal(state.deletedUsers.size, 0);
   assert.equal(state.audit.some(event => event.action === 'access.deleted'), false);
+});
+
+test('Gmail, Outlook and corporate addresses can receive invitations and verified account access', async t => {
+  const state = await fixture(t);
+  for (const email of ['persona@gmail.com', 'persona@outlook.com', 'persona@equipo.empresa.mx']) {
+    state.target.email_addresses[0].email_address = email;
+    state.target.private_metadata = {};
+    const before = (await state.request('/api/access/users')).data.users.find(user => user.id === 'user_target');
+    assert.equal(before.role, null, 'an unassigned account must not appear as Admin');
+    assert.equal(before.status, 'unauthorized');
+    assert.equal(before.emailVerified, true);
+    assert.equal(before.canGrantAccess, true);
+    assert.equal((await state.request('/api/access/invitations', { method: 'POST', body: { email, role: 'admin' } })).status, 201);
+    const invitation = state.calls.at(-1)[1];
+    assert.equal(invitation.email_address, email);
+    const accepted = { ...state.target, public_metadata: invitation.public_metadata };
+    assert.equal(userAccess(accepted)?.status, 'active');
+    assert.equal((await state.request('/api/access/users/user_target', { method: 'PATCH', body: { email: ` ${email.toUpperCase()} `, role: 'admin', status: 'active' } })).status, 200);
+    assert.equal(userAccess(state.target)?.role, 'admin');
+    const otherAccount = { ...account('user_other', 'admin'), private_metadata: {}, public_metadata: {} };
+    assert.equal(userAccess(otherAccount), null, 'a second account never inherits the grant');
+  }
+});
+
+test('accounts without verified primary email cannot be authorized but can always be blocked', async t => {
+  const state = await fixture(t);
+  for (const noEmail of [false, true]) {
+    state.target.private_metadata = {};
+    if (noEmail) { state.target.email_addresses = []; state.target.primary_email_address_id = null; }
+    else state.target.email_addresses[0].verification.status = 'unverified';
+    const listed = (await state.request('/api/access/users')).data.users.find(user => user.id === 'user_target');
+    assert.equal(listed.emailVerified, false);
+    assert.equal(listed.canGrantAccess, false);
+    assert.equal(listed.accessIssue, noEmail ? 'email_missing' : 'email_unverified');
+    const grant = await state.request('/api/access/users/user_target', { method: 'PATCH', body: { email: 'user_target@example.com', role: 'admin', status: 'active' } });
+    assert.equal(grant.data.code, 'EMAIL_NOT_VERIFIED');
+    assert.equal(state.target.private_metadata.fabricAccess, undefined);
+    assert.equal((await state.request('/api/access/users/user_target', { method: 'PATCH', body: { role: 'admin', status: 'blocked' } })).status, 200);
+    assert.equal((await state.request('/api/access/users')).data.users.find(user => user.id === 'user_target').status, 'blocked');
+    state.session.user_id = 'user_target';
+    assert.equal((await state.request('/api/leads', { jwt: token({ sub: 'user_target' }) })).status, 403);
+    state.session.user_id = 'user_owner';
+  }
+});
+
+test('changed email needs explicit confirmation and renewed access after the approved address is removed', async t => {
+  const state = await fixture(t);
+  const approved = { ...state.target.email_addresses[0] };
+  state.target.email_addresses[0] = { ...approved, email_address: 'nueva@outlook.com' };
+  assert.equal(userAccess(state.target), null);
+  const listed = (await state.request('/api/access/users')).data.users.find(user => user.id === 'user_target');
+  assert.equal(listed.role, 'admin');
+  assert.equal(listed.status, 'unauthorized');
+  assert.equal(listed.accessIssue, 'email_changed');
+  assert.equal(listed.authorizedEmail, 'user_target@example.com');
+  for (const email of [undefined, 'user_target@example.com', 'otra@gmail.com']) {
+    const result = await state.request('/api/access/users/user_target', { method: 'PATCH', body: { email, role: 'superadmin', status: 'active' } });
+    assert.equal(result.data.code, 'EMAIL_CHANGED');
+  }
+  assert.equal(state.calls.length, 0);
+  // Keeping the originally authorized, verified address on the same account preserves access.
+  state.target.email_addresses.push({ ...approved, id: 'old_email' });
+  assert.equal(userAccess(state.target)?.status, 'active');
+  state.target.email_addresses.pop();
+  assert.equal((await state.request('/api/access/users/user_target', { method: 'PATCH', body: { email: 'nueva@outlook.com', role: 'admin', status: 'active' } })).status, 200);
+  assert.equal(state.target.private_metadata.fabricAccess.email, 'nueva@outlook.com');
+  assert.equal(userAccess(state.target)?.status, 'active');
+});
+
+test('provider-suspended accounts cannot be reactivated by changing application permissions', async t => {
+  const state = await fixture(t);
+  state.target.banned = true;
+  const listed = (await state.request('/api/access/users')).data.users.find(user => user.id === 'user_target');
+  assert.equal(listed.canGrantAccess, false);
+  assert.equal(listed.status, 'blocked');
+  assert.equal(listed.accessIssue, 'banned');
+  assert.equal((await state.request('/api/access/users/user_target', { method: 'PATCH', body: { email: 'user_target@example.com', role: 'admin', status: 'active' } })).data.code, 'ACCOUNT_BANNED');
+  assert.equal(state.calls.length, 0);
+});
+
+test('directory search and pagination use the same bounded server-side query and filtered total', async t => {
+  const state = await fixture(t);
+  const found = await state.request('/api/access/users?query=%20USER_TARGET%20');
+  assert.equal(found.data.total, 1);
+  assert.equal(found.data.users[0].id, 'user_target');
+  assert.deepEqual(state.searches.slice(-2), [['list', 25, 0, 'USER_TARGET'], ['count', 'USER_TARGET']]);
+  const next = await state.request('/api/access/users?query=USER_TARGET&offset=25');
+  assert.equal(next.data.total, 1);
+  assert.deepEqual(next.data.users, []);
+  await state.request(`/api/access/users?query=${'a'.repeat(300)}&offset=-1`);
+  assert.deepEqual(state.searches.slice(-2), [['list', 25, 0, 'a'.repeat(254)], ['count', 'a'.repeat(254)]]);
 });
