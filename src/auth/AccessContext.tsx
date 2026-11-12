@@ -11,6 +11,7 @@ type AccessState = {
   identity: AccessIdentity | null;
   loading: boolean;
   error: string | null;
+  errorCode: string | null;
   refresh: () => Promise<void>;
 };
 const AccessContext = createContext<AccessState | null>(null);
@@ -26,6 +27,9 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const [identity, setIdentity] = useState<AccessIdentity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [checkedSession, setCheckedSession] = useState<string | null>(null);
+  const sessionKey = userId && sessionId ? `${userId}:${sessionId}` : null;
   const generation = useRef(0);
 
   useLayoutEffect(() => {
@@ -53,16 +57,22 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     const current = ++generation.current;
     setIdentity(null);
     setError(null);
+    setErrorCode(null);
+    setCheckedSession(sessionKey);
     if (!isLoaded || !isSignedIn) { setLoading(!isLoaded); return; }
     setLoading(true);
     try {
       const { data } = await api.get<AccessIdentity>('/auth/login');
+      if (data.userId !== userId || !['admin', 'superadmin'].includes(data.rol)) throw new Error('Unexpected access identity');
       if (current === generation.current) setIdentity(data);
     } catch (failure: unknown) {
-      const message = (failure as { response?: { data?: { error?: string } } }).response?.data?.error;
-      if (current === generation.current) setError(message || 'No pudimos verificar tu acceso. Revisa la conexión e intenta de nuevo.');
+      const data = (failure as { response?: { data?: { error?: string; code?: string } } }).response?.data;
+      if (current === generation.current) {
+        setError(data?.error || 'No pudimos verificar tu acceso. Revisa la conexión e intenta de nuevo.');
+        setErrorCode(data?.code || null);
+      }
     } finally { if (current === generation.current) setLoading(false); }
-  }, [getToken, isLoaded, isSignedIn, userId, sessionId]);
+  }, [getToken, isLoaded, isSignedIn, userId, sessionId, sessionKey]);
 
   useEffect(() => {
     if (!ready) return;
@@ -73,5 +83,14 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     return () => { active = false; ++generation.current; window.removeEventListener('fabric-access-change', check); };
   }, [ready, refresh]);
 
-  return ready ? <AccessContext.Provider value={{ identity, loading, error, refresh }}>{children}</AccessContext.Provider> : null;
+  // Hide the previous account's permissions/errors immediately during an account
+  // switch, including the render before the new session's effect runs.
+  const currentSession = sessionKey !== null && checkedSession === sessionKey;
+  return ready ? <AccessContext.Provider value={{
+    identity: currentSession && identity?.userId === userId ? identity : null,
+    loading: !isLoaded || Boolean(isSignedIn && (loading || !currentSession)),
+    error: currentSession ? error : null,
+    errorCode: currentSession ? errorCode : null,
+    refresh,
+  }}>{children}</AccessContext.Provider> : null;
 }

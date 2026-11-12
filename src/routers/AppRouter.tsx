@@ -3,6 +3,7 @@ import { useEffect, Suspense, lazy } from 'react';
 
 import PublicLayout from '../layouts/public/publicLayaout';
 import { ProtectorRoles } from '../auth/ProtecteRoles';
+import { recoverLegacyAuthReturn } from '../auth/auth-navigation';
 
 // Lazy cargar ClerkBoundary y Pantallas de Login/Acceso
 const ClerkBoundary = lazy(() => import('../auth/ClerkBoundary'));
@@ -165,6 +166,11 @@ const GlobalLoader = () => (
 );
 
 export const AppRouter = () => {
+  const location = useLocation();
+  const authReturn = recoverLegacyAuthReturn(location);
+  // Mount Clerk on its auth route before showing Home; the SDK finishes the handoff.
+  // A URL parameter only chooses an entry route. The backend still decides access.
+  if (authReturn) return <Navigate to={authReturn} replace />;
   return (
     <>
       <ScrollToTop />
@@ -234,6 +240,7 @@ export const AppRouter = () => {
             <Route path="/crear-cuenta/*" element={<CrearCuentaScreen />} />
             <Route path="/login" element={<Navigate to="/acceso" replace />} />
             <Route path="/admin/login" element={<Navigate to="/acceso" replace />} />
+            <Route path="/verificar-acceso" element={<AccesoScreen />} />
 
             {/* Dashboard General */}
             <Route 

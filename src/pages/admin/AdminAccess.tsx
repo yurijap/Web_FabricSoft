@@ -4,6 +4,7 @@ import { AlertCircle, Check, ChevronDown, ChevronLeft, ChevronRight, HelpCircle,
 import '../../auth/styles/security.css';
 import { api } from '../../config/api';
 import { useAccess } from '../../auth/AccessContext';
+import { loadTeamDirectory } from '../../auth/team-directory';
 
 type Role = 'admin' | 'superadmin';
 type AccessUser = {
@@ -153,11 +154,10 @@ export function DeleteAccountDialog({ user, busy, onClose, onConfirm }: {
 
 export default function AdminAccess() {
   const { identity } = useAccess();
-  const [users, setUsers] = useState<AccessUser[]>([]);
+  const [members, setMembers] = useState<AccessUser[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [offset, setOffset] = useState(0);
   const [inviteOffset, setInviteOffset] = useState(0);
-  const [total, setTotal] = useState(0);
   const [moreInvites, setMoreInvites] = useState(false);
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
@@ -170,19 +170,27 @@ export default function AdminAccess() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const total = members.length;
+  const users = members.slice(offset, offset + 25);
   const loadSequence = useRef(0);
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current;
     setLoading(true);
     try {
-      const [members, pending] = await Promise.all([api.get('/access/users', { params: { offset, query } }), api.get('/access/invitations', { params: { offset: inviteOffset } })]);
+      const [team, pending] = await Promise.all([
+        loadTeamDirectory<AccessUser>(async sourceOffset => {
+          const response = await api.get('/access/users', { params: { offset: sourceOffset, query } });
+          return response.data;
+        }, () => sequence === loadSequence.current),
+        api.get('/access/invitations', { params: { offset: inviteOffset } }),
+      ]);
       if (sequence !== loadSequence.current) return;
-      setUsers(members.data.users); setTotal(members.data.total);
+      setMembers(team);
       setInvitations(pending.data.invitations); setMoreInvites(pending.data.hasMore);
-      if (offset > 0 && offset >= members.data.total) setOffset(Math.max(0, Math.floor((members.data.total - 1) / 25) * 25));
+      setOffset(current => Math.min(current, Math.max(0, Math.floor((team.length - 1) / 25) * 25)));
     } catch (failure) { if (sequence === loadSequence.current) throw failure; }
     finally { if (sequence === loadSequence.current) setLoading(false); }
-  }, [offset, inviteOffset, query]);
+  }, [inviteOffset, query]);
   useEffect(() => { setError(''); void load().catch(failure => setError(message(failure))); return () => { loadSequence.current++; }; }, [load]);
   useEffect(() => { const timer = window.setTimeout(() => { setQuery(search.trim()); setOffset(0); }, 300); return () => window.clearTimeout(timer); }, [search]);
 
@@ -205,33 +213,33 @@ export default function AdminAccess() {
     setBusy(true); setError(''); setNotice('');
     try {
       await api.delete(`/access/users/${user.id}`, { data: { confirmation } });
-      setUsers(current => current.filter(item => item.id !== user.id)); setTotal(current => Math.max(0, current - 1)); setDeleteTarget(null);
+      setMembers(current => current.filter(item => item.id !== user.id)); setDeleteTarget(null);
       setNotice('Cuenta eliminada. Los registros de la operación se conservan.');
       if (users.length === 1 && offset > 0) setOffset(current => Math.max(0, current - 25));
-      else { try { await load(); } catch { setError('La cuenta se eliminó, pero no pudimos actualizar la lista. Pulsa Actualizar.'); } }
+      try { await load(); } catch { setError('La cuenta se eliminó, pero no pudimos actualizar la lista. Pulsa Actualizar.'); }
     } finally { setBusy(false); }
   }
   const disabled = busy || loading || search.trim() !== query;
 
   return <div className="fs-access">
     <header className="fs-access__header"><div><span className="fs-security__eyebrow">Sistema / Equipo</span><h1>Usuarios y accesos</h1><p>Las personas correctas, con los permisos necesarios.</p></div><div className="fs-access__header-actions"><button type="button" className={secondary} aria-expanded={showHelp} aria-controls="access-help" onClick={() => setShowHelp(current => !current)}><HelpCircle size={16} aria-hidden="true" />Roles y ayuda<ChevronDown size={13} aria-hidden="true" /></button><button type="button" className={button} disabled={busy} onClick={() => setInviteOpen(true)}><Plus size={16} aria-hidden="true" />Invitar usuario</button></div></header>
-    <div className="fs-access__policy"><ShieldCheck size={16} aria-hidden="true" /><p>Solo superadmin gestiona accesos. <span>Se admite cualquier correo verificado.</span></p></div>
+    <div className="fs-access__policy"><ShieldCheck size={16} aria-hidden="true" /><p>Solo personas invitadas o autorizadas. <span>Se admite cualquier correo verificado.</span></p></div>
     {showHelp && <div id="access-help" className="fs-access__help">
       <div className="fs-access__help-roles">{(['admin', 'superadmin'] as const).map(key => <div className="fs-access__help-role" key={key}><h2>{ROLE_DETAILS[key].label}</h2><ul>{ROLE_DETAILS[key].permissions.map(permission => <li key={permission}><Check size={13} aria-hidden="true" />{permission}</li>)}</ul><p>{ROLE_DETAILS[key].limit}</p></div>)}</div>
-      <div className="fs-access__help-answers"><h2>Cómo funciona el acceso</h2><p><strong>Invitar → aceptar → entrar:</strong> al enviar la invitación ya autorizas el rol. Al aceptarla con ese correo verificado, la persona entra sin una segunda aprobación.</p><p><strong>Gestionar acceso:</strong> sirve para cambiar el rol, quitar el acceso o restablecerlo. Las cuentas antiguas que nunca recibieron una invitación pueden autorizarse aquí.</p><p><strong>Quitar acceso:</strong> la persona deja de entrar. Volver a abrir su invitación anterior no anula tu decisión; solo el superadmin puede restablecer el permiso.</p><p><strong>Con otro correo:</strong> otra cuenta necesita su propia autorización. El correo autorizado debe seguir presente y verificado en la cuenta.</p></div>
+      <div className="fs-access__help-answers"><h2>Cómo funciona el acceso</h2><p><strong>Invitar → aceptar → entrar:</strong> al enviar la invitación ya autorizas el rol. Al aceptarla con ese correo verificado, la persona entra sin una segunda aprobación.</p><p><strong>Directorio del equipo:</strong> muestra cuentas con un rol asignado. Las invitaciones sin aceptar están en Pendientes. Iniciar sesión con Google sin autorización no añade a la persona a esta lista.</p><p><strong>Gestionar acceso:</strong> solo el superadmin puede cambiar el rol, quitar el acceso o restablecerlo. Las personas con acceso retirado siguen visibles para poder restablecerlo.</p><p><strong>Quitar acceso:</strong> la persona deja de entrar. Volver a abrir su invitación anterior no anula tu decisión; solo el superadmin puede restablecer el permiso.</p><p><strong>Con otro correo:</strong> otra cuenta necesita su propia autorización. El correo autorizado debe seguir presente y verificado en la cuenta.</p></div>
     </div>}
     {error && <div role="alert" className="fs-access__alert fs-access__alert--error"><AlertCircle size={17} aria-hidden="true" /><span>{error}</span></div>}
     {notice && <div role="status" className="fs-access__alert fs-access__alert--success"><Check size={17} aria-hidden="true" /><span>{notice}</span></div>}
     <div className="fs-access__directory">
       <div className="fs-access__directory-heading"><h2 id="users-list-heading" tabIndex={-1}>Directorio del equipo</h2><span className="fs-access__private"><ShieldCheck size={13} aria-hidden="true" />Acceso privado</span></div>
-      <div className="fs-access__tabs" role="group" aria-label="Vista de accesos"><button type="button" aria-pressed={view === 'users'} onClick={() => setView('users')}><UsersRound size={16} aria-hidden="true" />Usuarios<span className="fs-access__count">{total}</span></button><button type="button" aria-pressed={view === 'invitations'} onClick={() => setView('invitations')}><Mail size={16} aria-hidden="true" />Pendientes{invitations.length > 0 && <span className="fs-access__pending-dot" aria-label="Hay invitaciones pendientes" />}</button></div>
+      <div className="fs-access__tabs" role="group" aria-label="Vista de accesos"><button type="button" aria-pressed={view === 'users'} onClick={() => setView('users')}><UsersRound size={16} aria-hidden="true" />Equipo<span className="fs-access__count">{total}</span></button><button type="button" aria-pressed={view === 'invitations'} onClick={() => setView('invitations')}><Mail size={16} aria-hidden="true" />Pendientes{invitations.length > 0 && <span className="fs-access__pending-dot" aria-label="Hay invitaciones pendientes" />}</button></div>
       <div className="fs-access__toolbar">{view === 'users' ? <div className="fs-access__search"><Search size={16} aria-hidden="true" /><input type="search" aria-label="Buscar usuarios por nombre o correo" placeholder="Nombre o correo…" maxLength={254} value={search} disabled={busy} onChange={event => setSearch(event.target.value)} />{search && <button type="button" aria-label="Limpiar búsqueda" disabled={busy} onClick={() => setSearch('')}><X size={15} aria-hidden="true" /></button>}</div> : <p>Invitaciones enviadas por tu equipo.</p>}<button type="button" aria-label="Actualizar lista" disabled={busy || loading} className={`${secondary} fs-access__refresh`} onClick={() => { setError(''); void load().catch(failure => setError(message(failure))); }}><RefreshCw size={15} aria-hidden="true" /><span>Actualizar</span></button></div>
       {view === 'users' ? <>
         <div className="fs-access__table-wrap" aria-busy={loading}>
           <table className="fs-access__table" role="table" aria-label="Usuarios y permisos"><thead role="rowgroup"><tr role="row">{['Persona', 'Rol', 'Estado', 'Acciones'].map(label => <th scope="col" role="columnheader" key={label}>{label}</th>)}</tr></thead><tbody role="rowgroup">{users.map(user => <UserRow key={user.id} user={user} self={user.id === identity?.userId} disabled={disabled} onEdit={setEditTarget} onDelete={setDeleteTarget} />)}</tbody></table>
-          {!users.length && <div className="fs-access__empty" role="status"><UsersRound size={24} aria-hidden="true" /><strong>{loading ? 'Cargando cuentas…' : query ? 'No encontramos esa cuenta' : 'Todavía no hay cuentas'}</strong><p>{!loading && (query ? 'Prueba otro nombre o correo, o invita a la persona.' : 'Invita a una persona para empezar.')}</p></div>}
+          {!users.length && <div className="fs-access__empty" role="status"><UsersRound size={24} aria-hidden="true" /><strong>{loading ? 'Cargando equipo…' : query ? 'No hay miembros del equipo que coincidan' : 'Todavía no hay miembros del equipo'}</strong><p>{!loading && (query ? 'Prueba otro nombre o correo, o invita a la persona.' : 'Invita a una persona para empezar.')}</p></div>}
         </div>
-        <nav className="fs-access__pagination" aria-label="Páginas de usuarios"><span role="status">{total ? offset + 1 : 0}–{Math.min(offset + users.length, total)} de {total}{query ? ' resultados' : ' usuarios'}</span><div><button type="button" disabled={disabled || offset === 0} className={secondary} onClick={() => setOffset(Math.max(0, offset - 25))}><ChevronLeft size={14} aria-hidden="true" />Anterior</button><button type="button" disabled={disabled || offset + 25 >= total} className={secondary} onClick={() => setOffset(offset + 25)}>Siguiente<ChevronRight size={14} aria-hidden="true" /></button></div></nav>
+        <nav className="fs-access__pagination" aria-label="Páginas de usuarios"><span role="status">{total ? offset + 1 : 0}–{Math.min(offset + users.length, total)} de {total}{query ? ' resultados' : ' personas del equipo'}</span><div><button type="button" disabled={disabled || offset === 0} className={secondary} onClick={() => setOffset(Math.max(0, offset - 25))}><ChevronLeft size={14} aria-hidden="true" />Anterior</button><button type="button" disabled={disabled || offset + 25 >= total} className={secondary} onClick={() => setOffset(offset + 25)}>Siguiente<ChevronRight size={14} aria-hidden="true" /></button></div></nav>
       </> : <div aria-busy={loading}>
         {!invitations.length && <div className="fs-access__empty" role="status"><Mail size={24} aria-hidden="true" /><strong>{loading ? 'Cargando invitaciones…' : 'Todo al día'}</strong><p>{!loading && 'No hay invitaciones pendientes en esta página.'}</p></div>}
         {invitations.map(invitation => <div key={invitation.id} className="fs-access__invitation"><div><strong>{invitation.email}</strong><span>{ROLE_DETAILS[invitation.role]?.label || 'Sin rol'} · Pendiente de aceptar</span></div><button type="button" disabled={busy || loading} className={danger} onClick={() => { if (window.confirm('¿Revocar esta invitación? El enlace dejará de servir.')) void mutate(async () => { await api.post(`/access/invitations/${invitation.id}/revoke`); }, 'Invitación revocada.').catch(failure => setError(message(failure))); }}>Revocar</button></div>)}

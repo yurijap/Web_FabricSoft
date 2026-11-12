@@ -1,6 +1,6 @@
 # Usuarios y accesos
 
-El panel **Sistema → Usuarios y accesos** (`/admin/usuarios`) permite al superadmin invitar, revocar invitaciones, autorizar cuentas existentes, cambiar entre `admin` y `superadmin`, bloquear el acceso y eliminar cuentas. Un admin opera la consola pero no administra accesos. La cuenta actual no puede bloquearse, eliminarse ni cambiar su propio rol.
+El panel **Sistema → Usuarios y accesos** (`/admin/usuarios`) permite al superadmin invitar, revocar invitaciones, cambiar entre `admin` y `superadmin`, retirar o restablecer accesos y eliminar cuentas del equipo. Un admin opera la consola pero no administra accesos. La cuenta actual no puede bloquearse, eliminarse ni cambiar su propio rol.
 
 Por solicitud del propietario, **la aplicación ya no exige MFA**. No se necesita configurar un autenticador ni códigos de recuperación para entrar al panel. Se mantienen la verificación de sesión de Clerk, los correos verificados y los permisos comprobados en el servidor. La respuesta de login incluye `mfaRequired: false` por compatibilidad con clientes anteriores.
 
@@ -22,21 +22,21 @@ pnpm bootstrap:superadmin user_TU_ID tu-correo@empresa.com
 
 El ID y el correo verificado deben corresponder a la misma cuenta. El script no tiene endpoint público ni asigna permisos por ser el primer visitante.
 
-Después de esa configuración, las invitaciones y los permisos se administran desde la plataforma. Las invitaciones duran 7 días y su destino se fija en el servidor. **Enviar la invitación ya autoriza el rol elegido: aceptarla activa el acceso sin otra aprobación.** La autorización manual queda disponible para cuentas antiguas que nunca fueron invitadas.
+Después de esa configuración, las invitaciones y los permisos del equipo se administran desde la plataforma. Las invitaciones duran 7 días y su destino se fija en el servidor. **Enviar la invitación ya autoriza el rol elegido: aceptarla activa el acceso sin otra aprobación.**
 
 ## Usar el directorio y elegir el correo
 
-La pantalla abre directamente en **Usuarios**, con búsqueda por nombre o correo en todas las páginas. **Pendientes** contiene las invitaciones aún sin aceptar. **Invitar usuario** elige el rol antes de enviar. Al aceptar, la cuenta aparece **Activa**. **Gestionar acceso** permite cambiar su rol, **Quitar acceso** o **Restablecer acceso** después de retirarlo; no es una segunda aprobación de la invitación. **Roles y ayuda** muestra la explicación cuando se necesita. Las cuentas no invitadas ni autorizadas aparecen como **Sin rol / Sin acceso**.
+La pantalla abre directamente en **Equipo**, con búsqueda por nombre o correo entre sus miembros en todas las páginas. **Pendientes** contiene las invitaciones aún sin aceptar. **Invitar usuario** elige el rol antes de enviar. Al aceptar, la cuenta aparece **Activa**. **Gestionar acceso** permite cambiar su rol, **Quitar acceso** o **Restablecer acceso** después de retirarlo; no es una segunda aprobación de la invitación. **Roles y ayuda** muestra la explicación cuando se necesita. Las cuentas que nunca recibieron un rol se ocultan del directorio.
 
 - **Cualquier proveedor:** Gmail, Outlook, Hotmail y los correos corporativos sirven. La persona debe poder recibir mensajes en esa dirección y verificarla. En Clerk, el método de inicio de sesión por correo debe estar habilitado en **User & authentication**; cambiar el diseño no modifica esa configuración externa ni las claves.
 - **Si aún no tiene cuenta:** invita a su dirección real y que abra el enlace de ese buzón para crear su cuenta. Al aceptar, recibe automáticamente el rol seleccionado, asociado a su correo verificado. No debes pulsar otro botón para darle acceso.
 - **Si ya aceptó:** puede entrar directamente. **Gestionar acceso** sirve para cambiarle el rol o retirar su permiso.
-- **Cuenta antigua sin invitación:** puedes autorizarla desde **Gestionar acceso**. La ventana muestra su correo principal y si está verificado. El servidor vuelve a comprobarlo al guardar; si la dirección cambió desde que abriste la lista, exige actualizarla antes de autorizar.
+- **Cuenta del equipo:** la ventana de gestión muestra su correo principal y si está verificado. El servidor vuelve a comprobarlo al guardar; si la dirección cambió desde que abriste la lista, exige actualizarla antes de autorizar ese correo.
 - **Si inicia sesión con otra cuenta:** no hereda los permisos. Debe entrar con la cuenta autorizada o recibir una autorización independiente. Google es una opción para cuentas de Google; un correo de Outlook o corporativo puede entrar por el método de correo configurado en Clerk.
 - **Si cambia el correo de la misma cuenta:** el autorizado debe seguir presente y verificado. Si lo elimina o deja de estar verificado, pierde el acceso aunque conserve su rol asignado. El superadmin puede revisar y autorizar su nuevo correo principal verificado. La ventana distingue el correo autorizado anteriormente del actual.
 - **Sin correo verificado:** no se puede dar acceso. Sí se puede bloquear o eliminar la cuenta. Un bloqueo no depende de que conserve el correo anterior, y tiene prioridad sobre el permiso de una invitación.
 
-El servidor vincula los permisos a la cuenta de Clerk y al correo aprobado; no limita dominios a Gmail ni concede acceso por compartir dominio con una empresa. La búsqueda devuelve un total filtrado y no expone metadatos privados.
+El servidor vincula los permisos a la cuenta de Clerk y al correo aprobado; no limita dominios a Gmail ni concede acceso por compartir dominio con una empresa. La vista de búsqueda cuenta solo miembros del equipo y no expone metadatos privados.
 
 ### Activación automática y retirada posterior
 
@@ -53,6 +53,24 @@ Si ya se llegó a **Acceso restringido**, la pantalla muestra el correo conectad
 El correo puede venir ya rellenado y verificado por la invitación. La contraseña solo se solicita si ese método está habilitado en la instancia de Clerk. La ausencia de un campo de contraseña no demuestra un fallo, pero el mensaje **Sin acceso autorizado** sí indica que la cuenta de la sesión no superó la comprobación de permisos.
 
 Referencias: [comportamiento de SignUp con una sesión abierta](https://clerk.com/docs/react/reference/components/authentication/sign-up), [verificación de correo mediante invitaciones](https://clerk.com/docs/guides/users/inviting).
+
+### Regreso de Google e inicio sin invitación
+
+`ClerkProvider` fija las rutas `/acceso` y `/crear-cuenta`, y tanto el destino obligatorio como el alternativo de los dos flujos apuntan a `/admin`. Los componentes también configuran el destino del flujo contrario, porque Google puede convertir un intento de iniciar sesión en un registro. Una sesión ya abierta en `/acceso` pasa a la comprobación de permisos; no deja que el formulario la envíe al Home URL de Clerk. La ruta antigua `/verificar-acceso` utiliza el mismo flujo.
+
+Como compatibilidad con enlaces anteriores que regresaban al inicio, un retorno con ticket de invitación se lleva a `/crear-cuenta` y un retorno de sincronización del navegador de desarrollo a `/acceso`, conservando los parámetros para que los procese el SDK. No se decodifican ni se usan como prueba de identidad. Las visitas públicas normales mantienen la portada y no cargan Clerk. El flujo normal de producción utiliza los destinos configurados y no depende de parámetros internos de desarrollo.
+
+Autenticarse con Google **no autoriza el acceso administrativo**. Si el correo no fue invitado ni autorizado, permanece en `/admin` con **Acceso restringido**, una explicación y el correo conectado. Los permisos y errores del contexto se asocian a la sesión actual para no mostrar el resultado de otra cuenta durante un cambio de sesión. Una respuesta de permisos correspondiente a otro usuario se rechaza.
+
+El parámetro de sincronización `__clerk_db_jwt` de las capturas pertenece a las instancias **Development**. Para producción, configura las claves pública y secreta de la misma instancia **Production** en Vercel. Las cuentas y sus permisos pertenecen a cada instancia; cambiar las claves requiere preparar las cuentas de destino. Esta corrección no cambia automáticamente las claves ni migra usuarios.
+
+Verificación: `pnpm test:auth-routing` comprueba destinos, conservación del retorno, visitas públicas, ausencia de bucles y rechazo de destinos controlados por la URL. Referencias: [destinos de Clerk](https://clerk.com/docs/guides/development/customize-redirect-urls), [diferencias entre instancias](https://clerk.com/docs/guides/development/managing-environments).
+
+### Directorio del equipo
+
+La pestaña **Equipo** muestra solo cuentas con un rol Admin o Superadmin asignado, incluidas las que tienen el acceso retirado o necesitan revisar su correo. Las identidades que nunca recibieron permisos se ocultan de esta vista; las invitaciones sin aceptar siguen en **Pendientes**. El filtro es visual: no elimina identidades de Clerk ni modifica los permisos del servidor.
+
+El contador, la búsqueda y la paginación corresponden solo al equipo. El cliente recorre las páginas de la API existente antes de filtrar y paginar los miembros, para encontrar también a los autorizados que estén detrás de cuentas ocultas. Al quitar acceso, la persona sigue visible para poder restablecerlo. `pnpm test:team-directory` verifica estos filtros y el recorrido de páginas.
 
 ## Controles implementados
 

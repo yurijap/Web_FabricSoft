@@ -9,6 +9,8 @@
     "dev": "vite",
     "dev:server": "node server.js",
     "test:access": "node --test tests/access.test.mjs",
+    "test:auth-routing": "node --experimental-strip-types --test tests/auth-routing.test.mjs",
+    "test:team-directory": "node --experimental-strip-types --test tests/team-directory.test.mjs",
     "bootstrap:superadmin": "node scripts/bootstrap-superadmin.mjs",
     "build": "npx vite build && node scripts/prerender.mjs",
     "lint": "eslint .",

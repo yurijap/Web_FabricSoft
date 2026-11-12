@@ -5,6 +5,7 @@ import { Outlet } from 'react-router-dom';
 import { AccessProvider } from './AccessContext';
 import { SecurityFrame } from './SecurityFrame';
 import { useTheme } from '../theme/ThemeProvider';
+import { CLERK_NAVIGATION } from './auth-navigation';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
@@ -36,6 +37,7 @@ export default function ClerkBoundary() {
   return (
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY!}
+      {...CLERK_NAVIGATION}
       localization={esES}
       appearance={{
         baseTheme: isDark ? dark : undefined,

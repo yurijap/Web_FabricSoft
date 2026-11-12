@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { SignIn, SignUp, useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { AlertCircle, LogOut, Mail } from 'lucide-react';
 import { SecurityFrame, SecurityLoading } from './SecurityFrame';
+import { AUTH_PATHS } from './auth-navigation';
 
 const appearance = {
   elements: {
@@ -15,8 +16,13 @@ const appearance = {
 };
 
 export function AccesoScreen() {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <SecurityLoading message="Preparando tu inicio de sesión…" />;
+  // An existing session must reach our permission check, rather than Clerk's Home URL.
+  if (isSignedIn) return <Navigate to={AUTH_PATHS.console} replace />;
   return <SecurityFrame title="Bienvenido a tu consola" description="Entra con tu correo autorizado: Gmail, Outlook o corporativo. Usa Google si tu cuenta pertenece a Google.">
-    <SignIn appearance={appearance} routing="virtual" signUpUrl="/crear-cuenta" forceRedirectUrl="/admin" />
+    <SignIn appearance={appearance} routing="virtual" signUpUrl={AUTH_PATHS.signUp} forceRedirectUrl={AUTH_PATHS.console} fallbackRedirectUrl={AUTH_PATHS.console}
+      signUpForceRedirectUrl={AUTH_PATHS.console} signUpFallbackRedirectUrl={AUTH_PATHS.console} />
   </SecurityFrame>;
 }
 
@@ -60,7 +66,8 @@ function InvitationAccountFlow({ signedIn }: { signedIn: boolean }) {
     </SecurityFrame>;
   }
   return <SecurityFrame title="Completa tu cuenta" description="Tu correo viene de la invitación. Completa los datos que se soliciten con esa misma cuenta.">
-    <SignUp appearance={appearance} routing="virtual" signInUrl="/acceso" forceRedirectUrl="/admin" />
+    <SignUp appearance={appearance} routing="virtual" signInUrl={AUTH_PATHS.signIn} forceRedirectUrl={AUTH_PATHS.console} fallbackRedirectUrl={AUTH_PATHS.console}
+      signInForceRedirectUrl={AUTH_PATHS.console} signInFallbackRedirectUrl={AUTH_PATHS.console} />
     <p className="fs-security__hint">La invitación puede verificar tu correo. La contraseña aparece si está habilitada como método de acceso; no hace falta crear otra si entras con Google.</p>
   </SecurityFrame>;
 }
