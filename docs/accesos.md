@@ -22,25 +22,42 @@ pnpm bootstrap:superadmin user_TU_ID tu-correo@empresa.com
 
 El ID y el correo verificado deben corresponder a la misma cuenta. El script no tiene endpoint público ni asigna permisos por ser el primer visitante.
 
-Después de esa configuración, las invitaciones y los permisos se administran desde la plataforma. Las invitaciones duran 7 días y su destino se fija en el servidor. Si la persona ya tiene cuenta, autorízala desde la tabla.
+Después de esa configuración, las invitaciones y los permisos se administran desde la plataforma. Las invitaciones duran 7 días y su destino se fija en el servidor. **Enviar la invitación ya autoriza el rol elegido: aceptarla activa el acceso sin otra aprobación.** La autorización manual queda disponible para cuentas antiguas que nunca fueron invitadas.
 
 ## Usar el directorio y elegir el correo
 
-La pantalla abre directamente en **Usuarios**, con búsqueda por nombre o correo en todas las páginas. **Pendientes** contiene las invitaciones. **Invitar usuario** abre un formulario breve y **Gestionar acceso** permite elegir el rol, guardar o bloquear. **Roles y ayuda** muestra los permisos y la explicación del acceso cuando se necesita. Una cuenta sin rol aparece como **Sin rol / Sin acceso**; seleccionar Admin en el formulario no concede permisos hasta guardar.
+La pantalla abre directamente en **Usuarios**, con búsqueda por nombre o correo en todas las páginas. **Pendientes** contiene las invitaciones aún sin aceptar. **Invitar usuario** elige el rol antes de enviar. Al aceptar, la cuenta aparece **Activa**. **Gestionar acceso** permite cambiar su rol, **Quitar acceso** o **Restablecer acceso** después de retirarlo; no es una segunda aprobación de la invitación. **Roles y ayuda** muestra la explicación cuando se necesita. Las cuentas no invitadas ni autorizadas aparecen como **Sin rol / Sin acceso**.
 
 - **Cualquier proveedor:** Gmail, Outlook, Hotmail y los correos corporativos sirven. La persona debe poder recibir mensajes en esa dirección y verificarla. En Clerk, el método de inicio de sesión por correo debe estar habilitado en **User & authentication**; cambiar el diseño no modifica esa configuración externa ni las claves.
-- **Si aún no tiene cuenta:** invita a su dirección real y que abra el enlace de ese buzón para crear su cuenta. El permiso de la invitación queda asociado al correo verificado de esa cuenta.
-- **Si ya tiene cuenta:** búscala y abre **Gestionar acceso**. La ventana muestra su correo principal y si está verificado. El servidor vuelve a comprobarlo al guardar; si la dirección cambió desde que abriste la lista, exige actualizarla antes de autorizar.
+- **Si aún no tiene cuenta:** invita a su dirección real y que abra el enlace de ese buzón para crear su cuenta. Al aceptar, recibe automáticamente el rol seleccionado, asociado a su correo verificado. No debes pulsar otro botón para darle acceso.
+- **Si ya aceptó:** puede entrar directamente. **Gestionar acceso** sirve para cambiarle el rol o retirar su permiso.
+- **Cuenta antigua sin invitación:** puedes autorizarla desde **Gestionar acceso**. La ventana muestra su correo principal y si está verificado. El servidor vuelve a comprobarlo al guardar; si la dirección cambió desde que abriste la lista, exige actualizarla antes de autorizar.
 - **Si inicia sesión con otra cuenta:** no hereda los permisos. Debe entrar con la cuenta autorizada o recibir una autorización independiente. Google es una opción para cuentas de Google; un correo de Outlook o corporativo puede entrar por el método de correo configurado en Clerk.
 - **Si cambia el correo de la misma cuenta:** el autorizado debe seguir presente y verificado. Si lo elimina o deja de estar verificado, pierde el acceso aunque conserve su rol asignado. El superadmin puede revisar y autorizar su nuevo correo principal verificado. La ventana distingue el correo autorizado anteriormente del actual.
 - **Sin correo verificado:** no se puede dar acceso. Sí se puede bloquear o eliminar la cuenta. Un bloqueo no depende de que conserve el correo anterior, y tiene prioridad sobre el permiso de una invitación.
 
 El servidor vincula los permisos a la cuenta de Clerk y al correo aprobado; no limita dominios a Gmail ni concede acceso por compartir dominio con una empresa. La búsqueda devuelve un total filtrado y no expone metadatos privados.
 
+### Activación automática y retirada posterior
+
+En el primer login, el servidor persiste el permiso de la invitación en `private_metadata.fabricInvitationAccess`. Si Clerk no copió los metadatos a la cuenta, consulta sus invitaciones **aceptadas** y comprueba correo exacto y verificado, rol, autor del permiso y fechas de creación/aceptación. No basta con que exista una invitación pendiente o con presentar un ticket en el navegador. Para recuperar permisos sin los metadatos copiados, la creación de la cuenta debe corresponder al intervalo de la invitación; un registro posterior con el mismo correo no reutiliza una invitación de una cuenta eliminada. El directorio también reconcilia las invitaciones aceptadas para corregir cuentas que antes aparecían sin acceso, sin una nueva aprobación manual.
+
+Las decisiones del superadmin se guardan en `private_metadata.fabricAccess`, que siempre tiene prioridad sobre el permiso automático. **Quitar acceso** guarda `status: blocked`, conserva la cuenta y deniega sus siguientes solicitudes. Ni volver a entrar ni abrir el enlace anterior restaura ese acceso. **Restablecer acceso** es una decisión explícita del superadmin. La activación automática escribe otra clave para que tampoco pueda sobrescribir una retirada o un cambio de rol concurrente.
+
+### Al abrir una invitación con una sesión anterior
+
+Clerk puede redirigir su formulario de registro si ya existe una sesión. Para evitar que se pierda el flujo de invitación, `/crear-cuenta` espera a que cargue Clerk y, si hay una sesión, muestra su correo y **Cerrar sesión y continuar invitación** antes de montar el formulario. El cierre es explícito y conserva la ruta, el ticket y los parámetros originales del enlace. No se guarda el ticket en almacenamiento del navegador ni se conceden permisos desde el cliente.
+
+Si ya se llegó a **Acceso restringido**, la pantalla muestra el correo conectado. Cierra esa sesión y vuelve a abrir el enlace original del correo, o ábrelo en una ventana privada sin sesión. Si sigue fallando con la cuenta correcta, el superadmin debe comprobar su estado en Usuarios; una invitación no debe sobrescribir un bloqueo privado.
+
+El correo puede venir ya rellenado y verificado por la invitación. La contraseña solo se solicita si ese método está habilitado en la instancia de Clerk. La ausencia de un campo de contraseña no demuestra un fallo, pero el mensaje **Sin acceso autorizado** sí indica que la cuenta de la sesión no superó la comprobación de permisos.
+
+Referencias: [comportamiento de SignUp con una sesión abierta](https://clerk.com/docs/react/reference/components/authentication/sign-up), [verificación de correo mediante invitaciones](https://clerk.com/docs/guides/users/inviting).
+
 ## Controles implementados
 
 - Se verifica firma, caducidad y origen del token con el SDK de Clerk. Se consulta que la sesión siga activa y que el usuario tenga acceso vigente en cada solicitud privada; no se aceptan sesiones de suplantación.
-- Los permisos se leen desde `private_metadata.fabricAccess`; las invitaciones aportan inicialmente `public_metadata.fabricAccess`, que Clerk copia al aceptarlas. Solo el servidor escribe esos campos. Un bloqueo privado tiene prioridad. Se exige que el correo autorizado siga verificado. No se confía en `unsafe_metadata`, roles enviados por el navegador ni roles predeterminados.
+- Los permisos se leen en este orden: decisión manual en `private_metadata.fabricAccess`, activación persistida en `private_metadata.fabricInvitationAccess`, metadatos de invitación copiados por Clerk en `public_metadata.fabricAccess`. Una decisión privada vacía o inválida también impide recurrir a una invitación anterior. Solo el servidor escribe esos permisos. Se exige que el correo autorizado siga verificado. No se confía en `unsafe_metadata`, roles enviados por el navegador ni roles predeterminados.
 - Superadmin puede gestionar accesos sin configurar un segundo factor. Admin no puede gestionar usuarios ni vaciar la base de datos. Tener sesión no concede permisos por sí solo.
 - Bloquear o cambiar permisos afecta a la siguiente solicitud aunque el usuario conserve un JWT firmado. No se pueden retirar datos que ya haya descargado.
 - Si falta la configuración o falla Clerk, las operaciones privadas se rechazan.
@@ -49,7 +66,7 @@ El servidor vincula los permisos a la cuenta de Clerk y al correo aprobado; no l
 
 ## Eliminar o bloquear una cuenta
 
-- **Bloquear** conserva la cuenta y permite reactivarla. La siguiente solicitud privada queda denegada.
+- **Quitar acceso** conserva la cuenta y permite restablecerla explícitamente. La siguiente solicitud privada queda denegada, aunque conserve una invitación aceptada.
 - **Eliminar cuenta** borra permanentemente su identidad de acceso en Clerk y la retira de la lista. Funciona con cuentas activas, bloqueadas o sin acceso. Los leads, citas y documentos de MongoDB se conservan.
 - Solo superadmin puede eliminar. El servidor rechaza la eliminación de la cuenta actual y exige escribir el correo principal actual del usuario; si no tiene correo, su identificador. Los errores del proveedor se muestran sin dar por eliminada la cuenta.
 - La lista y su total se actualizan después de la eliminación. Al borrar el último usuario de una página, se vuelve a la anterior. El evento `access.deleted` registra actor y cuenta eliminada, sin credenciales.
@@ -57,7 +74,7 @@ El servidor vincula los permisos a la cuenta de Clerk y al correo aprobado; no l
 
 ## Verificación y alcance
 
-`pnpm test:access` comprueba tokens falsificados y caducados, origen incorrecto, ausencia de configuración, cuentas sin permiso, sesiones revocadas, separación de roles, acceso de superadmin sin segundo factor, invitaciones, bloqueos, eliminación de cuentas y alias privados. Las pruebas usan firmas RSA reales y simulan las respuestas de la API de identidad; no envían correos ni alteran cuentas reales.
+`pnpm test:access` comprueba tokens falsificados y caducados, origen incorrecto, ausencia de configuración, cuentas sin permiso, sesiones revocadas, separación de roles, acceso de superadmin sin segundo factor, aceptación y activación automática, recuperación de metadatos, retirada posterior, carreras con cambios manuales, fallos del proveedor, eliminación de cuentas y alias privados. Las pruebas usan firmas RSA reales y simulan las respuestas de la API de identidad; no envían correos ni alteran cuentas reales.
 
 La integración real de Clerk necesita las claves y una prueba con cuentas controladas antes de publicar. El rol admin debe recibir 403 al llamar directamente a `/api/access/users`. El chequeo TypeScript global del repositorio tenía errores en otros módulos existentes; no se considera aprobado por validar únicamente los módulos de acceso.
 

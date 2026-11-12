@@ -10,6 +10,7 @@ type AccessUser = {
   id: string; name: string; email: string; role: Role | null;
   status: 'active' | 'blocked' | 'unauthorized';
   emailVerified: boolean; canGrantAccess: boolean; authorizedEmail: string;
+  accessSource: 'invitation' | 'manual' | null;
   accessIssue: 'email_missing' | 'email_unverified' | 'email_changed' | 'banned' | null;
 };
 type Invitation = { id: string; email: string; role: Role; status: string };
@@ -78,10 +79,10 @@ function InviteDialog({ busy, onClose, onInvite }: { busy: boolean; onClose: () 
     setError('');
     try { await onInvite(email.trim(), role); } catch (failure) { setError(message(failure)); }
   }
-  return <AccessDialog title="Invitar a una persona" description="Recibirá un enlace para crear su cuenta. Vence en 7 días." busy={busy} onClose={onClose}>
+  return <AccessDialog title="Invitar a una persona" description="Al aceptar, tendrá acceso con el rol que elijas. El enlace vence en 7 días." busy={busy} onClose={onClose}>
     <form className="fs-access__dialog-form" onSubmit={submit} aria-busy={busy}>
       <label htmlFor="invite-email"><span>Correo de la persona</span><input id="invite-email" type="email" className={field} value={email} onChange={event => setEmail(event.target.value)} placeholder="persona@empresa.com" autoComplete="email" maxLength={254} required disabled={busy} aria-describedby="invite-email-help" /></label>
-      <p id="invite-email-help" className="fs-access__field-help">Gmail, Outlook o corporativo. Debe poder abrir ese buzón. Si ya tiene cuenta, usa Gestionar acceso en la lista.</p>
+      <p id="invite-email-help" className="fs-access__field-help">Gmail, Outlook o corporativo. Debe poder abrir ese buzón. Aceptar la invitación activa el acceso automáticamente, sin otra aprobación.</p>
       <RolePicker role={role} onChange={setRole} disabled={busy} />
       {error && <div role="alert" className="fs-access__alert fs-access__alert--error"><AlertCircle size={17} aria-hidden="true" /><span>{error}</span></div>}
       <div className="fs-access__dialog-actions"><button type="button" className={secondary} disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" className={button} disabled={busy}><Mail size={15} aria-hidden="true" />{busy ? 'Enviando…' : 'Enviar invitación'}</button></div>
@@ -100,14 +101,15 @@ function EditAccessDialog({ user, busy, onClose, onSave }: { user: AccessUser; b
   return <AccessDialog title="Gestionar acceso" description="Revisa la cuenta y sus permisos antes de guardar." busy={busy} onClose={onClose}>
     <form className="fs-access__dialog-form" aria-busy={busy} onSubmit={event => { event.preventDefault(); if (user.canGrantAccess && !unchanged) void save('active'); }}>
       <div className="fs-access__account"><span className="fs-access__avatar" aria-hidden="true">{(user.name || user.email || '?')[0].toUpperCase()}</span><div><strong>{user.name || 'Usuario'}</strong><span>{user.email || 'Sin correo principal'}</span><small>{user.emailVerified ? 'Correo verificado' : 'Correo pendiente de verificar'}</small></div></div>
+      {user.status === 'active' && user.accessSource === 'invitation' && <p className="fs-access__field-help">La invitación ya activó este acceso. Aquí puedes cambiar el rol o retirar el permiso.</p>}
       {user.accessIssue && <div role="note" className="fs-access__alert"><AlertCircle size={17} aria-hidden="true" /><span>{ISSUES[user.accessIssue]}</span></div>}
       <RolePicker role={role} onChange={setRole} disabled={busy || !user.canGrantAccess} />
       {user.authorizedEmail && user.authorizedEmail.toLowerCase() !== user.email.toLowerCase() && <p className="fs-access__field-help">Correo autorizado antes: <strong>{user.authorizedEmail}</strong>. Al dar acceso, se usará el correo principal mostrado arriba.</p>}
-      <p className="fs-access__field-help">El permiso pertenece a esta cuenta. Otra cuenta con un correo diferente necesita su propia autorización. Bloquear conserva la cuenta y suspende su acceso.</p>
+      <p className="fs-access__field-help">Quitar acceso conserva la cuenta y le impide entrar. Una invitación anterior no podrá reactivarla; solo tú puedes restablecer el permiso.</p>
       {error && <div role="alert" className="fs-access__alert fs-access__alert--error"><AlertCircle size={17} aria-hidden="true" /><span>{error}</span></div>}
       <div className="fs-access__dialog-actions">
-        {user.status !== 'blocked' && <button type="button" className={`${danger} fs-access__block`} disabled={busy} onClick={() => void save('blocked')}>Bloquear</button>}
-        <button type="button" className={secondary} disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" className={button} disabled={busy || !user.canGrantAccess || unchanged}>{busy ? 'Guardando…' : user.status === 'active' ? 'Guardar cambios' : 'Dar acceso'}</button>
+        {user.status !== 'blocked' && <button type="button" className={`${danger} fs-access__block`} disabled={busy} onClick={() => void save('blocked')}>Quitar acceso</button>}
+        <button type="button" className={secondary} disabled={busy} onClick={onClose}>{unchanged ? 'Cerrar' : 'Cancelar'}</button>{!unchanged && <button type="submit" className={button} disabled={busy || !user.canGrantAccess}>{busy ? 'Guardando…' : user.status === 'active' ? 'Guardar cambios' : user.status === 'blocked' ? 'Restablecer acceso' : 'Autorizar cuenta'}</button>}
       </div>
     </form>
   </AccessDialog>;
@@ -116,7 +118,7 @@ function UserRow({ user, self, disabled, onEdit, onDelete }: { user: AccessUser;
   return <tr className="fs-access__user" role="row">
     <td data-label="Persona" role="cell"><div className="fs-access__person"><span className="fs-access__avatar" aria-hidden="true">{(user.name || user.email || '?')[0].toUpperCase()}</span><div><strong>{user.name || 'Usuario'}{self && <small>Tú</small>}</strong><span>{user.email || 'Sin correo principal'}</span></div></div></td>
     <td data-label="Rol" role="cell"><span className={`fs-access__role-badge${user.role === 'superadmin' ? ' fs-access__role-badge--owner' : ''}`}>{user.role === 'superadmin' && <ShieldCheck size={13} aria-hidden="true" />}{user.role ? ROLE_DETAILS[user.role].label : 'Sin rol'}</span></td>
-    <td data-label="Estado" role="cell"><span className={`fs-access__status fs-access__status--${user.status}`}><span aria-hidden="true" className="fs-access__dot" />{user.status === 'active' ? 'Activo' : user.status === 'blocked' ? 'Bloqueado' : 'Sin acceso'}</span>{user.status !== 'active' && user.accessIssue && <small className="fs-access__issue">{user.accessIssue === 'email_missing' ? 'Sin correo' : user.accessIssue === 'email_unverified' ? 'Correo sin verificar' : user.accessIssue === 'email_changed' ? 'Revisar correo' : 'Suspendido'}</small>}</td>
+    <td data-label="Estado" role="cell"><span className={`fs-access__status fs-access__status--${user.status}`}><span aria-hidden="true" className="fs-access__dot" />{user.status === 'active' ? 'Activo' : user.status === 'blocked' ? 'Acceso retirado' : 'Sin acceso'}</span>{user.status !== 'active' && user.accessIssue && <small className="fs-access__issue">{user.accessIssue === 'email_missing' ? 'Sin correo' : user.accessIssue === 'email_unverified' ? 'Correo sin verificar' : user.accessIssue === 'email_changed' ? 'Revisar correo' : 'Suspendido'}</small>}</td>
     <td data-label="Acciones" role="cell"><div className="fs-access__actions">{self ? <span className="fs-access__self"><ShieldCheck size={14} aria-hidden="true" />Tu cuenta</span> : <><button type="button" className={secondary} disabled={disabled} aria-label={`Gestionar acceso de ${user.email || user.name || user.id}`} onClick={() => onEdit(user)}><Settings2 size={14} aria-hidden="true" />Gestionar acceso</button><button type="button" className={`${danger} fs-access__icon-button`} disabled={disabled} aria-label={`Eliminar cuenta de ${user.email || user.name || user.id}`} title="Eliminar cuenta" onClick={() => onDelete(user)}><Trash2 size={15} aria-hidden="true" /></button></>}</div></td>
   </tr>;
 }
@@ -139,7 +141,7 @@ export function DeleteAccountDialog({ user, busy, onClose, onConfirm }: {
   return <dialog ref={dialogRef} className="fs-access__dialog fs-access__delete-dialog" aria-labelledby="delete-user-title" aria-describedby="delete-user-description" onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
     <div className="fs-access__dialog-heading"><span className="fs-access__dialog-icon fs-access__delete-icon"><Trash2 size={21} aria-hidden="true" /></span><button type="button" className={`${secondary} fs-access__dialog-close`} aria-label="Cancelar eliminación" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true" /></button></div>
     <h2 id="delete-user-title">Eliminar cuenta</h2><p id="delete-user-description">Se eliminará la cuenta de acceso de <strong>{user.name || expected}</strong> y dejará de aparecer en esta lista. Esta acción es permanente.</p>
-    <p>Los leads, citas y documentos se conservarán. Para suspender el acceso sin eliminar la cuenta, usa Bloquear.</p>
+    <p>Los leads, citas y documentos se conservarán. Para impedir que entre sin eliminar la cuenta, usa Quitar acceso.</p>
     <form onSubmit={submit} aria-busy={busy} className="fs-access__dialog-form">
       <label htmlFor="delete-user-confirmation"><span>Para confirmar, escribe {user.email ? 'su correo' : 'su identificador'}:</span><strong className="fs-access__delete-identity">{expected}</strong></label>
       <input id="delete-user-confirmation" className={field} value={confirmation} onChange={event => setConfirmation(event.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={254} disabled={busy} aria-describedby={error ? 'delete-user-error' : undefined} />
@@ -193,10 +195,10 @@ export default function AdminAccess() {
     } finally { setBusy(false); }
   }
   async function invite(email: string, role: Role) {
-    await mutate(async () => { await api.post('/access/invitations', { email, role }); }, 'Invitación enviada. El enlace vence en 7 días.', () => setInviteOpen(false));
+    await mutate(async () => { await api.post('/access/invitations', { email, role }); }, 'Invitación enviada. Al aceptarla, el acceso se activará automáticamente.', () => setInviteOpen(false));
   }
   async function save(user: AccessUser, role: Role, status: 'active' | 'blocked') {
-    await mutate(async () => { await api.patch(`/access/users/${user.id}`, { email: user.email, role, status }); }, status === 'blocked' ? 'Acceso bloqueado. La cuenta se conserva.' : 'Permisos guardados para esta cuenta.', () => setEditTarget(null));
+    await mutate(async () => { await api.patch(`/access/users/${user.id}`, { email: user.email, role, status }); }, status === 'blocked' ? 'Acceso retirado. La cuenta se conserva y ya no puede entrar.' : 'Permisos guardados para esta cuenta.', () => setEditTarget(null));
   }
   async function deleteAccount(user: AccessUser, confirmation: string) {
     if (busy) return;
@@ -216,7 +218,7 @@ export default function AdminAccess() {
     <div className="fs-access__policy"><ShieldCheck size={16} aria-hidden="true" /><p>Solo superadmin gestiona accesos. <span>Se admite cualquier correo verificado.</span></p></div>
     {showHelp && <div id="access-help" className="fs-access__help">
       <div className="fs-access__help-roles">{(['admin', 'superadmin'] as const).map(key => <div className="fs-access__help-role" key={key}><h2>{ROLE_DETAILS[key].label}</h2><ul>{ROLE_DETAILS[key].permissions.map(permission => <li key={permission}><Check size={13} aria-hidden="true" />{permission}</li>)}</ul><p>{ROLE_DETAILS[key].limit}</p></div>)}</div>
-      <div className="fs-access__help-answers"><h2>Cómo funciona el acceso</h2><p><strong>Sin cuenta:</strong> invita a su correo real. Puede usar Gmail, Outlook o uno corporativo y aceptar el enlace desde ese buzón.</p><p><strong>Con cuenta:</strong> búscala en Usuarios y abre Gestionar acceso. Se autoriza su correo principal verificado.</p><p><strong>Con otro correo:</strong> otra cuenta necesita su propia autorización. Google solo sirve para cuentas de Google; para otros correos usa el inicio de sesión por correo.</p><p><strong>Si cambia de dirección:</strong> el correo autorizado debe seguir verificado en la misma cuenta. Si lo elimina, pierde el acceso hasta que autorices su nuevo correo verificado.</p></div>
+      <div className="fs-access__help-answers"><h2>Cómo funciona el acceso</h2><p><strong>Invitar → aceptar → entrar:</strong> al enviar la invitación ya autorizas el rol. Al aceptarla con ese correo verificado, la persona entra sin una segunda aprobación.</p><p><strong>Gestionar acceso:</strong> sirve para cambiar el rol, quitar el acceso o restablecerlo. Las cuentas antiguas que nunca recibieron una invitación pueden autorizarse aquí.</p><p><strong>Quitar acceso:</strong> la persona deja de entrar. Volver a abrir su invitación anterior no anula tu decisión; solo el superadmin puede restablecer el permiso.</p><p><strong>Con otro correo:</strong> otra cuenta necesita su propia autorización. El correo autorizado debe seguir presente y verificado en la cuenta.</p></div>
     </div>}
     {error && <div role="alert" className="fs-access__alert fs-access__alert--error"><AlertCircle size={17} aria-hidden="true" /><span>{error}</span></div>}
     {notice && <div role="status" className="fs-access__alert fs-access__alert--success"><Check size={17} aria-hidden="true" /><span>{notice}</span></div>}

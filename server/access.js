@@ -3,7 +3,10 @@ import { provisionInitialSuperadmin } from './initial-superadmin.js';
 
 const ROLES = new Set(['admin', 'superadmin']);
 const STATUSES = new Set(['active', 'blocked']);
-const storedAccess = user => user.private_metadata?.fabricAccess ?? user.public_metadata?.fabricAccess;
+const hasPrivateAccess = user => ['fabricAccess', 'fabricInvitationAccess'].some(key => Object.hasOwn(user.private_metadata || {}, key));
+const storedAccess = user => Object.hasOwn(user.private_metadata || {}, 'fabricAccess') ? user.private_metadata.fabricAccess
+  : Object.hasOwn(user.private_metadata || {}, 'fabricInvitationAccess') ? user.private_metadata.fabricInvitationAccess
+    : user.public_metadata?.fabricAccess;
 const primaryEmail = user => user.email_addresses?.find(address => address.id === user.primary_email_address_id);
 
 export function userAccess(user) {
@@ -51,6 +54,48 @@ function fail(res, status, code, error) {
 export function createAccessControl({ provider, authorizedParties, appOrigin, audit = () => {} }) {
   const router = express.Router();
 
+  async function activateInvitation(user) {
+    // An explicit admin decision (even null/invalid) must never be replaced by an old invitation.
+    if (user.banned || hasPrivateAccess(user)) return user;
+    if (user.public_metadata?.fabricAccess && user.public_metadata.fabricAccess.status !== 'active') return user;
+    let access = userAccess(user);
+    let invitationId = null;
+    if (access?.status !== 'active') {
+      // Recover accepted platform invitations when Clerk has not copied their metadata.
+      // Check provider records, never client tickets, token email claims, or pending invitations.
+      if (!Number.isFinite(user.created_at) || user.created_at <= 0) return user;
+      const emails = [...new Set((user.email_addresses || []).filter(address => address.verification?.status === 'verified')
+        .map(address => address.email_address.toLowerCase()))];
+      search: for (const email of emails) {
+        for (let offset = 0; offset < 500; offset += 100) {
+          const result = await provider.listAcceptedInvitations(email, 100, offset);
+          const invitations = Array.isArray(result) ? result : result.data;
+          if (!Array.isArray(invitations)) throw new Error('Invalid invitation response');
+          const invitation = invitations.find(item => {
+            const grant = item.public_metadata?.fabricAccess;
+            return item.status === 'accepted' && item.revoked !== true && /^inv_[\w-]+$/.test(item.id) &&
+              item.email_address?.toLowerCase() === email && typeof grant?.email === 'string' && grant.email.toLowerCase() === email &&
+              grant.status === 'active' && ROLES.has(grant.role) && /^user_[\w-]+$/.test(grant.grantedBy) &&
+              Number.isFinite(item.created_at) && item.created_at > 0 && Number.isFinite(item.updated_at) &&
+              // A deleted user's old invitation must not authorize a later account with the same email.
+              item.created_at <= user.created_at && user.created_at <= item.updated_at;
+          });
+          if (invitation) { access = invitation.public_metadata.fabricAccess; invitationId = invitation.id; break search; }
+          if (invitations.length < 100) break;
+        }
+      }
+    }
+    if (!access || access.status !== 'active') return user;
+    // Use a separate key: a concurrent manual block/change remains authoritative even
+    // if it happens after this read and before Clerk merges the invitation grant.
+    await provider.setInvitationAccess(user.id, { email: access.email.toLowerCase(), role: access.role, status: 'active',
+      grantedBy: access.grantedBy, source: 'invitation', invitationId, updatedAt: new Date().toISOString() });
+    const current = await provider.getUser(user.id);
+    if (!Object.hasOwn(current.private_metadata || {}, 'fabricInvitationAccess')) throw new Error('Invitation access was not persisted');
+    audit({ action: 'access.invitation_activated', actor: user.id, target: user.id, role: access.role, invitationId });
+    return current;
+  }
+
   async function identify(req, res, next) {
     res.set('Cache-Control', 'no-store');
     if (!provider || !authorizedParties.length) {
@@ -81,10 +126,13 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
       }
       if (req.method === 'GET' && req.baseUrl === '/api' && req.path === '/auth/login') {
         user = await provisionInitialSuperadmin(user, provider, audit);
+        user = await activateInvitation(user);
       }
       const access = userAccess(user);
       if (!access || access.status !== 'active') {
-        return fail(res, 403, 'ACCESS_DENIED', 'Tu cuenta no tiene acceso autorizado. Solicita una invitación al superadministrador.');
+        return fail(res, 403, 'ACCESS_DENIED', user.banned ? 'Esta cuenta está suspendida. Contacta al superadministrador.'
+          : storedAccess(user)?.status === 'blocked' ? 'El superadministrador retiró tu acceso. Solo puede restablecerlo desde la consola.'
+            : 'Esta cuenta no tiene acceso activo. Completa tu invitación con el correo que la recibió o contacta al superadministrador.');
       }
       req.identity = { claims, user, access };
       next();
@@ -117,6 +165,12 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
     const query = typeof req.query.query === 'string' ? req.query.query.trim().slice(0, 254) : '';
     const [result, count] = await Promise.all([provider.listUsers(25, offset, query), provider.countUsers(query)]);
     const users = Array.isArray(result) ? result : result.data;
+    // Repair already-accepted accounts in the directory too, without a second approval.
+    // Limit concurrent provider requests while reconciling one page of users.
+    let cursor = 0;
+    await Promise.all(Array.from({ length: Math.min(4, users.length) }, async () => {
+      while (cursor < users.length) { const index = cursor++; users[index] = await activateInvitation(users[index]); }
+    }));
     res.json({ users: users.map(user => {
       const primary = primaryEmail(user);
       const assigned = storedAccess(user);
@@ -128,6 +182,7 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
         id: user.id, name: [user.first_name, user.last_name].filter(Boolean).join(' '), email,
         role, status: user.banned || (role && assigned.status !== 'active') ? 'blocked' : effective?.status || 'unauthorized',
         emailVerified, canGrantAccess: emailVerified && !user.banned,
+        accessSource: assigned?.source === 'invitation' ? 'invitation' : role ? 'manual' : null,
         authorizedEmail: role && typeof assigned.email === 'string' ? assigned.email : '',
         accessIssue: user.banned ? 'banned' : !email ? 'email_missing' : !emailVerified ? 'email_unverified'
           : role && assigned.status === 'active' && !effective ? 'email_changed' : null,
@@ -153,7 +208,7 @@ export function createAccessControl({ provider, authorizedParties, appOrigin, au
     }
     if (!appOrigin || !authorizedParties.includes(appOrigin)) return fail(res, 503, 'AUTH_NOT_CONFIGURED', 'Falta configurar la dirección de la plataforma.');
     const invitation = await provider.invite({ email_address: email, redirect_url: `${appOrigin}/crear-cuenta`,
-      public_metadata: { fabricAccess: { email, role, status: 'active', grantedBy: req.identity.user.id } },
+      public_metadata: { fabricAccess: { email, role, status: 'active', source: 'invitation', grantedBy: req.identity.user.id } },
       notify: true, expires_in_days: 7 });
     audit({ action: 'access.invited', actor: req.identity.user.id, target: invitation.id, role });
     res.status(201).json({ success: true });

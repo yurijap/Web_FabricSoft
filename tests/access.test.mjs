@@ -6,6 +6,7 @@ import { createClerkClient } from '@clerk/clerk-sdk-node';
 import { createAccessControl, userAccess } from '../server/access.js';
 import { INITIAL_SUPERADMIN_EMAIL } from '../server/initial-superadmin.js';
 import { accessConfiguration } from '../server/access-config.js';
+import { createIdentityProvider } from '../server/clerk.js';
 
 const origin = 'https://localhost:5173';
 const key = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -20,7 +21,7 @@ function token(overrides = {}) {
   return `${signed}.${sign('RSA-SHA256', Buffer.from(signed), key.privateKey).toString('base64url')}`;
 }
 function account(id = 'user_owner', role = 'superadmin') {
-  return { id, primary_email_address_id: 'id_email', first_name: 'Test', last_name: 'User',
+  return { id, created_at: Date.now() - 1000, primary_email_address_id: 'id_email', first_name: 'Test', last_name: 'User',
     email_addresses: [{ id: 'id_email', email_address: `${id}@example.com`, verification: { status: 'verified' } }],
     private_metadata: { fabricAccess: { email: `${id}@example.com`, role, status: 'active' } },
     public_metadata: {}, totp_enabled: false };
@@ -28,7 +29,7 @@ function account(id = 'user_owner', role = 'superadmin') {
 async function fixture(t, { configured = true, configuration = { authorizedParties: [origin], appOrigin: origin } } = {}) {
   const owner = account();
   const target = account('user_target', 'admin');
-  const state = { owner, target, session: { status: 'active', user_id: owner.id, expire_at: Date.now() + 3600000 }, calls: [], searches: [], audit: [], outage: false, deletedUsers: new Set() };
+  const state = { owner, target, session: { status: 'active', user_id: owner.id, expire_at: Date.now() + 3600000 }, calls: [], searches: [], acceptedInvitations: [], invitationLookups: [], audit: [], outage: false, deletedUsers: new Set() };
   const matchingUsers = query => [owner, target].filter(user => !state.deletedUsers.has(user.id) &&
     (!query || [user.id, user.first_name, user.last_name, ...user.email_addresses.map(email => email.email_address)].some(value => value?.toLowerCase().includes(query.toLowerCase()))));
   const provider = {
@@ -36,10 +37,10 @@ async function fixture(t, { configured = true, configuration = { authorizedParti
     getUser: async id => {
       if (state.outage) throw new Error('private upstream detail');
       if (state.deletedUsers.has(id) || ![owner.id, target.id].includes(id)) throw Object.assign(new Error('Not found'), { status: 404 });
-      return id === target.id ? target : owner;
+      return structuredClone(id === target.id ? target : owner);
     },
     getSession: async () => state.session,
-    listUsers: async (limit, offset, query) => { state.searches.push(['list', limit, offset, query]); return matchingUsers(query).slice(offset, offset + limit); },
+    listUsers: async (limit, offset, query) => { state.searches.push(['list', limit, offset, query]); return structuredClone(matchingUsers(query).slice(offset, offset + limit)); },
     countUsers: async query => { state.searches.push(['count', query]); return { total_count: matchingUsers(query).length }; },
     deleteUser: async id => {
       state.calls.push(['delete', id]);
@@ -48,12 +49,23 @@ async function fixture(t, { configured = true, configuration = { authorizedParti
       return { id, object: 'user', deleted: true };
     },
     listInvitations: async () => [{ id: 'inv_test', email_address: 'new@example.com', status: 'pending', public_metadata: { fabricAccess: { role: 'admin' } }, url: 'secret-ticket' }],
+    listAcceptedInvitations: async (email, limit, offset) => {
+      state.invitationLookups.push([email, limit, offset]);
+      if (state.invitationLookupFailure) throw new Error('private invitation provider error');
+      return structuredClone(state.acceptedInvitations.filter(invitation => invitation.email_address?.toLowerCase().includes(email)).slice(offset, offset + limit));
+    },
     invite: async body => { state.calls.push(['invite', body]); return { id: 'inv_test' }; },
     revokeInvitation: async id => state.calls.push(['revoke', id]),
     setAccess: async (id, access) => {
       state.calls.push(['set', id, access]);
       if (state.writeFailure) throw new Error('Provider write failed');
       (id === owner.id ? owner : target).private_metadata.fabricAccess = access;
+    },
+    setInvitationAccess: async (id, access) => {
+      state.calls.push(['activate', id, access]);
+      if (state.writeFailure) throw new Error('private invitation write error');
+      if (state.beforeInvitationWrite) await state.beforeInvitationWrite();
+      if (!state.ignoreInvitationWrite) (id === owner.id ? owner : target).private_metadata.fabricInvitationAccess = structuredClone(access);
     },
   };
   const { router, protect } = createAccessControl({ provider: configured ? provider : null, ...configuration, audit: event => state.audit.push(event) });
@@ -459,4 +471,193 @@ test('directory search and pagination use the same bounded server-side query and
   assert.deepEqual(next.data.users, []);
   await state.request(`/api/access/users?query=${'a'.repeat(300)}&offset=-1`);
   assert.deepEqual(state.searches.slice(-2), [['list', 25, 0, 'a'.repeat(254)], ['count', 'a'.repeat(254)]]);
+});
+
+function acceptedInvitation(state, overrides = {}) {
+  const email = state.target.email_addresses[0].email_address;
+  return { id: 'inv_accepted', email_address: email, status: 'accepted',
+    created_at: state.target.created_at - 1000, updated_at: state.target.created_at + 500,
+    public_metadata: { fabricAccess: { email, role: 'admin', status: 'active', grantedBy: state.owner.id } }, ...overrides };
+}
+
+test('accepting the issued invitation activates its chosen role without any second approval', async t => {
+  for (const role of ['admin', 'superadmin']) {
+    const state = await fixture(t);
+    state.target.private_metadata = {};
+    const email = state.target.email_addresses[0].email_address;
+    assert.equal((await state.request('/api/access/invitations', { method: 'POST', body: { email, role } })).status, 201);
+    // Clerk accepts the invitation and copies its server-written metadata to the new user.
+    state.target.public_metadata = structuredClone(state.calls[0][1].public_metadata);
+    state.session.user_id = state.target.id;
+    const jwt = token({ sub: state.target.id });
+    const login = await state.request('/api/auth/login', { jwt });
+    assert.equal(login.status, 200);
+    assert.equal(login.data.rol, role);
+    assert.equal((await state.request('/api/leads', { jwt })).status, 200);
+    assert.equal(state.target.private_metadata.fabricAccess, undefined, 'no manual second approval');
+    assert.equal(state.target.private_metadata.fabricInvitationAccess.role, role);
+    await state.request('/api/auth/login', { jwt });
+    assert.equal(state.calls.filter(call => call[0] === 'activate').length, 1, 'activation is persisted only once');
+    assert.equal(state.calls.filter(call => call[0] === 'set').length, 0);
+
+    state.session.user_id = state.owner.id;
+    const listed = (await state.request('/api/access/users')).data.users.find(user => user.id === state.target.id);
+    assert.equal(listed.status, 'active');
+    assert.equal(listed.accessSource, 'invitation');
+    assert.equal((await state.request(`/api/access/users/${state.target.id}`, { method: 'PATCH', body: { role, status: 'blocked' } })).status, 200);
+    state.session.user_id = state.target.id;
+    for (const path of ['/api/auth/login', '/api/leads']) {
+      const denied = await state.request(path, { jwt });
+      assert.equal(denied.status, 403);
+      assert.match(denied.data.error, /retiró tu acceso/);
+    }
+    assert.equal(state.target.private_metadata.fabricInvitationAccess.status, 'active', 'the old grant still exists but cannot override removal');
+    assert.equal(state.calls.filter(call => call[0] === 'activate').length, 1);
+    // Only an explicit new admin decision can restore it.
+    state.session.user_id = state.owner.id;
+    assert.equal((await state.request(`/api/access/users/${state.target.id}`, { method: 'PATCH', body: { email, role, status: 'active' } })).status, 200);
+    state.session.user_id = state.target.id;
+    assert.equal((await state.request('/api/auth/login', { jwt })).status, 200);
+  }
+});
+
+test('an accepted invitation repairs missing user metadata in the directory and on the first login', async t => {
+  for (const entry of ['directory', 'login']) {
+    const state = await fixture(t);
+    state.target.private_metadata = {};
+    state.target.public_metadata = {};
+    state.acceptedInvitations = [acceptedInvitation(state)];
+    if (entry === 'directory') {
+      const listed = (await state.request('/api/access/users')).data.users.find(user => user.id === state.target.id);
+      assert.equal(listed.status, 'active');
+      assert.equal(listed.role, 'admin');
+      assert.equal(listed.accessSource, 'invitation');
+    }
+    state.session.user_id = state.target.id;
+    const jwt = token({ sub: state.target.id });
+    const login = await state.request('/api/auth/login', { jwt });
+    assert.equal(login.status, 200);
+    assert.equal(login.data.rol, 'admin');
+    assert.equal(state.target.private_metadata.fabricInvitationAccess.invitationId, 'inv_accepted');
+    assert.equal(state.audit.filter(event => event.action === 'access.invitation_activated').length, 1);
+    assert.equal(state.calls.some(call => call[0] === 'set'), false);
+    assert.equal((await state.request('/api/leads', { jwt })).status, 200);
+  }
+});
+
+test('pending invitation grants nothing and the same account enters automatically once acceptance is confirmed', async t => {
+  const state = await fixture(t);
+  state.target.private_metadata = {};
+  state.acceptedInvitations = [acceptedInvitation(state, { status: 'pending' })];
+  state.session.user_id = state.target.id;
+  const jwt = token({ sub: state.target.id });
+  assert.equal((await state.request('/api/auth/login', { jwt })).status, 403);
+  assert.equal(state.calls.length, 0);
+  state.acceptedInvitations[0].status = 'accepted';
+  assert.equal((await state.request('/api/auth/login', { jwt })).status, 200);
+  assert.equal(state.calls.filter(call => call[0] === 'activate').length, 1);
+});
+
+test('revoked, expired, unrelated, malformed and old-account invitations cannot create an automatic grant', async t => {
+  for (const variant of ['revoked', 'expired', 'revoked-flag', 'different-email', 'different-metadata-email', 'invalid-role', 'no-grantor', 'old-account', 'predates-invitation', 'missing-date', 'missing-user-date', 'unverified', 'banned']) {
+    const state = await fixture(t);
+    state.target.private_metadata = {};
+    const invitation = acceptedInvitation(state);
+    if (['revoked', 'expired'].includes(variant)) invitation.status = variant;
+    if (variant === 'revoked-flag') invitation.revoked = true;
+    if (variant === 'different-email') invitation.email_address += '.other';
+    if (variant === 'different-metadata-email') invitation.public_metadata.fabricAccess.email = 'other@example.com';
+    if (variant === 'invalid-role') invitation.public_metadata.fabricAccess.role = 'owner';
+    if (variant === 'no-grantor') delete invitation.public_metadata.fabricAccess.grantedBy;
+    if (variant === 'old-account') invitation.updated_at = state.target.created_at - 1;
+    if (variant === 'predates-invitation') invitation.created_at = state.target.created_at + 1;
+    if (variant === 'missing-date') delete invitation.updated_at;
+    if (variant === 'missing-user-date') delete state.target.created_at;
+    if (variant === 'unverified') state.target.email_addresses[0].verification.status = 'unverified';
+    if (variant === 'banned') state.target.banned = true;
+    state.acceptedInvitations = [invitation];
+    state.session.user_id = state.target.id;
+    assert.equal((await state.request('/api/auth/login', { jwt: token({ sub: state.target.id }) })).status, 403, variant);
+    assert.equal(state.calls.length, 0, variant);
+  }
+});
+
+test('private removals, empty decisions and later role changes always override invitation grants', async t => {
+  for (const decision of [null, {}, { role: 'owner', status: 'active' }, { email: 'user_target@example.com', role: 'admin', status: 'blocked' }]) {
+    const state = await fixture(t);
+    const invite = acceptedInvitation(state);
+    state.target.public_metadata = structuredClone(invite.public_metadata);
+    state.target.private_metadata = { fabricAccess: decision, fabricInvitationAccess: structuredClone(invite.public_metadata.fabricAccess) };
+    state.acceptedInvitations = [invite];
+    state.session.user_id = state.target.id;
+    assert.equal(userAccess(state.target)?.status === 'active', false);
+    assert.equal((await state.request('/api/auth/login', { jwt: token({ sub: state.target.id }) })).status, 403);
+    assert.equal(state.calls.length, 0);
+    assert.equal(state.invitationLookups.length, 0);
+  }
+  const state = await fixture(t);
+  state.target.private_metadata.fabricInvitationAccess = { email: 'user_target@example.com', role: 'superadmin', status: 'active' };
+  state.session.user_id = state.target.id;
+  assert.equal((await state.request('/api/auth/login', { jwt: token({ sub: state.target.id }) })).data.rol, 'admin', 'the manual role wins');
+});
+
+test('a manual removal or role change concurrent with invitation activation cannot be overwritten', async t => {
+  for (const status of ['blocked', 'active']) {
+    const state = await fixture(t);
+    state.target.private_metadata = {};
+    state.target.public_metadata = acceptedInvitation(state).public_metadata;
+    state.beforeInvitationWrite = async () => {
+      state.target.private_metadata.fabricAccess = { email: 'user_target@example.com', role: 'superadmin', status };
+    };
+    state.session.user_id = state.target.id;
+    const response = await state.request('/api/auth/login', { jwt: token({ sub: state.target.id }) });
+    assert.equal(response.status, status === 'blocked' ? 403 : 200);
+    if (status === 'active') assert.equal(response.data.rol, 'superadmin');
+    assert.equal(state.target.private_metadata.fabricAccess.status, status);
+    assert.equal(state.target.private_metadata.fabricInvitationAccess.role, 'admin');
+  }
+});
+
+test('accepted invitation lookup and activation fail closed when the provider fails or does not persist the grant', async t => {
+  for (const failure of ['invitationLookupFailure', 'writeFailure', 'ignoreInvitationWrite']) {
+    const state = await fixture(t);
+    state.target.private_metadata = {};
+    state.acceptedInvitations = [acceptedInvitation(state)];
+    state[failure] = true;
+    state.session.user_id = state.target.id;
+    const result = await state.request('/api/auth/login', { jwt: token({ sub: state.target.id }) });
+    assert.equal(result.status, 503, failure);
+    assert.equal(JSON.stringify(result.data).includes('private invitation'), false);
+    assert.equal(state.target.private_metadata.fabricInvitationAccess, undefined);
+    assert.equal(state.audit.some(event => event.action === 'access.invitation_activated'), false);
+  }
+});
+
+test('recovery paginates exact email matches instead of authorizing a partial query match', async t => {
+  const state = await fixture(t);
+  state.target.private_metadata = {};
+  state.acceptedInvitations = [...Array.from({ length: 100 }, (_, index) => acceptedInvitation(state, { id: `inv_other${index}`, email_address: 'user_target@example.com.other' })), acceptedInvitation(state)];
+  state.session.user_id = state.target.id;
+  assert.equal((await state.request('/api/auth/login', { jwt: token({ sub: state.target.id }) })).status, 200);
+  assert.deepEqual(state.invitationLookups, [['user_target@example.com', 100, 0], ['user_target@example.com', 100, 100]]);
+  assert.equal(state.target.private_metadata.fabricInvitationAccess.invitationId, 'inv_accepted');
+});
+
+test('the provider adapter searches accepted invitations safely and writes automatic grants without overwriting manual access', async t => {
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url: new URL(url), options });
+    return Response.json({ data: [] });
+  });
+  const provider = createIdentityProvider('sk_test_local_test_only');
+  const email = 'persona+equipo@empresa.com&status=pending';
+  await provider.listAcceptedInvitations(email, 100, 100);
+  assert.equal(requests[0].url.searchParams.get('status'), 'accepted');
+  assert.equal(requests[0].url.searchParams.get('query'), email);
+  assert.equal(requests[0].url.searchParams.get('offset'), '100');
+  const access = { email: 'persona@empresa.com', role: 'admin', status: 'active', source: 'invitation' };
+  await provider.setInvitationAccess('user_target', access);
+  assert.equal(requests[1].url.pathname, '/v1/users/user_target/metadata');
+  assert.equal(requests[1].options.method, 'PATCH');
+  assert.deepEqual(JSON.parse(requests[1].options.body), { private_metadata: { fabricInvitationAccess: access } });
 });

@@ -26,10 +26,14 @@ export function createIdentityProvider(secretKey) {
     listUsers: (limit, offset, query = '') => request(`/users?${new URLSearchParams({ limit: String(limit), offset: String(offset), order_by: '-created_at', ...(query ? { query } : {}) })}`),
     countUsers: (query = '') => request(`/users/count${query ? `?${new URLSearchParams({ query })}` : ''}`),
     listInvitations: (limit, offset) => request(`/invitations?status=pending&limit=${limit}&offset=${offset}`),
+    listAcceptedInvitations: (email, limit, offset) => request(`/invitations?${new URLSearchParams({ status: 'accepted', query: email, limit: String(limit), offset: String(offset), order_by: '-created_at' })}`),
     invite: body => request('/invitations', { method: 'POST', body }),
     revokeInvitation: id => request(`/invitations/${encodeURIComponent(id)}/revoke`, { method: 'POST' }),
     setAccess: (id, access) => request(`/users/${encodeURIComponent(id)}/metadata`, {
       method: 'PATCH', body: { private_metadata: { fabricAccess: access } },
+    }),
+    setInvitationAccess: (id, access) => request(`/users/${encodeURIComponent(id)}/metadata`, {
+      method: 'PATCH', body: { private_metadata: { fabricInvitationAccess: access } },
     }),
   };
 }
