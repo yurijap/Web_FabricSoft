@@ -11,8 +11,9 @@
     "test:access": "node --test tests/access.test.mjs",
     "test:auth-routing": "node --experimental-strip-types --test tests/auth-routing.test.mjs",
     "test:team-directory": "node --experimental-strip-types --test tests/team-directory.test.mjs",
+    "test:production-setup": "node --test tests/production-superadmin.test.mjs",
     "bootstrap:superadmin": "node scripts/bootstrap-superadmin.mjs",
-    "build": "npx vite build && node scripts/prerender.mjs",
+    "build": "npx vite build && node scripts/prerender.mjs && node scripts/provision-production-superadmin.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
