@@ -14,12 +14,21 @@ export function createIdentityProvider(secretKey) {
       // Never propagate provider responses, credentials or invitation tickets to the browser/logs.
       const error = new Error('No se pudo completar la operación con el proveedor de identidad.');
       error.status = response.status === 404 ? 404 : response.status === 422 || response.status === 409 ? 409 : 503;
+      error.providerStatus = response.status;
       throw error;
     }
     return response.json();
   }
   return {
     verifyToken: (token, authorizedParties) => client.verifyToken(token, { authorizedParties }),
+    getInstance: () => request('/instance'),
+    getJwks: () => request('/jwks'),
+    findUsersByEmail: email => request(`/users?${new URLSearchParams({ email_address: email, limit: '2' })}`),
+    createUser: body => request('/users', { method: 'POST', body }),
+    updateUser: (id, body) => request(`/users/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+    setProvisioningReceipt: (id, receipt) => request(`/users/${encodeURIComponent(id)}/metadata`, {
+      method: 'PATCH', body: { private_metadata: { fabricDeploymentProvisioning: receipt } },
+    }),
     getUser: id => request(`/users/${encodeURIComponent(id)}`),
     deleteUser: id => request(`/users/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     getSession: id => request(`/sessions/${encodeURIComponent(id)}`),

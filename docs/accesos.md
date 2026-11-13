@@ -26,6 +26,20 @@ Después de esa configuración, las invitaciones y los permisos del equipo se ad
 
 ## Usar el directorio y elegir el correo
 
+### Alta de Julio al desplegar
+
+Por autorización expresa del propietario, el build de **Vercel Production** prepara `julio.alvarez@fabricsoft.com.mx` con rol `superadmin` y contraseña. Se ejecuta al terminar la compilación y el prerender mediante `scripts/provision-production-superadmin.mjs`; `vercel.json` fija `pnpm run build`. Desarrollo local, Preview y entornos personalizados omiten esta operación. Se utilizan `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` y `MONGODB_URI` ya configuradas en Production; no hace falta copiar la clave secreta al equipo local para este flujo.
+
+El script comprueba que las claves de firma pública de las dos API de Clerk coincidan antes de tocar cuentas. Solo prepara ese correo exacto. Si la cuenta ya existe, exige que sea su dirección principal verificada y que no esté suspendida/bloqueada en Clerk; conserva sus demás metadatos y cierra sus sesiones anteriores al asignar las credenciales. La cuenta nueva se crea mediante la API administrativa de Clerk, que verifica sus identificadores por defecto. El propietario debe entregar las credenciales a Julio.
+
+La contraseña se genera aleatoriamente; el repositorio contiene únicamente un hash PBKDF2-SHA256 con sal aleatoria y 600 000 iteraciones, en un módulo exclusivo del build. No se incluye en el frontend ni se imprime en los logs. Clerk admite importar este formato de contraseña. El modo de acceso por contraseña debe estar habilitado en esa instancia; un rechazo de Clerk o una configuración incompleta detiene el build con un mensaje seguro.
+
+La colección `fabric_admin_provisioning` guarda un recibo por instancia de Clerk y versión del alta. Usa un bloqueo temporal para impedir ejecuciones simultáneas. Los posteriores despliegues no restablecen contraseñas, no revierten cambios de rol ni retiradas de acceso, y no recrean cuentas eliminadas. Esta colección no forma parte del vaciado de datos operativos. La recuperación de un build interrumpido consulta la identidad ya conocida o su recibo privado en Clerk; si no puede distinguir un alta incierta de una eliminación, detiene el proceso para revisión en lugar de recrearla.
+
+`pnpm test:production-setup` prueba el alta y actualización, omisión fuera de producción, correspondencia de claves, fallos y reintentos, preservación de decisiones posteriores, eliminación y concurrencia con servicios simulados. La creación real se comprobará en los logs del despliegue; aquí no se dispone de la clave administrativa. Referencias: [importación de contraseñas en Clerk](https://clerk.com/docs/reference/backend/user/create-user), [actualización de cuentas](https://clerk.com/docs/reference/backend/user/update-user), [variables del sistema de Vercel](https://vercel.com/docs/environment-variables/system-environment-variables).
+
+### Directorio y correo autorizado
+
 La pantalla abre directamente en **Equipo**, con búsqueda por nombre o correo entre sus miembros en todas las páginas. **Pendientes** contiene las invitaciones aún sin aceptar. **Invitar usuario** elige el rol antes de enviar. Al aceptar, la cuenta aparece **Activa**. **Gestionar acceso** permite cambiar su rol, **Quitar acceso** o **Restablecer acceso** después de retirarlo; no es una segunda aprobación de la invitación. **Roles y ayuda** muestra la explicación cuando se necesita. Las cuentas que nunca recibieron un rol se ocultan del directorio.
 
 - **Cualquier proveedor:** Gmail, Outlook, Hotmail y los correos corporativos sirven. La persona debe poder recibir mensajes en esa dirección y verificarla. En Clerk, el método de inicio de sesión por correo debe estar habilitado en **User & authentication**; cambiar el diseño no modifica esa configuración externa ni las claves.
